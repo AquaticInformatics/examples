@@ -1,4 +1,4 @@
-package ai.training.dtos;
+package ai.aqsamples.apiexamples.dtos;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 

@@ -1,6 +1,8 @@
-package ai.training;
+package ai.aqsamples.apiexamples;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -8,8 +10,10 @@ import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import ai.training.dtos.ObservedProperty;
-import ai.training.dtos.UnitGroup;
+import ai.aqsamples.apiexamples.dtos.ObservedProperty;
+import ai.aqsamples.apiexamples.dtos.UnitGroup;
+
+import static java.util.stream.Collectors.toMap;
 
 public class AqSamplesClient {
 
@@ -31,11 +35,16 @@ public class AqSamplesClient {
         return response.readEntity(new GenericType<List<UnitGroup>>() { });
     }
 
-    public List<ObservedProperty> getObservedProperties() {
+    public Map<String, ObservedProperty> getObservedProperties() {
         Client client = ClientBuilder.newClient();
         final Response response = client.target(createUrl(OBSERVED_PROPERTIES_PATH)).request().get();
         throwExceptionIfError(response);
-        return response.readEntity(new GenericType<List<ObservedProperty>>() { });
+        final List<ObservedProperty> observedPropertyList = response.readEntity(new GenericType<List<ObservedProperty>>() { });
+        return createCustomIdToObservedPropertyMap(observedPropertyList);
+    }
+
+    private Map<String, ObservedProperty> createCustomIdToObservedPropertyMap(List<ObservedProperty> observedProperties) {
+        return observedProperties.stream().collect(toMap(ObservedProperty::getCustomId, Function.identity()));
     }
 
     public ObservedProperty postObservedProperty(ObservedProperty observedProperty) {
@@ -44,6 +53,16 @@ public class AqSamplesClient {
                 .request()
                 .accept(MediaType.APPLICATION_JSON_TYPE)
                 .post(Entity.entity(observedProperty, MediaType.APPLICATION_JSON_TYPE));
+        throwExceptionIfError(response);
+        return response.readEntity(ObservedProperty.class);
+    }
+
+    public ObservedProperty putObservedProperty(ObservedProperty observedProperty) {
+        Client client = ClientBuilder.newClient();
+        Response response = client.target(createUrl(OBSERVED_PROPERTIES_PATH + "/" + observedProperty.getId()))
+                .request()
+                .accept(MediaType.APPLICATION_JSON_TYPE)
+                .put(Entity.entity(observedProperty, MediaType.APPLICATION_JSON_TYPE));
         throwExceptionIfError(response);
         return response.readEntity(ObservedProperty.class);
     }
