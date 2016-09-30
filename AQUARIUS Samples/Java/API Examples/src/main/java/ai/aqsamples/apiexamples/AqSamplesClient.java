@@ -10,6 +10,7 @@ import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import ai.aqsamples.apiexamples.dtos.AnalyticalGroup;
 import ai.aqsamples.apiexamples.dtos.ObservedProperty;
 import ai.aqsamples.apiexamples.dtos.UnitGroup;
 
@@ -19,6 +20,7 @@ public class AqSamplesClient {
 
     private static final String OBSERVED_PROPERTIES_PATH = "observedproperties";
     private static final String UNIT_GROUPS_PATH = "unitgroups";
+    private static final String ANALYTICAL_GROUPS_PATH = "analyticalgroups";
     private static final String TOKEN_PARAM = "token";
     private final String baseUri;
     private final String token;
@@ -65,6 +67,16 @@ public class AqSamplesClient {
                 .put(Entity.entity(observedProperty, MediaType.APPLICATION_JSON_TYPE));
         throwExceptionIfError(response);
         return response.readEntity(ObservedProperty.class);
+    }
+
+    public AnalyticalGroup postAnalyticalGroup(AnalyticalGroup analyticalGroup) {
+        Client client = ClientBuilder.newClient();
+        Response response = client.target(createUrl(ANALYTICAL_GROUPS_PATH))
+                .request()
+                .accept(MediaType.APPLICATION_JSON_TYPE)
+                .post(Entity.entity(analyticalGroup, MediaType.APPLICATION_JSON_TYPE));
+        throwExceptionIfError(response);
+        return response.readEntity(AnalyticalGroup.class);
     }
 
     private void throwExceptionIfError(Response response) {
