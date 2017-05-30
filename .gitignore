@@ -2,6 +2,10 @@
 Thumbs.db
 #Ignore merge conflict files
 *.orig
+#Ignore some common Java cruft
+.idea
+*.iml
+target
 #Ignore some MyGet cruft
 [Bb]uild/
 msbuild.log
