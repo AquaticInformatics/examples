@@ -1,0 +1,61 @@
+#Ignore thumbnails created by windows
+Thumbs.db
+#Ignore merge conflict files
+*.orig
+#Ignore some common Java cruft
+.idea
+*.iml
+target
+#Ignore some MyGet cruft
+[Bb]uild/
+msbuild.log
+#Ignore build output and Visual Studio temp file
+*.obj
+*.exe
+*.dll
+*.pdb
+*.user
+*.aps
+*.pch
+*.vspscc
+*_i.c
+*_p.c
+*_h.h
+*_i.h
+*.ncb
+*.suo
+*.tlb
+*.tlh
+*.bak
+*.cache
+*.ilk
+*.log
+*.log.*
+*.lib
+*.sbr
+[Bb]in/
+[Oo]bj/
+[Dd]ebug*/
+[Rr]elease*/
+_[Rr]eSharper*/
+[Tt]est[Rr]esult*/
+# MIDL generated file
+dlldata.c
+# Build log files
+*_Release_Log.txt
+*_Debug_Log.txt
+# intended to globally catch Visual Studio intellisense files. SQL Server files are overridden by .gitignore files in their own directory
+*.sdf
+*.opensdf
+ipch/
+[Dd]eploy/
+# Ignore NuGet Packages
+*.nupkg
+# Ignore the packages folder
+**/packages/*
+# except build/, which is used as an MSBuild target.
+!**/packages/build/
+# Uncomment if necessary however generally it will be regenerated when needed
+#!**/packages/repositories.config
+.vs/
+TestResult.xml
