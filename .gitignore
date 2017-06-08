@@ -1,5 +1,7 @@
 #Ignore thumbnails created by windows
 Thumbs.db
+#Ignore generated Python code
+*.pyc
 #Ignore merge conflict files
 *.orig
 #Ignore some common Java cruft
