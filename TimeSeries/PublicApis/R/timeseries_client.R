@@ -13,17 +13,25 @@ publishClient <- setRefClass("publishClient",
     #' 
     #' Once authenticated, all subsequent requests to the AQTS server will reuse the authenticated session
     #' 
-    #' @param server A server name or IP address
+    #' @param hostname A server name or IP address
     #' @param username The AQTS credentials username
     #' @param password The AQTS credentials password
     #' @examples 
     #' connect("localhost", "admin", "admin") # When running R on your AQTS app server
     #' connect("myserver", "me", "mypassword") # Connect over the network
-    connect = function(server, username, password) {
-        baseUri <<- paste0("http://", server, "/AQUARIUS/Publish/v2")
+    #' connect("https://myserver", "user", "letmein") # Connect to an AQTS server with HTTPS enabled
+    connect = function(hostname, username, password) {
+      prefix <- "http://"
+      if (startsWith(hostname, "http://") || startsWith(hostname, "https://")) {
+        url <- parse_url(hostname)
+        hostname <- paste0(url$scheme, "://", url$hostname)
+        prefix <- ""
+      }
+      
+      baseUri <<- paste0(prefix, hostname, "/AQUARIUS/Publish/v2")
 
-        r <- POST(paste0(baseUri, "/session"), body = list(Username = username, EncryptedPassword = password), encode = "json")
-        stop_for_status(r, "authenticate with AQTS")
+      r <- POST(paste0(baseUri, "/session"), body = list(Username = username, EncryptedPassword = password), encode = "json")
+      stop_for_status(r, "authenticate with AQTS")
     },
     
     #' Disconnects immediately from an AQTS server
