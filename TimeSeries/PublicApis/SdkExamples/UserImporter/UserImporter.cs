@@ -54,7 +54,7 @@ namespace UserImporter
             var updateCount = 0;
 
 
-            using (var client = AquariusClient.CreateConnectedClient(_context.ApiUrl, _context.Username, _context.Password))
+            using (var client = AquariusClient.CreateConnectedClient(_context.Server, _context.Username, _context.Password))
             {
                 Log.Info($"Connected to {(client.ProvisioningClient as JsonServiceClient)?.BaseUri} ({client.ServerVersion}) as user='{_context.Username}'.");
 

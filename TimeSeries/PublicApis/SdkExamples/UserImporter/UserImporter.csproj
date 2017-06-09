@@ -91,7 +91,6 @@
   <ItemGroup>
     <Compile Include="ExpectedException.cs" />
     <Compile Include="Helpers\CsvAuthenticationTypeConverter.cs" />
-    <Compile Include="Helpers\CommandLineArgumentParser.cs" />
     <Compile Include="Helpers\CsvBoolConverter.cs" />
     <Compile Include="Helpers\CsvFileReaderWriter.cs" />
     <Compile Include="Records\AuthenticationType.cs" />
