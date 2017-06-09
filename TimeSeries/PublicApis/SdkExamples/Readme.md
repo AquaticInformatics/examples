@@ -50,3 +50,18 @@ To see the flow of how this might work, use two separate shell windows (CMD.EXE 
 Key concepts demonstrated: Everything from the `AppendPoints` example, plus:
 - Using the `GET /Publish/v2/GetTimeSeriesUniqueIdList` request to monitor a time-series for ["changes since"](https://github.com/AquaticInformatics/aquarius-sdk-net/wiki/Monitoring-changes-to-a-time-series#changes-since-concept) the last time you polled the system.
 - Using the `POST /Acquisition/v2/{UniqueId}/reflected` request to queue points to be appended to a reflected time-series, overwriting any existing points within a time range.
+
+### UserImporter
+
+The `UserImporter` example app can be used to import a number of AQTS users from a CSV file.
+
+All three AQTS authentication methods are supported:
+- Aquarius credentials
+- Active Directory authentication
+- OpenId Connect authentication
+
+Key concepts demonstrated:
+- Using the `GET /Provisioning/v1/users` operation to get the currently configured users from a system.
+- Using the `POST /Provisioning/v1/users/{authenticationType}` operations to create users with a specific authentication type
+- Using the `PUT /Provisioning/v1/users/{authenticationType}/{userUniqueId}` operations to update existing users properties
+- Using the `PUT /Provisioning/v1/users/{userUniqueId}/{authenticationType}` operations to change an existing user from one authentication type to another
