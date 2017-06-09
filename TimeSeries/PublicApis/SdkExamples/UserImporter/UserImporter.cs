@@ -82,24 +82,12 @@ namespace UserImporter
 
         private List<User> GetAqUsers(IAquariusClient client)
         {
-            var aqUsers = new List<User>();
+            Log.Info("Retrieving existing users from Aquarius ...");
+            var response = client.ProvisioningClient.Get(new GetUsers());
 
-            try
-            {
-                Log.Info("Retrieving existing users from Aquarius...");
-                var response = client.ProvisioningClient.Get(new GetUsers());
+            Log.InfoFormat("Successfully retrieved {0} current users from Aquarius", response.Results.Count);
 
-                Log.InfoFormat("Successfully retrieved {0} current users from Aquarius", response.Results.Count);
-
-                aqUsers = response.Results;
-            }
-            catch (Exception e)
-            {
-                Log.ErrorFormat("Failed to retrieve users from Aquarius. Error: {0}", e.Message);
-            }
-            
-
-            return aqUsers;
+            return response.Results;
         }
 
         private bool CreateUser(IAquariusClient client, UserRecord userRecord)
