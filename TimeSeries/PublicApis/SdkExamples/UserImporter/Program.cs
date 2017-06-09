@@ -19,7 +19,7 @@ namespace UserImporter
 
                 _log.InfoFormat("Starting user synchronization");
 
-                var context = new UserSyncContext(args);
+                var context = new UserImporterContext(args);
 
                 var userImport = new UserImporter(context);
                 userImport.Run();

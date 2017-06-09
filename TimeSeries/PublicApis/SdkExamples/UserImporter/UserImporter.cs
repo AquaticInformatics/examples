@@ -15,9 +15,9 @@ namespace UserImporter
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private readonly UserSyncContext _context;
+        private readonly UserImporterContext _context;
         
-        public UserImporter(UserSyncContext context)
+        public UserImporter(UserImporterContext context)
         {
             _context = context;
         }

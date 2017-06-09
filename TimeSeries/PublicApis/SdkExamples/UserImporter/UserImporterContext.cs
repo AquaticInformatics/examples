@@ -8,7 +8,7 @@ using UserImporter.Helpers;
 
 namespace UserImporter
 {
-    public class UserSyncContext
+    public class UserImporterContext
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -18,14 +18,13 @@ namespace UserImporter
         public string Password { get; private set; }
         public string UsersFile { get; private set; }
 
-        public UserSyncContext(IEnumerable<string> arguments)
+        public UserImporterContext(IEnumerable<string> arguments)
         {
             BuildAppSettings(arguments);
             GetBaseUrl();
             GetUsername();
             GetPassword();
             GetUsersFile();
-            //GetRolesFile();
         }
 
         private void BuildAppSettings(IEnumerable<string> arguments)
