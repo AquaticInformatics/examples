@@ -10,7 +10,7 @@ namespace UserImporter.Helpers
             if (bool.TryParse(from, out b))
                 return b;
 
-            throw new ConvertException(from, typeof(bool), "Input string '" + from + "'is not a valid true/false formatted string");
+            throw new ConvertException(from, typeof(bool), $"Input string '{from}'is not a valid true/false Boolean value");
         }
     }
 }

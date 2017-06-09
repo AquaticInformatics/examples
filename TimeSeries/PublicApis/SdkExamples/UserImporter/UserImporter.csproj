@@ -89,6 +89,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExpectedException.cs" />
     <Compile Include="Helpers\CsvAuthenticationTypeConverter.cs" />
     <Compile Include="Helpers\CommandLineArgumentParser.cs" />
     <Compile Include="Helpers\CsvBoolConverter.cs" />

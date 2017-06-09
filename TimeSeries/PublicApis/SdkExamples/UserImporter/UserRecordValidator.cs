@@ -22,49 +22,47 @@ namespace UserImporter
                     string.IsNullOrEmpty(record.LastName) ||
                     string.IsNullOrEmpty(record.Email))
                 {
-                    Log.ErrorFormat("User record for {0} is not fully formed. Skipping.", record.Username);
+                    Log.Error($"User record for '{record.Username}' is not fully formed. Skipping.");
                     continue;
                 }
 
                 if (record.AuthenticationType == AuthenticationType.Unknown)
                 {
-                    Log.ErrorFormat("User record for {0} does not have a valid AuthenticationType. Skipping.", record.Username);
+                    Log.Error($"User record for '{record.Username}' does not have a valid AuthenticationType. Skipping.");
                     continue;
                 }
                 
                 if (record.AuthenticationType == AuthenticationType.Credentials &&
                     string.IsNullOrEmpty(record.Password))
                 {
-                    Log.ErrorFormat("User record for {0} is Credentials, but no password provided. Skipping.", record.Username);
+                    Log.Error($"User record for '{record.Username}' is {record.AuthenticationType}, but no Password provided. Skipping.");
                     continue;
                 }
                 
                 if (record.AuthenticationType == AuthenticationType.ActiveDirectory &&
                         string.IsNullOrEmpty(record.UserPrincipalName))
                 {
-                    Log.ErrorFormat("User record for {0} is ActiveDirectory, but no UserPrincipleName provided. Skipping.", record.Username);
+                    Log.Error($"User record for '{record.Username}' is {record.AuthenticationType}, but no UserPrincipleName provided. Skipping.");
                     continue;
                 }
                 
                 if (record.AuthenticationType == AuthenticationType.OpenIdConnect &&
                            string.IsNullOrEmpty(record.SujectIdentifier))
                 {
-                    Log.ErrorFormat(
-                        "User record for {0} is OpenIdConnect, but no SubjectIdentifier provided. Skipping.",
-                        record.Username);
+                    Log.Error($"User record for '{record.Username}' is {record.AuthenticationType}, but no SubjectIdentifier provided. Skipping.");
                     continue;
                 }          
 
                 if (userDict.ContainsKey(record.Username))
                 {
-                    Log.ErrorFormat("Duplicate username detected: {0}. Skipping.", record.Username);
+                    Log.Error($"Duplicate username detected: '{record.Username}'. Skipping.");
                     continue;
                 }
 
                 userDict.Add(record.Username, record);
             }
 
-            Log.InfoFormat("Validation finished. {0} user records remain.", userDict.Count);
+            Log.Info($"Validation finished. {userDict.Count} user records remain.");
 
             return userDict.Values.ToList();
         }

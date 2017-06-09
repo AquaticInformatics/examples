@@ -19,7 +19,7 @@ namespace UserImporter.Helpers
             }
             else
             {
-                var errorMessage = string.Format("Invalid command line argument: {0}", argument);
+                var errorMessage = $"Invalid command line argument: {argument}";
                 throw new ArgumentException(errorMessage);
             }
 

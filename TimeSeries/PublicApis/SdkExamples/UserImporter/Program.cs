@@ -17,27 +17,30 @@ namespace UserImporter
             {
                 ConfigureLogging();
 
-                _log.InfoFormat("Starting user synchronization");
+                _log.Info("Starting user synchronization ...");
 
                 var context = new UserImporterContext(args);
 
                 var userImport = new UserImporter(context);
                 userImport.Run();
 
-                _log.InfoFormat("Done.");
+                _log.Info("Done.");
 
                 Environment.ExitCode = 0;
             }
             catch (Exception exception)
             {
+                Action<string> logAction = message => _log.Error(message);
+
                 if (_log == null)
                 {
-                    Console.WriteLine($"FATAL ERROR (logging not configured): {exception.Message}\n{exception.StackTrace}");
+                    logAction = message => Console.WriteLine($"FATAL ERROR (logging not configured): {message}");
                 }
+
+                if (exception is ExpectedException)
+                    logAction(exception.Message);
                 else
-                {
-                    _log.ErrorFormat("{0}: {1}", exception.Message, exception.StackTrace);
-                }
+                    logAction($"{exception.Message}\n{exception.StackTrace}");
             }
         }
 

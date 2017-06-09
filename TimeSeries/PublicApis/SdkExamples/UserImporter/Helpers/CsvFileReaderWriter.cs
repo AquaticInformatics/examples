@@ -17,11 +17,11 @@ namespace UserImporter.Helpers
 
         public CsvFileReaderWriter(string fileName)
         {
-            _log = LogManager.GetLogger(string.Format("{0}<{1}>", typeof(CsvFileReaderWriter<TRecordType>).Name, typeof(TRecordType).Name));
+            _log = LogManager.GetLogger($"{typeof(CsvFileReaderWriter<TRecordType>).Name}<{typeof(TRecordType).Name}>");
 
             if (string.IsNullOrEmpty(fileName))
             {
-                throw new ArgumentNullException("fileName");
+                throw new ArgumentNullException(nameof(fileName));
             }
 
             _csvFileName = fileName;
@@ -29,25 +29,26 @@ namespace UserImporter.Helpers
 
         public IEnumerable<TRecordType> ReadRecords(bool ignoreFirstLine)
         {
+            if (!File.Exists(_csvFileName))
+                throw new ExpectedException($"CSV file '{_csvFileName}' does not exist.");
+
             using (var reader = new StreamReader(_csvFileName))
+            using (var recordEngine = new FileHelperAsyncEngine<TRecordType>())
             {
-                using (var recordEngine = new FileHelperAsyncEngine<TRecordType>())
+                if (ignoreFirstLine)
+                    recordEngine.Options.IgnoreFirstLines = 1;
+
+                recordEngine.ErrorMode = ErrorMode.SaveAndContinue;
+
+                recordEngine.BeginReadStream(reader);
+
+                foreach (var record in recordEngine)
                 {
-                    if (ignoreFirstLine)
-                        recordEngine.Options.IgnoreFirstLines = 1;
-
-                    recordEngine.ErrorMode = ErrorMode.SaveAndContinue;
-
-                    recordEngine.BeginReadStream(reader);
-
-                    foreach (var record in recordEngine)
-                    {
-                        yield return record;
-                    }
-
-                    _errors = recordEngine.ErrorManager.Errors;
-                    LogErrorCount();
+                    yield return record;
                 }
+
+                _errors = recordEngine.ErrorManager.Errors;
+                LogErrorCount();
             }
         }
 
@@ -59,16 +60,13 @@ namespace UserImporter.Helpers
                 engine.HeaderText = engine.GetFileHeader();
 
             engine.WriteFile(_csvFileName, records);
-        } 
-
+        }
 
         private void LogErrorCount()
         {
             if (!HasErrors) return;
 
-            _log.ErrorFormat("{0} invalid lines in file '{3}'. Line {1}, error: {2}", _errors.Length, _errors[0].LineNumber, _errors[0].ExceptionInfo.Message, _csvFileName);
-
+            _log.Error($"{ _errors.Length} invalid lines in file '{_csvFileName}'. Line {_errors[0].LineNumber}, error: {_errors[0].ExceptionInfo.Message}");
         }
-
     }
 }

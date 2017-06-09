@@ -32,12 +32,12 @@ namespace UserImporter
 
         private List<UserRecord> ReadUsersFromCsv()
         {
-            Log.Info("Reading users from csv file..");
+            Log.Info($"Reading users from '{_context.UsersFile}' ...");
 
             var reader = new CsvFileReaderWriter<UserRecord>(_context.UsersFile);
             var users = reader.ReadRecords(true).ToList();
 
-            Log.InfoFormat("Successfully read {0} users from csv file.", users.Count);
+            Log.Info($"Successfully read {users.Count} users from csv file.");
 
             return users;
         }
@@ -56,11 +56,13 @@ namespace UserImporter
 
             using (var client = AquariusClient.CreateConnectedClient(_context.ApiUrl, _context.Username, _context.Password))
             {
+                Log.Info($"Connected to {(client.ProvisioningClient as JsonServiceClient)?.BaseUri} ({client.ServerVersion}) as user='{_context.Username}'.");
+
                 var aqUsers = GetAqUsers(client);
 
                 Dictionary<string, User> aqUserDictionary = aqUsers.ToDictionary(x => x.LoginName, user => user);
 
-                Log.Info("Importing users into Aquarius...");
+                Log.Info("Importing users into Aquarius ...");
 
                 foreach (var user in users)
                 {
@@ -77,7 +79,7 @@ namespace UserImporter
                 }
             }
 
-            Log.InfoFormat("Successfully created {0} users and updated {1} users.",createCount, updateCount);
+            Log.Info($"Successfully created {createCount} users and updated {updateCount} users.");
         }
 
         private List<User> GetAqUsers(IAquariusClient client)
@@ -85,7 +87,7 @@ namespace UserImporter
             Log.Info("Retrieving existing users from Aquarius ...");
             var response = client.ProvisioningClient.Get(new GetUsers());
 
-            Log.InfoFormat("Successfully retrieved {0} current users from Aquarius", response.Results.Count);
+            Log.Info($"Successfully retrieved {response.Results.Count} current users from Aquarius");
 
             return response.Results;
         }
@@ -98,12 +100,12 @@ namespace UserImporter
 
                 var createdUser = client.ProvisioningClient.Post(user);
                 
-                Log.DebugFormat("Created {0} user: {1}", createdUser.AuthenticationType, userRecord.Username);
+                Log.Debug($"Created {createdUser.AuthenticationType} user: '{userRecord.Username}'");
                 return true;
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Log.ErrorFormat("Failed to create user {0}. Error: {1}", userRecord.Username, e.Message);
+                Log.Error($"Failed to create user '{userRecord.Username}'. Error={exception.Message}");
                 return false;
             }
         }
@@ -132,12 +134,12 @@ namespace UserImporter
 
                 var updatedUser = client.ProvisioningClient.Put(user);
 
-                Log.DebugFormat("Updated {0} user: {1}", updatedUser.AuthenticationType, userRecord.Username);
+                Log.Debug($"Updated {updatedUser.AuthenticationType} user: '{userRecord.Username}'");
                 return true;
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Log.ErrorFormat("Failed to update user {0}. Error: {1}", userRecord.Username, e.Message);
+                Log.Error($"Failed to update user '{userRecord.Username}'. Error={exception.Message}");
                 return false;
             }
         }
@@ -158,11 +160,11 @@ namespace UserImporter
 
                 var changedUser = client.ProvisioningClient.Put(userAuth);
 
-                Log.DebugFormat("Updated user authentiation to {0} for user: {1}", changedUser.AuthenticationType, userRecord.Username);
+                Log.Debug($"Changed user '{userRecord.Username}' to authentication type {changedUser.AuthenticationType}.");
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Log.ErrorFormat("Failed to update users authentication type {0}. Error: {1}", userRecord.Username, e.Message);
+                Log.Error($"Failed to change user '{userRecord.Username}' to authentication type {userRecord.AuthenticationType}. Error: {exception.Message}");
             } 
         }
 

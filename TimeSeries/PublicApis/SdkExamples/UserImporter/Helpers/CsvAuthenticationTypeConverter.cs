@@ -21,7 +21,7 @@ namespace UserImporter.Helpers
             if (Aliases.TryGetValue(from, out authenticationType))
                 return authenticationType;
 
-            throw new ConvertException(from, typeof(AuthenticationType), "Input string '" + from + "'is not a valid authentication type");
+            throw new ConvertException(from, typeof(AuthenticationType), $"Input string '{from}'is not a valid authentication type");
         }
 
         private static readonly Dictionary<string, AuthenticationType> Aliases =

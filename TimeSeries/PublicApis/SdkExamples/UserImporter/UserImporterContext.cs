@@ -53,7 +53,6 @@ namespace UserImporter
         private void GetBaseUrl()
         {
             ApiUrl = _appSettings["server"] + "/AQUARIUS/Provisioning/v1";
-            Log.DebugFormat("ApiURL={0}", ApiUrl);
             ThrowExceptionIfMissing("server", ApiUrl);
         }
 
@@ -82,13 +81,7 @@ namespace UserImporter
                 return;
             }
 
-            var errorMessage = string.Format("Value for the application setting '{0}' is missing.", key);
-            throw new MissingFieldException(errorMessage);
-        }
-
-        private static void ThrowExceptionIfWrong(string key, string values)
-        {
-            var errorMessage = string.Format("Value for the application setting '{0}' is incorrect. Must be one of {1}", key, values);
+            var errorMessage = $"Value for the application setting '{key}' is missing.";
             throw new MissingFieldException(errorMessage);
         }
     }
