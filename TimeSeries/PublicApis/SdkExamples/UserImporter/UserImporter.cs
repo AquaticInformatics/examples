@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
+using ServiceStack;
 using ServiceStack.Logging;
 using UserImporter.Helpers;
 using UserImporter.Records;
@@ -87,6 +88,7 @@ namespace UserImporter
             {
                 Log.Info("Retrieving existing users from Aquarius...");
                 var response = client.ProvisioningClient.Get(new GetUsers());
+
                 Log.InfoFormat("Successfully retrieved {0} current users from Aquarius", response.Results.Count);
 
                 aqUsers = response.Results;
@@ -104,31 +106,9 @@ namespace UserImporter
         {
             try
             {
-                User createdUser;
-                
-                if (userRecord.AuthenticationType.Equals(AquariusAuthenticationType.Credentials))
-                {
-                    var user = UserMapper.GetCredentialsPostUserFromRecord(userRecord);
+                var user = CreateUserByAuthenticationType[userRecord.AuthenticationType](userRecord);
 
-                    createdUser = client.ProvisioningClient.Post(user);
-                } 
-                else if (userRecord.AuthenticationType.Equals(AquariusAuthenticationType.ActiveDirectory))
-                {
-                    var user = UserMapper.GetActiveDirectoryPostUserFromRecord(userRecord);
-
-                    createdUser = client.ProvisioningClient.Post(user);
-                } 
-                else if (userRecord.AuthenticationType.Equals(AquariusAuthenticationType.OpenIdConnect))
-                {
-                    var user = UserMapper.GetOpenIdConnectPostUserFromRecord(userRecord);
-
-                    createdUser = client.ProvisioningClient.Post(user);
-                }
-                else
-                {
-                    Log.ErrorFormat("Failed to create user {0}. Invalid AuthenticationType", userRecord.Username);
-                    return false;
-                }
+                var createdUser = client.ProvisioningClient.Post(user);
                 
                 Log.DebugFormat("Created {0} user: {1}", createdUser.AuthenticationType, userRecord.Username);
                 return true;
@@ -140,51 +120,30 @@ namespace UserImporter
             }
         }
 
+        private static readonly Dictionary<AuthenticationType, Func<UserRecord, IReturn<User>>>
+            CreateUserByAuthenticationType = new Dictionary<AuthenticationType, Func<UserRecord, IReturn<User>>>
+            {
+                { AuthenticationType.Credentials, UserMapper.GetCredentialsPostUserFromRecord },
+                { AuthenticationType.ActiveDirectory, UserMapper.GetActiveDirectoryPostUserFromRecord },
+                { AuthenticationType.OpenIdConnect, UserMapper.GetOpenIdConnectPostUserFromRecord },
+            };
+
         private bool UpdateUser(IAquariusClient client, UserRecord userRecord, User aquariusUser)
         {
             try
             {
-                User updatedUser;
-            
-                if (userRecord.AuthenticationType.Equals(AquariusAuthenticationType.Credentials))
+                var aquariusUserAuthenticationType =
+                    CsvAuthenticationTypeConverter.Convert(aquariusUser.AuthenticationType);
+
+                var user = UpdateUserByAuthenticationType[userRecord.AuthenticationType](userRecord, aquariusUser.UniqueId);
+
+                if (userRecord.AuthenticationType != aquariusUserAuthenticationType)
                 {
-                    var user = UserMapper.GetCredentialsPutUserFromRecord(userRecord, aquariusUser.UniqueId);
-
-                    if (userRecord.AuthenticationType != aquariusUser.AuthenticationType)
-                    {
-                        UpdateAuth(client, userRecord, aquariusUser.UniqueId);
-                    }
-
-                    updatedUser = client.ProvisioningClient.Put(user);
-                } 
-                else if (userRecord.AuthenticationType.Equals(AquariusAuthenticationType.ActiveDirectory))
-                {
-                    var user = UserMapper.GetActiveDirectoryPutUserFromRecord(userRecord, aquariusUser.UniqueId);
-
-                    if (userRecord.AuthenticationType != aquariusUser.AuthenticationType)
-                    {
-                        UpdateAuth(client, userRecord, aquariusUser.UniqueId);
-                    }
-
-                    updatedUser = client.ProvisioningClient.Put(user);
+                    SwitchUserAuthenticationMode(client, userRecord, aquariusUser.UniqueId);
                 }
-                else if (userRecord.AuthenticationType.Equals(AquariusAuthenticationType.OpenIdConnect))
-                {
-                    var user = UserMapper.GetOpenIdConnectPutUserFromRecord(userRecord, aquariusUser.UniqueId);
 
-                    if (userRecord.AuthenticationType != aquariusUser.AuthenticationType)
-                    {
-                        UpdateAuth(client, userRecord, aquariusUser.UniqueId);
-                    }
+                var updatedUser = client.ProvisioningClient.Put(user);
 
-                    updatedUser = client.ProvisioningClient.Put(user);
-                }
-                else
-                {
-                    Log.ErrorFormat("Failed to update user {0}. Invalid AuthenticationType", userRecord.Username);
-                    return false;
-                }    
-                
                 Log.DebugFormat("Updated {0} user: {1}", updatedUser.AuthenticationType, userRecord.Username);
                 return true;
             }
@@ -195,42 +154,21 @@ namespace UserImporter
             }
         }
 
-        private void UpdateAuth(IAquariusClient client, UserRecord userRecord, Guid uniqueId)
+        private static readonly Dictionary<AuthenticationType, Func<UserRecord, Guid, IReturn<User>>>
+            UpdateUserByAuthenticationType = new Dictionary<AuthenticationType, Func<UserRecord, Guid, IReturn<User>>>
+            {
+                { AuthenticationType.Credentials, UserMapper.GetCredentialsPutUserFromRecord },
+                { AuthenticationType.ActiveDirectory, UserMapper.GetActiveDirectoryPutUserFromRecord },
+                { AuthenticationType.OpenIdConnect, UserMapper.GetOpenIdConnectPutUserFromRecord },
+            };
+
+        private void SwitchUserAuthenticationMode(IAquariusClient client, UserRecord userRecord, Guid uniqueId)
         {
             try
             {
-                User changedUser;
+                var userAuth = SwitchUserAuthenticationModeByAuthenticationType[userRecord.AuthenticationType](userRecord, uniqueId);
 
-                if (userRecord.AuthenticationType.Equals(AquariusAuthenticationType.ActiveDirectory))
-                {
-                    var userAuth = new PutActiveDirectoryAuth
-                    {
-                        UserPrincipalName = userRecord.UserPrincipalName,
-                        UniqueId = uniqueId
-                    };
-
-                    changedUser = client.ProvisioningClient.Put(userAuth);
-                } 
-                else if (userRecord.AuthenticationType.Equals(AquariusAuthenticationType.OpenIdConnect))
-                {
-                    var userAuth = new PutOpenIdConnectAuth
-                    {
-                        SubjectIdentifier = userRecord.SujectIdentifier,
-                        UniqueId = uniqueId
-                    };
-
-                    changedUser = client.ProvisioningClient.Put(userAuth);
-                }
-                else
-                {
-                    var userAuth = new PutCredentialsAuth
-                    {
-                        Password = userRecord.Password,
-                        UniqueId = uniqueId
-                    };
-
-                    changedUser = client.ProvisioningClient.Put(userAuth);
-                }
+                var changedUser = client.ProvisioningClient.Put(userAuth);
 
                 Log.DebugFormat("Updated user authentiation to {0} for user: {1}", changedUser.AuthenticationType, userRecord.Username);
             }
@@ -239,5 +177,32 @@ namespace UserImporter
                 Log.ErrorFormat("Failed to update users authentication type {0}. Error: {1}", userRecord.Username, e.Message);
             } 
         }
+
+        private static readonly Dictionary<AuthenticationType, Func<UserRecord, Guid, IReturn<User>>>
+            SwitchUserAuthenticationModeByAuthenticationType =
+                new Dictionary<AuthenticationType, Func<UserRecord, Guid, IReturn<User>>>
+                {
+                    {
+                        AuthenticationType.Credentials, (userRecord, uniqueId) => new PutCredentialsAuth
+                        {
+                            Password = userRecord.Password,
+                            UniqueId = uniqueId
+                        }
+                    },
+                    {
+                        AuthenticationType.ActiveDirectory, (userRecord, uniqueId) => new PutActiveDirectoryAuth
+                        {
+                            UserPrincipalName = userRecord.UserPrincipalName,
+                            UniqueId = uniqueId
+                        }
+                    },
+                    {
+                        AuthenticationType.OpenIdConnect, (userRecord, uniqueId) => new PutOpenIdConnectAuth
+                        {
+                            SubjectIdentifier = userRecord.SujectIdentifier,
+                            UniqueId = uniqueId
+                        }
+                    },
+                };
     }
 }

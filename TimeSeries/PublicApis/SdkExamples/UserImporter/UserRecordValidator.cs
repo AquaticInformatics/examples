@@ -12,7 +12,7 @@ namespace UserImporter
 
         public static List<UserRecord> ValidateUserList(List<UserRecord> userRecords)
         {
-            Log.Info("Validating the users read from csv...");
+            Log.Info("Validating the users read from csv ...");
             var userDict = new Dictionary<string, UserRecord>();
 
             foreach (var record in userRecords)
@@ -26,29 +26,27 @@ namespace UserImporter
                     continue;
                 }
 
-                if (!record.AuthenticationType.Equals(AquariusAuthenticationType.Credentials) &&
-                    !record.AuthenticationType.Equals(AquariusAuthenticationType.ActiveDirectory) &&
-                    !record.AuthenticationType.Equals(AquariusAuthenticationType.OpenIdConnect))
+                if (record.AuthenticationType == AuthenticationType.Unknown)
                 {
                     Log.ErrorFormat("User record for {0} does not have a valid AuthenticationType. Skipping.", record.Username);
                     continue;
                 }
                 
-                if (record.AuthenticationType.Equals(AquariusAuthenticationType.Credentials) &&
+                if (record.AuthenticationType == AuthenticationType.Credentials &&
                     string.IsNullOrEmpty(record.Password))
                 {
                     Log.ErrorFormat("User record for {0} is Credentials, but no password provided. Skipping.", record.Username);
                     continue;
                 }
                 
-                if (record.AuthenticationType.Equals(AquariusAuthenticationType.ActiveDirectory) &&
+                if (record.AuthenticationType == AuthenticationType.ActiveDirectory &&
                         string.IsNullOrEmpty(record.UserPrincipalName))
                 {
                     Log.ErrorFormat("User record for {0} is ActiveDirectory, but no UserPrincipleName provided. Skipping.", record.Username);
                     continue;
                 }
                 
-                if (record.AuthenticationType.Equals(AquariusAuthenticationType.OpenIdConnect) &&
+                if (record.AuthenticationType == AuthenticationType.OpenIdConnect &&
                            string.IsNullOrEmpty(record.SujectIdentifier))
                 {
                     Log.ErrorFormat(

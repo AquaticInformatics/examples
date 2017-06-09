@@ -89,10 +89,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AquariusAuthenticationType.cs" />
+    <Compile Include="Helpers\CsvAuthenticationTypeConverter.cs" />
     <Compile Include="Helpers\CommandLineArgumentParser.cs" />
     <Compile Include="Helpers\CsvBoolConverter.cs" />
     <Compile Include="Helpers\CsvFileReaderWriter.cs" />
+    <Compile Include="Records\AuthenticationType.cs" />
     <Compile Include="Records\UserRecord.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

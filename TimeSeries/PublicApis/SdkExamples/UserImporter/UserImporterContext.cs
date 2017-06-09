@@ -17,7 +17,6 @@ namespace UserImporter
         public string Username { get; private set; }
         public string Password { get; private set; }
         public string UsersFile { get; private set; }
-        public string RolesFile { get; private set; } 
 
         public UserSyncContext(IEnumerable<string> arguments)
         {
@@ -75,12 +74,6 @@ namespace UserImporter
         {
             UsersFile = _appSettings["usersFile"];
             ThrowExceptionIfMissing("usersFile", UsersFile);
-        }
-
-        private void GetRolesFile()
-        {
-            RolesFile = _appSettings["rolesFile"];
-            ThrowExceptionIfMissing("rolesFile", UsersFile);
         }
      
         private static void ThrowExceptionIfMissing(string key, string value)
