@@ -50,3 +50,33 @@ To see the flow of how this might work, use two separate shell windows (CMD.EXE 
 Key concepts demonstrated: Everything from the `AppendPoints` example, plus:
 - Using the `GET /Publish/v2/GetTimeSeriesUniqueIdList` request to monitor a time-series for ["changes since"](https://github.com/AquaticInformatics/aquarius-sdk-net/wiki/Monitoring-changes-to-a-time-series#changes-since-concept) the last time you polled the system.
 - Using the `POST /Acquisition/v2/{UniqueId}/reflected` request to queue points to be appended to a reflected time-series, overwriting any existing points within a time range.
+
+### UserImporter
+
+The `UserImporter` example app can be used to import a number of AQTS users from a CSV file.
+
+All three AQTS authentication methods are supported:
+- Aquarius credentials
+- Active Directory authentication
+- OpenId Connect authentication
+
+The basic logic performed by the app is:
+- Connect to the AQTS server
+- Retrieve the current list of users in the system
+- Read the CSV to get the user records to create/modify
+- New users will be added to AQTS
+- Existing users will be updated. This includes changing the authentication mode for an existing user.
+
+Example CSV format consumed by the `UserImporter` app is:
+```csv
+Username, FirstName, LastName, Email,            Active, CanLaunchRdt, AuthenticationType, Password, UserPrincipalName, SubjectIdentifier
+fredcred, fred,      cred,     fred@derf.com,    true,   true,         Credentials,        sekret,   ,
+fredwin,  fred,      win,      fred@win.com,     true,   true,         ActiveDirectory,    ,         fred@win.com,
+fredopen, fred,      openid,   "fred@gmail.com", true,   true,         OpenIdConnect,      ,         ,                  113611963171978735131
+```
+
+Key concepts demonstrated:
+- Using the `GET /Provisioning/v1/users` operation to get the currently configured users from a system.
+- Using the `POST /Provisioning/v1/users/{authenticationType}` operations to create users with a specific authentication type
+- Using the `PUT /Provisioning/v1/users/{authenticationType}/{userUniqueId}` operations to update existing users properties
+- Using the `PUT /Provisioning/v1/users/{userUniqueId}/{authenticationType}` operations to change an existing user from one authentication type to another

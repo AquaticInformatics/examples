@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Readme.md = Readme.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserImporter", "UserImporter\UserImporter.csproj", "{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{B89A2D41-323B-4E48-AE24-357E215596D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B89A2D41-323B-4E48-AE24-357E215596D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B89A2D41-323B-4E48-AE24-357E215596D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
