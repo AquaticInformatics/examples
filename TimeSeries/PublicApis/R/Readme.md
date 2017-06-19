@@ -2,7 +2,9 @@
 
 The R programming environment provides a rich ecosystem for numerical computing and graphic visualization.
 
-Requires: [an R runtime](https://cran.rstudio.com/) 3.3-or-greater, any supported platform
+Requires:
+- [an R runtime](https://cran.rstudio.com/) 3.3-or-greater, any supported platform
+- AQTS 2017.2 or later - To get time-aligned time-series data
 
 ### Recommended packages
 

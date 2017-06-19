@@ -7,7 +7,7 @@ require('httr')
 
 # Create a simple Publish API client.
 publishClient <- setRefClass("publishClient",
-  fields = list(baseUri = "character"),
+  fields = list(baseUri = "character", version = "character"),
   methods = list(
     #' Connects to an AQTS server
     #' 
@@ -21,6 +21,7 @@ publishClient <- setRefClass("publishClient",
     #' connect("myserver", "me", "mypassword") # Connect over the network
     #' connect("https://myserver", "user", "letmein") # Connect to an AQTS server with HTTPS enabled
     connect = function(hostname, username, password) {
+      # Support schemeless and schemed hosts for convenience
       prefix <- "http://"
       if (startsWith(hostname, "http://") || startsWith(hostname, "https://")) {
         url <- parse_url(hostname)
@@ -28,8 +29,17 @@ publishClient <- setRefClass("publishClient",
         prefix <- ""
       }
       
+      # Grab the version of the AQTS server
+      r <- GET(paste0(prefix, hostname, "/AQUARIUS/apps/v1/version"))
+      stop_for_status(r, "detecting AQTS version")
+      
+      j <- fromJSON(content(r, "text"))
+      version <<- j$ApiVersion
+
+      # Compose the base URI for all Publish API requests      
       baseUri <<- paste0(prefix, hostname, "/AQUARIUS/Publish/v2")
 
+      # Try to authenticate using the supplied credentials
       r <- POST(paste0(baseUri, "/session"), body = list(Username = username, EncryptedPassword = password), encode = "json")
       stop_for_status(r, "authenticate with AQTS")
     },
@@ -38,6 +48,66 @@ publishClient <- setRefClass("publishClient",
     disconnect = function() {
       r <- DELETE(paste0(baseUri, "/session"))
       stop_for_status(r, "disconnect from AQTS")
+    },
+    
+    #' Determines if a target version string is strictly less than a source version
+    #' 
+    #' This method takes dotted version strings and compares them by numerical components.
+    #' It safely avoids the errors string comparison, which incorrectly says "3.10.510" > "17.2.123".
+    #' @param targetVersion Target version string
+    #' @param sourceVersion Optional source version string. If missing, use the connected server version
+    #' @return TRUE if the target version is strictly less than the source version
+    isVersionLessThan = function(targetVersion, sourceVersion) {
+      if (missing(sourceVersion)) {
+        sourceVersion <- version
+      }
+      
+      # Create the vectors of integers using this local sanitizing function
+      createIntegerVector <- function(versionText) {
+        
+        if (versionText == "0.0.0.0") {
+          # Force unreleased developer builds to act as latest-n-greatest
+          versionText <- "9999.99"
+        }
+        
+        # Convert the text into a vector of integers
+        v <- as.integer(strsplit(versionText, ".", fixed = TRUE)[[1]])
+        
+        if (length(v) > 0 && v[1] >= 14 && v[1] <= 99) {
+          # Adjust the leading component to match the 20xx.y release convention
+          v[1] = v[1] + 2000
+        }
+        
+        v
+      }
+      
+      # Convert to vectors of integers
+      target <- createIntegerVector(targetVersion)
+      source <- createIntegerVector(sourceVersion)
+      
+      # Take the differnce of the common parts
+      minlength <- min(length(target), length(source))
+      
+      diff <- head(target, minlength) - head(source, minlength)
+      
+      if (all(diff == 0)) {
+        # All the common parts are identical
+        length(source) < length(target)
+      } else {
+        # Assume not less than
+        lessThan <- FALSE
+        
+        for (d in diff) {
+          if (d < 0) {
+            break
+          } else if (d > 0) {
+            lessThan <- TRUE
+            break
+          }
+        }
+        
+        lessThan
+      }
     },
     
     #' Gets the unique ID of a time-series from its identifier string
@@ -144,6 +214,11 @@ publishClient <- setRefClass("publishClient",
     #'      xlab = json$TimeSeries$Identifier[1],
     #'      ylab = json$TimeSeries$Identifier[2])
     getTimeSeriesData = function(timeSeriesIds, queryFrom, queryTo, outputUnitIds) {
+      if (.self$isVersionLessThan("17.2")) {
+        # Throw on the brakes if the server is too old
+        stop("Time aligned data is not availble before AQTS 2017.2. Connected server version=", version)
+      }
+      
       uniqueIds <- lapply(timeSeriesIds, .self$getTimeSeriesUniqueId)
       
       q <- list(TimeSeriesUniqueIds = paste(uniqueIds, collapse=","))
