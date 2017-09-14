@@ -1,5 +1,7 @@
 ## Consuming AQUARIUS Time-Series data from Python
 
+[**Download** this project folder](https://minhaskamal.github.io/DownGit/#/home?url=https:%2F%2Fgithub.com%2FAquaticInformatics%2FExamples%2Ftree%2Fmaster%2FTimeSeries%2FPublicApis%2FPython)
+
 Requirements: Python 2.7-or-greater
 
 ### Required dependencies
