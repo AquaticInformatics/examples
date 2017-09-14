@@ -1,5 +1,7 @@
 ## SdkExamples.sln
 
+[**Download** this project folder](https://minhaskamal.github.io/DownGit/#/home?url=https:%2F%2Fgithub.com%2FAquaticInformatics%2FExamples%2Ftree%2Fmaster%2FTimeSeries%2FPublicApis%2FSdkExamples)
+
 Requires: Visual Studio 2015+ (Community Edition is fine)
 
 The SdkExamples solution includes some example programs using the [Aquarius.SDK for .NET](https://github.com/AquaticInformatics/aquarius-sdk-net).
