@@ -21,7 +21,7 @@ The example plugins do not provide an implementation of how to read and parse a 
 
 Every method signature in the IFieldDataPlugin interface includes a reference to a Server.BusinessInterfaces.FieldDataPluginCore.ILog object.
 
-Log messages are written to the `FieldDataPluginFramework.log`, which can be found on the server at %Program Data%\Aquatic Informatics\AQUARIUS\Logs.
+Log messages are written to the `FieldDataPluginFramework.log`, which can be found on the server at `%Program Data%\Aquatic Informatics\AQUARIUS\Logs`.
 
 ### Best Practices
 
