@@ -4,7 +4,7 @@
 
 Requires: Visual Studio 2015+ (Community Edition is fine)
 
-The ExampleFieldDataPlugins solution includes some example plugins for the AQ-TS field data plugin framework.  The SDK is installed with your AQ-TS server, located at
+The ExampleFieldDataPlugins solution includes some example plugins for the AQ-TS field data plugin framework.  The core assembly required to implement a field data plugin is installed with your AQ-TS server, located at
 %Program Files%\AquaticInformatics\AQUARIUS Server\FieldDataPlugins\Library
 
 All plugins implement the interface Server.BusinessInterfaces.FieldDataPluginCore.IFieldDataPlugin
@@ -30,6 +30,13 @@ Please consider the following best practices when writing your plugin:
 - Plugins must be thread safe;
 - Plugins should only contain managed code - AI will not provide developer support for plugins containing unmanaged code;
 - Plugins should be able to process a field data file in less than one second.
+
+### Be prepared to handle any type of file content!
+- When a file is uploaded to AQUARIUS Time-Series through a browser, every plugin tries to inspect the file to see if it can be parsed.
+- When a user uploads `kittens.jpg`, `myreport.pdf`, or `IMG005.MOV` as an attachment, your plugin will be given a chance to parse that content.
+- each plugin will try to parse it as field visit file.
+- Your plugin should be robust enough to survive contact with *any type of file content* including binary data.
+- Any content not understood by your plugin should cause it to `return ParseFileResult.CannotParse();` and give the next plugin a chance to parse it.
 
 ### Installing a plugin
 
