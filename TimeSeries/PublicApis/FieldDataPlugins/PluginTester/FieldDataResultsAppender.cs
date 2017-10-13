@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Server.BusinessInterfaces.FieldDataPluginCore;
 using Server.BusinessInterfaces.FieldDataPluginCore.Context;
 using Server.BusinessInterfaces.FieldDataPluginCore.DataModel;
 using Server.BusinessInterfaces.FieldDataPluginCore.DataModel.CrossSection;
@@ -26,7 +27,11 @@ namespace PluginTester
         }
 
         public LocationInfo LocationInfo { get; set; }
-        public List<FieldVisitInfo> AppendedVisits { get; } = new List<FieldVisitInfo>();
+
+        public AppendedResults AppendedResults { get; } = new AppendedResults
+        {
+            FrameworkAssemblyQualifiedName = typeof(IFieldDataPlugin).AssemblyQualifiedName
+        };
 
         public LocationInfo GetLocationByIdentifier(string locationIdentifier)
         {
@@ -54,7 +59,7 @@ namespace PluginTester
         {
             var fieldVisitInfo = InternalConstructor<FieldVisitInfo>.Invoke(location, fieldVisitDetails);
 
-            AppendedVisits.Add(fieldVisitInfo);
+            AppendedResults.AppendedVisits.Add(fieldVisitInfo);
 
             return fieldVisitInfo;
         }
