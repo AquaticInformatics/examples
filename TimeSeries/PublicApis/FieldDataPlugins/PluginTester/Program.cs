@@ -140,13 +140,16 @@ namespace PluginTester
 
                 try
                 {
+                    appender.AppendedResults.PluginAssemblyQualifiedTypeName = plugin.GetType().AssemblyQualifiedName;
+
                     var result = string.IsNullOrEmpty(LocationIdentifier)
                         ? plugin.ParseFile(stream, appender, logger)
                         : plugin.ParseFile(stream, locationInfo, appender, logger);
 
-                    SaveAppendedData(appender);
 
-                    SummarizeResults(result, appender);
+                    SaveAppendedResults(appender.AppendedResults);
+
+                    SummarizeResults(result, appender.AppendedResults);
                 }
                 catch (Exception exception)
                 {
@@ -157,17 +160,17 @@ namespace PluginTester
             }
         }
 
-        private void SaveAppendedData(FieldDataResultsAppender appender)
+        private void SaveAppendedResults(AppendedResults appendedResults)
         {
             if (string.IsNullOrEmpty(JsonPath))
                 return;
 
-            Log.Info($"Saving {appender.AppendedVisits.Count} visits data to '{JsonPath}'");
+            Log.Info($"Saving {appendedResults.AppendedVisits.Count} visits data to '{JsonPath}'");
 
-            File.WriteAllText(JsonPath, appender.AppendedVisits.ToJson().IndentJson());
+            File.WriteAllText(JsonPath, appendedResults.ToJson().IndentJson());
         }
 
-        private void SummarizeResults(ParseFileResult result, FieldDataResultsAppender appender)
+        private void SummarizeResults(ParseFileResult result, AppendedResults appendedResults)
         {
             if (!result.Parsed)
             {
@@ -189,13 +192,13 @@ namespace PluginTester
             }
             else
             {
-                if (!appender.AppendedVisits.Any())
+                if (!appendedResults.AppendedVisits.Any())
                 {
                     Log.Warn("File was parsed but no visits were appended.");
                 }
                 else
                 {
-                    Log.Info($"Successfully parsed {appender.AppendedVisits.Count} visits.");
+                    Log.Info($"Successfully parsed {appendedResults.AppendedVisits.Count} visits.");
                 }
             }
         }

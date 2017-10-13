@@ -47,6 +47,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AppendedResults.cs" />
     <Compile Include="ExpectedException.cs" />
     <Compile Include="FieldDataResultsAppender.cs" />
     <Compile Include="InternalConstructor.cs" />
