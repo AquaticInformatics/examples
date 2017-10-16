@@ -22,7 +22,7 @@ Install these packages to enable basic communication with your AQTS server from 
 
 [Fiddler](http://www.telerik.com/fiddler) is a great tool for capturing HTTP traffic on Windows systems.
 
-You will need to manually configure your R environment to route its HTTP requests through the Fiddler proxy in order to the traffic in the Fiddler window.
+You can manually configure your R environment to route its HTTP requests through the Fiddler proxy in order to the traffic in the Fiddler window.
 
 ```R
 # The following tells R to use the default Fiddler endpoint as its HTTP proxy
@@ -31,6 +31,8 @@ You will need to manually configure your R environment to route its HTTP request
 # And this disables the proxy (required if Fiddler is no longer running)
 > Sys.setenv(http_proxy="")
 ```
+
+As a convenience, when your R session uses the `timeseries$connect()` method to connect to an AQTS system, the R proxy will automatically be routed through Fiddler if it is running.
 
 Other R platforms like Linux and OS X have similar debugging proxy tools available, and will need to be manually configured using the `Sys.setenv()` method.
 

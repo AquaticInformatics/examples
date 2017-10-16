@@ -21,6 +21,9 @@ publishClient <- setRefClass("publishClient",
     #' connect("myserver", "me", "mypassword") # Connect over the network
     #' connect("https://myserver", "user", "letmein") # Connect to an AQTS server with HTTPS enabled
     connect = function(hostname, username, password) {
+      # Auto-configure the proxy by default
+      .self$configureProxy()
+
       # Support schemeless and schemed hosts for convenience
       prefix <- "http://"
       if (startsWith(hostname, "http://") || startsWith(hostname, "https://")) {
@@ -28,11 +31,11 @@ publishClient <- setRefClass("publishClient",
         hostname <- paste0(url$scheme, "://", url$hostname)
         prefix <- ""
       }
-      
+
       # Grab the version of the AQTS server
       r <- GET(paste0(prefix, hostname, "/AQUARIUS/apps/v1/version"))
       stop_for_status(r, "detecting AQTS version")
-      
+
       j <- fromJSON(content(r, "text"))
       version <<- j$ApiVersion
 
@@ -43,11 +46,33 @@ publishClient <- setRefClass("publishClient",
       r <- POST(paste0(baseUri, "/session"), body = list(Username = username, EncryptedPassword = password), encode = "json")
       stop_for_status(r, "authenticate with AQTS")
     },
-    
+
     #' Disconnects immediately from an AQTS server
     disconnect = function() {
       r <- DELETE(paste0(baseUri, "/session"))
       stop_for_status(r, "disconnect from AQTS")
+    },
+
+    #' Auto-configures the proxy to route all requests through Fiddler
+    #'
+    #' This method configures the R proxy to route everything through Fiddler if it is running
+    #' 
+    #' Sys.setenv(http_proxy="http://localhost:8888") # Enables Fiddler capturing of traffic
+    #' Sys.setenv(http_proxy="") # Disables Fiddler proxying
+    configureProxy = function() {
+      if (length(Sys.getenv("R_DISABLE_FIDDLER")[0]) > 0 && Sys.info()['sysname'] != "Windows")
+        return()
+
+      # Check if Fiddler is running
+      taskCheck <- system('tasklist /FI "IMAGENAME eq Fiddler.exe"', intern = TRUE)
+
+      if (length(taskCheck) < 4)
+        return()
+
+      # Fiddler is running, so enable the proxy
+      message("Auto-routing all web requests through Fiddler.")
+      message('To disable this behaviour, call Sys.setenv(http_proxy="") or set the R_DISABLE_FIDDLER environment variable.')
+      Sys.setenv(http_proxy="http://localhost:8888")
     },
     
     #' Determines if a target version string is strictly less than a source version
