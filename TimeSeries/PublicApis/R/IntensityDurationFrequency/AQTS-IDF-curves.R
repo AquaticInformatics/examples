@@ -21,6 +21,8 @@ config = list(
   timeSeriesName = "Precipitation.Historic@DEMO_01",                    # The time-series to analyze
   historicalPeriodStartYear = 1995, historicalPeriodDurationYears = 4,  # The historical period to analyze
   eventPeriodStartDay = "1995-11-01", eventPeriodEndDay = "1995-12-31", # The event period to analyze
+  uploadedReportTitle = "IDF Plot",                                     # The title of the uploaded report
+  removeDuplicateReports = TRUE,                                        # Set to TRUE to avoid duplicate reports in WebPortal
   cachedHistoricalDataPath = "idfData.rda")                             # When set, use the data in this file to avoid a lengthy recalculation
 
 # Set timer to measure execution time
@@ -132,9 +134,6 @@ print(sprintf("To: %s",toEventPeriodEnd))
 print(overlayIntensities)
 ###################################################################################################  
 
-print("Done")
-readline(prompt="Press [enter] to plot idf curves...")
-
 #call idfAnalysis function
 
 #plot on screen
@@ -145,3 +144,15 @@ end.time <- Sys.time()
 print(end.time)
 time.taken <- end.time - start.time
 print(time.taken)
+
+# Optionally upload results to AQTS
+saveToPdf = !is.null(config$uploadedReportTitle) && config$uploadedReportTitle != ""
+removeDuplicateReports = saveToPdf && !is.null(config$removeDuplicateReports) && config$removeDuplicateReports
+
+if (saveToPdf) {
+  # Upload the results to AQTS as a PDF
+  localPathToPdf = "IntensityDurationFrequencyPlot.pdf"
+  dev.copy2pdf(width = 7, file = localPathToPdf, out.type = "pdf")
+
+  timeseries$uploadExternalReport(locationData, localPathToPdf, config$uploadedReportTitle, removeDuplicateReports)
+}
