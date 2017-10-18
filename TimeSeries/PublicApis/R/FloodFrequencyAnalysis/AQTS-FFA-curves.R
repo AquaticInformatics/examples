@@ -18,6 +18,8 @@ config = list(
   timeSeriesName = "Discharge.ft^3/s.comp.ref@88061040",                # The time-series to analyze
   historicalPeriodStartYear = 2010, historicalPeriodDurationYears = 4,  # The historical period to analyze
   eventPeriodStartDay = "2011-11-01", eventPeriodEndDay = "2011-12-31", # The event period to analyze
+  uploadedReportTitle = "Flood Frequency Analysis",                     # The title of the uploaded report
+  removeDuplicateReports = TRUE,                                        # Set to TRUE to avoid duplicate reports in WebPortal
   cachedHistoricalDataPath = "ffaData.rda")                             # When set, use the data in this file to avoid a lengthy recalculation
 
 # Set timer to measure execution time
@@ -115,12 +117,6 @@ print(sprintf("To: %s", toEventPeriodEnd))
 print(overlayQ)
 ###################################################################################################  
 
-print("Done")
-readline(prompt="Press [enter] to plot FFA curves...")
-
-################################################################################################
-################################################################################################
-
 # Specify flows
 #manual example for testing:
 #Q = c(1.23,2.37,0.085,1.69,1.2,0.898,0.176,0.96,0.212,0.266)
@@ -202,3 +198,15 @@ end.time <- Sys.time()
 print(end.time)
 time.taken <- end.time - start.time
 print(time.taken)
+
+# Optionally upload results to AQTS
+saveToPdf = !is.null(config$uploadedReportTitle) && config$uploadedReportTitle != ""
+removeDuplicateReports = saveToPdf && !is.null(config$removeDuplicateReports) && config$removeDuplicateReports
+
+if (saveToPdf) {
+  # Upload the results to AQTS as a PDF
+  localPathToPdf = "FloodFrequenceAnalysis.pdf"
+  dev.copy2pdf(width = 7, file = localPathToPdf, out.type = "pdf")
+
+  timeseries$uploadExternalReport(locationData, localPathToPdf, config$uploadedReportTitle, removeDuplicateReports)
+}

@@ -25,7 +25,7 @@ Because the StackOverflow example is expecting wind speed in meters-per-second, 
 # Grab the wind data for 2011.
 > json = timeseries$getTimeSeriesData(
       c("Wind speed.mph.Work@01372058", "Wind direction.deg.Work@01372058"),
-      outputUnitIds="m/s,",
+      outputUnitIds=c("m/s",""),
       queryFrom="2011-01-01T00:00:00Z",
       queryTo=  "2012-01-01T00:00:00Z")
 ```
