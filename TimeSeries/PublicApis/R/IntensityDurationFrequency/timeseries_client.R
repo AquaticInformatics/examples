@@ -298,7 +298,7 @@ timeseriesClient <- setRefClass("timeseriesClient",
     getTimeSeriesData = function(timeSeriesIds, queryFrom, queryTo, outputUnitIds) {
       if (.self$isVersionLessThan("17.2")) {
         # Throw on the brakes if the server is too old
-        stop("Time aligned data is not availble before AQTS 2017.2. Connected server version=", version)
+        stop("Time aligned data is not available before AQTS 2017.2. Connected server version=", version)
       }
 
       if (is.character(timeSeriesIds)) {
@@ -355,7 +355,7 @@ timeseriesClient <- setRefClass("timeseriesClient",
   uploadExternalReport = function(locationDataOrIdentifier, path, title, deleteDuplicateReports) {
     if (.self$isVersionLessThan("17.3")) {
       # Throw on the brakes if the server is too old
-      stop("Uploading external reports is not availble before AQTS 2017.2. Connected server version=", version)
+      stop("Uploading external reports is not available before AQTS 2017.3. Connected server version=", version)
     }
   
     if (missing(title)) {
