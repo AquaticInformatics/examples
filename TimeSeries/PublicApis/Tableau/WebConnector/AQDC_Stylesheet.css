@@ -1,0 +1,69 @@
+/*----------------------------------*/
+/* AQUARIUS Tableau Data Connector  */
+/*----------------------------------*/
+body {
+    width:950px;
+    font-family: Calibri;
+    font-size: 16px;
+}
+
+.loginbox p label {  /*align form fields */
+    display:block;
+    float:left;
+    width:100px;
+}
+.loginbox p {
+    margin:5px;	/* make form tight*/
+}
+
+.folderselect {
+    margin: 50px 10px 10px 10px;
+}
+
+.flex-container {  /*found this on the web */
+    display: -webkit-flex;
+    display: flex;
+    -webkit-align-items: flex-start;
+    align-items: flex-start;
+    width: 100%;
+    height: 500px;
+}
+.selectbox {
+    width: 250px;
+    margin: 10px;
+}
+.selectbox select {
+    width:100%; /*stretch within div*/
+}
+.selectbox h2 {
+    font-size:16px;
+    font-weight: normal;
+    color: white;
+    background-color:#0099e6; /*blue*/
+    padding: 0px 5px;
+    margin: 0px;
+}
+
+.buttonbox {
+    width: 100px;
+    margin: 100px 0px;
+    text-align: center;
+}
+.button1 {
+    background-color: #4CAF50; /*Green*/
+    border: none;
+    color: white;
+    padding: 2px 5px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+.button2 {
+    background-color: #0099e6; /*blue*/
+    border: none;
+    color: white;
+    padding: 2px 5px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
