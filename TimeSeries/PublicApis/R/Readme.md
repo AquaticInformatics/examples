@@ -24,6 +24,7 @@ Install these packages to enable basic communication with your AQTS server from 
 - Example 2 - [Wind rose plots](./WindRose)
 - Example 3 - [Flood Frequency Analysis curves](./FloodFrequencyAnalysis)
 - Example 4 - [Intensity Duration Frequency plots](./IntensityDurationFrequency)
+- Example 5 - [Flow Duration curves](./FlowDurationCurve)
 
 ## The `timeseries_client.R` API wrapper
 
