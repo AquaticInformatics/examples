@@ -20,7 +20,7 @@ Install these packages to enable basic communication with your AQTS server from 
 
 ### Examples
 
-- Example 1 - [Plotting stage vs discharge](#example-1---plotting-stage-vs-discharge)
+- Example 1 - [Plotting stage vs. discharge](#example-1---plotting-stage-vs-discharge)
 - Example 2 - [Wind rose plots](./WindRose)
 - Example 3 - [Flood Frequency Analysis curves](./FloodFrequencyAnalysis)
 - Example 4 - [Intensity Duration Frequency plots](./IntensityDurationFrequency)
