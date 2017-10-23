@@ -70,7 +70,7 @@ if (json$NumPoints > 0) {
   
   #plot daily flow hydrograph
   windows()
-  flowPlotTitle = paste("Daily Flow for", locationData$LocationName, "Site during:\n", periodLabel)
+  flowPlotTitle = paste("Daily Flow\n", locationData$LocationName, "\n", periodLabel)
   plot(TSD, main = flowPlotTitle , xlab = "Time", ylab = sprintf("Flow (%s)", json$TimeSeries$Unit[1]))
   
   if (saveToPdf) {
@@ -78,7 +78,7 @@ if (json$NumPoints > 0) {
     localPathToPdf = "DailyFlow.pdf"
     dev.copy2pdf(width = 7, file = localPathToPdf, out.type = "pdf")
 
-    timeseries$uploadExternalReport(locationData, localPathToPdf, config$uploadedReportTitle, removeDuplicateReports)
+    timeseries$uploadExternalReport(locationData, localPathToPdf, paste(config$uploadedReportTitle, "- Daily"), removeDuplicateReports)
   }
   
   #override tick labels for y axis
@@ -86,7 +86,7 @@ if (json$NumPoints > 0) {
   
   #call fdc from hydroTSM package to plot FDC
   windows()
-  fdcPlotTitle = paste("Flow-Duration curve for", locationData$LocationName, "Site during:\n", periodLabel)
+  fdcPlotTitle = paste("Flow-Duration curve\n", locationData$LocationName, "\n", periodLabel)
   fdc(TSD, main = fdcPlotTitle, xlab = "Percentage Exceedance", ylab = sprintf("Flow (%s)", json$TimeSeries$Unit[1]) , yat = ytick,panel.first = grid())
   
 } else {
