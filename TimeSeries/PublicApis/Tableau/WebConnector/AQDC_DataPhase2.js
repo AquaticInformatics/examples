@@ -84,28 +84,34 @@
     myConnector.getData = function(table, dataCallback) {
         
         var connectionInfo = JSON.parse(tableau.connectionData);  //params passed from interactive phase
-        var AQServer =     connectionInfo.server;
+        var AQPublishUrl = connectionInfo.publishUrl;
         var AQFolderPath = connectionInfo.folder;
         var AQFromTime =   connectionInfo.queryfrom;
         var AQTSDescs =    connectionInfo.timeserieslist;
         var AQToken =      tableau.password;
         var tableData = [];
+		
+		// Set the auth header on every call
+		$.ajaxSetup({
+			beforeSend: function (xhr) {
+				xhr.setRequestHeader('X-Authentication-Token', AQToken);
+			}
+		});
 
         //LOCATIONS TABLE
         if (table.tableInfo.id == "Location") {
             //Get the list of locations in the given folder
-            var URL = 'http://' + AQServer + '/aquarius/publish/v2/getlocationdescriptionlist?token=' + AQToken;
-            if (AQFolderPath) { URL += '&locationfolder=' + AQFolderPath; } //otherwise all locations
-            $.getJSON(URL)
+			var params = {};
+			if (AQFolderPath) { params['locationFolder'] = AQFolderPath; } //otherwise all locations
+			$.getJSON(AQPublishUrl + '/GetLocationDescriptionList', params)
             .done(function(data) {
                 var locations = data.LocationDescriptions;
                 if (!locations) { dataCallback(); }
                 else {
                     for (var i=0; i < locations.length; ++i) {
                         //For each location, get its metadata  (CAN ELIMINATE THIS STEP IN LATEST AQ VERSION)
-                        var locIdentifier = encodeURIComponent(locations[i].Identifier);
-                        URL = 'http://' + AQServer + '/aquarius/publish/v2/getlocationdata?token=' + AQToken + '&LocationIdentifier=' + locIdentifier;
-                        $.getJSON(URL)
+                        var locIdentifier = locations[i].Identifier;
+                        $.getJSON(AQPublishUrl + '/GetLocationData', {LocationIdentifier: locIdentifier})
                         .done(function(data) {
                             tableData.push({
                                 'LocationName': data.LocationName,
@@ -141,10 +147,7 @@
                     return item.UniqueId;
                 });
 
-                var urlNew = 'http://' + AQServer + '/aquarius/publish/v2/GetTimeSeriesData?token=' + AQToken
-                    + '&timeseriesuniqueids=' + tsUniqueIds.join() + '&includegapmarkers=true' + '&queryfrom=' + AQFromTime;
-
-                $.getJSON(urlNew)
+                $.getJSON(AQPublishUrl + '/GetTimeSeriesData', {TimeSeriesUniqueIds: tsUniqueIds.join(), QueryFrom: AQFromTime})
                     .done(function (data) {
                         var pointsData = [];
                         if (data.Points) {

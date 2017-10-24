@@ -3,7 +3,7 @@
 //----------------------------------------------------
 $(document).ready(function() {
 
-    var AQServer, AQToken, AQFolderPath;
+    var AQServer, AQToken, AQFolderPath, AQPublishUrl;
 
     //ON LOGIN SUBMIT Get an AQUARIUS token
     $("#LoginForm").submit(function(e) {
@@ -12,10 +12,15 @@ $(document).ready(function() {
         var AQUser = $('#AQUser').val().trim();
         var AQPassword = $('#AQPassword').val().trim();	
         if (AQServer) {
-            var URL = 'http://' + AQServer + '/aquarius/publish/v2/session';
+			AQPublishUrl = AQServer + '/AQUARIUS/Publish/v2';
+			
+			if (!/^https?:\/\//i.test(AQPublishUrl)) {
+				AQPublishUrl = 'http://' + AQPublishUrl;
+			}
+		
             $.ajax({
             type: "POST",
-            url: URL,
+            url: AQPublishUrl + '/session',
             data: { "Username": AQUser, "EncryptedPassword": AQPassword},
             dataType: 'text',
             success: function (data) {
@@ -33,10 +38,10 @@ $(document).ready(function() {
     //ON FOLDER SUBMIT Get list of locations in folder and fill the selection box
     $("#FolderSelectForm").submit(function(e) {
         e.preventDefault(); //no actual form submit
-        AQFolderPath = encodeURIComponent( $('#AQFolder').val().trim() );
-        var URL = 'http://' + AQServer + '/aquarius/publish/v2/getlocationdescriptionlist?token=' + AQToken;
-        if (AQFolderPath) { URL += '&locationfolder=' + AQFolderPath; } //otherwise all locations
-        $.getJSON(URL)
+        AQFolderPath = $('#AQFolder').val().trim();
+		var params = {};
+        if (AQFolderPath) { params['LocationFolder'] = AQFolderPath; } //otherwise all locations
+        $.getJSON(AQPublishUrl + '/GetLocationDescriptionList', params)
         .done(function(data) {
             var descriptions = data.LocationDescriptions;
             $("#LocationList").empty();
@@ -60,8 +65,7 @@ $(document).ready(function() {
     //ON LOCATION SELECT Get list of time series for location and fill the selection box
     $("#LocationList").change(function() {
         var LocationID = $(this).val().trim();
-        var URL = 'http://' + AQServer + '/aquarius/publish/v2/gettimeseriesdescriptionlist?token=' + AQToken + '&locationidentifier=' + LocationID;
-        $.getJSON(URL)
+        $.getJSON(AQPublishUrl + '/GetTimeseriesDescriptionList', {LocationIdentifier: LocationID})
         .done(function(data) {
             var descriptions = data.TimeSeriesDescriptions;
             $("#TimeSeriesList").empty();
@@ -124,7 +128,7 @@ $(document).ready(function() {
         tableau.password = AQToken;
        
         tableau.connectionData = JSON.stringify({
-            'server': AQServer,
+            'publishUrl': AQPublishUrl,
             'folder': AQFolderPath,
             'queryfrom': AQFromTime,
             'timeserieslist': SelectedTSIDs
