@@ -35,10 +35,8 @@
     <!-- Folder selection (empty == All Locations) -->
     <form id="FolderSelectForm">
         <div class="folderselect">	
-            <p>
             <label>Folder Path:</label> <input id="AQFolder" type="text" size="30" value="All Locations"/>
             <input type="submit" id="SelectFolderButton" class="button1" value="Get Locations" /> 
-            </p>
         </div>
     </form>
 
@@ -63,12 +61,14 @@
             </div>
 
             <div class="selectbox">
-                <h2>Selection:</h2>
+                <h2>Time series to load:</h2>
                 <select id="SelectedTSList" size="20" multiple>  </select>
-                <p>
-                <label>From Time:</label> <input type="datetime-local" value="2000-01-01T00:00:00" id="AQFromTime" />
-                <input type="button" id="FetchButton" class="button1" value="Fetch!" />
-                </p>
+				<table>
+					<tr><td colspan="2"><input type="checkbox" id="TimeAlignCheckbox" checked /><label for="TimeAlignCheckbox">Time-align points?</label></td></tr>
+					<tr><td><label>From Time:</label></td><td><input type="datetime-local" value="2015-01-01T00:00:00" id="AQFromTime" /></td></tr>
+					<tr><td><label>To Time:</label></td><td><input type="datetime-local" value="2016-01-01T00:00:00" id="AQToTime" /></td></tr>
+					<tr><td colspan="2"><input type="button" id="FetchButton" class="button1" value="Load into Tableau!" /></td></tr>
+				</table>
             </div>
 
         </div>

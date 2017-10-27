@@ -3,6 +3,14 @@
 //----------------------------------
 (function() {
     var myConnector = tableau.makeConnector();
+	
+	myConnector.init = function(initCallback) {
+		if (!tableau.password && tableau.phase == tableau.phaseEnum.gatherDataPhase) {
+			tableau.abortForAuth("I need that token goodness!");
+		}
+		
+		initCallback();
+	}
 
     // DATA GATHERING PHASE OF THE CONNECTOR --------------------------------------------------------------
 
@@ -30,7 +38,7 @@
 
                 time_series_pts_cols.push(
                     { id: 'Loc_ID' + propertySuffix, dataType: tableau.dataTypeEnum.string, alias: locationIdentifier },
-                    { id: 'NumericValue' + propertySuffix, dataType: tableau.dataTypeEnum.float, alias: tsname, columnRole: "measure" }, 
+                    { id: 'Value' + propertySuffix, dataType: tableau.dataTypeEnum.float, alias: tsname, columnRole: "measure" }, 
                     { id: 'GradeName' + propertySuffix, dataType: tableau.dataTypeEnum.string, alias: "Grade: " + tsname,    columnRole: "dimension" }, 
                     { id: 'ApprovalName' + propertySuffix, dataType: tableau.dataTypeEnum.string, alias: "Approval: " + tsname, columnRole: "dimension" } );
             }
@@ -43,7 +51,7 @@
     };
 
     //Helper function to convert AQUARIUS json timeseries data into tableau table rows
-    function parseAQUARIUSData (data) {
+    function parseAQUARIUSData (propertySuffix, data) {
         var TableRows = [];
 
         var points = data.Points;
@@ -51,28 +59,35 @@
 
         var pi = 0;
 
-        //Process each point
+        // Process each point
         for (pi = 0; pi < points.length; ++pi) {
             var point = points[pi];
 
             //construct the tableau data
             var tablerow = {};
-            tablerow['Time'] = point.Timestamp.replace('T', ' ').substring(0, 19);  //convert to supported time format
+			
+			var timestamp = point.Timestamp;
+			
+			// AQTS ISO-8601 timestamps with timezone
+			// 000000000011111111112222222222333
+			// 012345678901234567890123456789012
+			// yyyy-MM-ddTHH:mm:ss.SSSSSSS+zH:zM
+			
+			// Simply dropping the timezone (rather than applying the offset) is often OK.
+			timestamp = timestamp.replace('T', ' ').substring(0, 23);  //convert to supported time format
+			
+            tablerow['Time'] = timestamp;
 
             var tsIndex;
             for (tsIndex = 0; tsIndex < timeSeriesList.length; ++tsIndex) {
                 var timeSeries = timeSeriesList[tsIndex];
-                var propertySuffix = tsIndex + 1;
+				var tsSuffix = (tsIndex+1).toString();
+                var columnSuffix = propertySuffix.length ? propertySuffix : tsSuffix;
 
-                var locIdPropertyName = "Loc_ID" + propertySuffix;
-                var valuePropertyName = 'NumericValue' + propertySuffix;
-                var gradePropertyName = 'GradeName' + propertySuffix;
-                var approvalPropertyName = 'ApprovalName' + propertySuffix;
-
-                tablerow[locIdPropertyName] = timeSeries.LocationIdentifier;
-                tablerow[valuePropertyName] = point[valuePropertyName];
-                tablerow[gradePropertyName] = point[gradePropertyName];
-                tablerow[approvalPropertyName] = point[approvalPropertyName];
+                tablerow['Loc_ID'       + columnSuffix] = timeSeries.LocationIdentifier;
+                tablerow['Value'        + columnSuffix] = point['NumericValue' + tsSuffix];
+                tablerow['GradeName'    + columnSuffix] = point['GradeName'    + tsSuffix];
+                tablerow['ApprovalName' + columnSuffix] = point['ApprovalName' + tsSuffix];
             }
 
             TableRows.push(tablerow);                         
@@ -87,6 +102,8 @@
         var AQPublishUrl = connectionInfo.publishUrl;
         var AQFolderPath = connectionInfo.folder;
         var AQFromTime =   connectionInfo.queryfrom;
+        var AQToTime =     connectionInfo.queryto;
+		var TimeAlignedPoints = connectionInfo.timeAlignedPoints;
         var AQTSDescs =    connectionInfo.timeserieslist;
         var AQToken =      tableau.password;
         var tableData = [];
@@ -97,6 +114,76 @@
 				xhr.setRequestHeader('X-Authentication-Token', AQToken);
 			}
 		});
+		
+		getTimeAlignedPoints = function(tsUniqueIds, queryFrom, queryTo, propertySuffix, completionCallback) {
+			
+			$.getJSON(AQPublishUrl + '/GetTimeSeriesData', {TimeSeriesUniqueIds: tsUniqueIds.join(), QueryFrom: AQFromTime, QueryTo: AQToTime})
+			.done(function (data) {
+				var pointsData = [];
+				if (data.Points) {
+					pointsData = parseAQUARIUSData(propertySuffix, data);
+				}
+
+				completionCallback(pointsData);
+			})
+			.fail(function( jqxhr, textStatus, error ) {
+				if (jqxhr.status === 500){
+					var errorResponse = JSON.parse(jqxhr.responseText);
+					
+					if (errorResponse.ResponseStatus.ErrorCode == "InvalidOperationException" && errorResponse.ResponseStatus.Message == "Sequence contains no elements") {
+						// HACK: Workaround for AQ-21916, when the master time-series has no points
+						completionCallback([]);
+						return;
+					}
+				}
+				
+				tableau.log("Request GetTimeSeriesData Failed: " + textStatus + ", " + error );
+				tableau.abortWithError("Error getting time series points.");
+			});
+		}
+		
+		getTimeSeriesPoints = function(tsUniqueIds, queryFrom, queryTo, timeAlignedPoints, completionCallback) {
+			if (timeAlignedPoints) {
+				getTimeAlignedPoints(tsUniqueIds, queryFrom, queryTo, "", completionCallback);
+				return;
+			}
+			
+			var mergedPoints = [];
+			var receivedCount = 0;
+			for (var i=0; i < tsUniqueIds.length; ++i) {
+				getTimeAlignedPoints([tsUniqueIds[i]], queryFrom, queryTo, (i+1).toString(), function (pointsData){
+					mergedPoints = mergedPoints.concat(pointsData);
+					++receivedCount;
+					
+					if (receivedCount === tsUniqueIds.length) {
+						mergedPoints.sort(function(a, b) {  
+							return (a.Time > b.Time) ? 1 : (a.Time < b.Time) ? -1 : 0;
+						});
+						
+						// Now that the points are sorted, coalesce all values with identical timestamp strings
+						for (var j = 0; j < mergedPoints.length - 1; ++j) {
+							var row1 = mergedPoints[j];
+							var row2 = mergedPoints[j+1];
+							
+							if (row1.Time == row2.Time) {
+								// Merge the second row into the first
+								for (var attrname in row2) {
+									row1[attrname] = row2[attrname];
+								}
+								
+								// Remove row2 from the array
+								mergedPoints.splice(j+1, 1);
+								
+								// Adjust the loop counter
+								--j;
+							}
+						}
+						
+						completionCallback(mergedPoints);
+					}
+				});
+			}
+		}
 
         //LOCATIONS TABLE
         if (table.tableInfo.id == "Location") {
@@ -146,29 +233,31 @@
                 var tsUniqueIds = AQTSDescs.map(function (item) {
                     return item.UniqueId;
                 });
-
-                $.getJSON(AQPublishUrl + '/GetTimeSeriesData', {TimeSeriesUniqueIds: tsUniqueIds.join(), QueryFrom: AQFromTime})
-                    .done(function (data) {
-                        var pointsData = [];
-                        if (data.Points) {
-                            pointsData = parseAQUARIUSData(data);
-                        }
-
-                        table.appendRows(pointsData);
-                        dataCallback(); //done
-                    })
-                    .fail(function( jqxhr, textStatus, error ) {
-                        tableau.log("Request GetTimeSeriesData Failed: " + textStatus + ", " + error );
-                        tableau.abortWithError("Error getting time series points.");
-                    });
+				
+				getTimeSeriesPoints(tsUniqueIds, AQFromTime, AQToTime, TimeAlignedPoints, function (pointsData){
+					table.appendRows(pointsData);
+					dataCallback(); //done
+				});
             }
         }
     };
 
      myConnector.shutdown = function(shutdownCallback) {
-        if (tableau.phase == tableau.phaseEnum.gatherDataPhase) {
-            // todo: release the AQUARIUS session token
+        if (tableau.password && tableau.phase == tableau.phaseEnum.gatherDataPhase) {
+            // Release the AQUARIUS session token
+            $.ajax({
+				type: "DELETE",
+				url: JSON.parse(tableau.connectionData).publishUrl + '/session',
+				success: function (data) {
+					tableau.password = null;
+					$('#loginstatus').text("Disconnected");
+				},
+				error: function (xhr, ajaxOptions, thrownError) {
+					tableau.log("Error during AQTS disconnection: " + xhr.responseText + "\n" + thrownError);
+				}
+            });
         }
+		
         shutdownCallback();
     };
 
