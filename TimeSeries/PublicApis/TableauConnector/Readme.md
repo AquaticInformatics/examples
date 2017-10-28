@@ -5,7 +5,7 @@
 ## Pre-requisites
 - AQUARIUS Time-Series 2017.2+ installed on an app server
 - Admin rights to the AQTS app server
-- Tableau Desktop or Tableau Public, v10.1+
+- Tableau Desktop or Tableau Public, v10.2+
 
 ## Installation of the Tableau Connector
 
@@ -37,6 +37,17 @@ Now you can explore your data within Tableau!
 - If no `To Time:` value is specified, the end of the time-series record is used.
 - Leave both values blank to retrieve the entire time-series record.
 
+Supported date time formats:
+- `yyyy-MM-dd` (assumes the UTC timezone)
+- `yyyy-MM-ddTHH:mm` (and optional `ZZZ` timezone)
+- `yyyy-MM-ddTHH:mm:ss` (and optional `ZZZ` timezone)
+- `yyyy-MM-ddTHH:mm:ss.fffffff` (and optional `ZZZ` timezone)
+
+`ZZZ` timezone offsets are one of:
+- a literal `Z` for UTC
+- `+HH:mm`
+- `-HH:mm`
+
 ### Time-aligning point values
 
 The `Time-align points?` checkbox is enabled by default.
@@ -48,6 +59,15 @@ When disabled, points from each time-series will be retrieved at their native re
 
 When only one time-series is being retrieved, the checkbox setting has no effect.
 
-## Roadmap
+## Tables exported to Tableau
+
+| Table name| Description |
+|---|---|
+|Locations| The locations matching the `FolderPath` filter. |
+|Time Series| The metadata for the time-series in the `Time-series to load` list. |
+|Time Series Points| The points, approvals, and grades retrieved from the selected time-series. |
+
+
+## Roadmap for the Web Connector
 - Add optional unit-conversion support (since the underlying `GET /GetTimeSeriesData` API supports unit-conversion)
 - Add the AQTS configuration data (all parameters, units, approval levels, grades, and qualifiers) as exported Tableau tables, for easier filtering and legends.
