@@ -21,13 +21,36 @@
         
         // Schema for locations
         var location_cols = [
-            { id: "Loc_ID",       dataType: tableau.dataTypeEnum.string },
-            { id: "LocationName", dataType: tableau.dataTypeEnum.string, alias: "Location Name" },
-            { id: "LocationType", dataType: tableau.dataTypeEnum.string, alias: "Location Type" },
-            { id: "Latitude",     dataType: tableau.dataTypeEnum.float,  alias: "Latitude",  columnRole: "dimension" },
-            { id: "Longitude", 	  dataType: tableau.dataTypeEnum.float,  alias: "Longitude", columnRole: "dimension" } ];
+            { id: "LocationIdentifier",	dataType: tableau.dataTypeEnum.string, alias: "Location Identifier" },
+            { id: "LocationName", 		dataType: tableau.dataTypeEnum.string, alias: "Location Name" },
+            { id: "LocationType", 		dataType: tableau.dataTypeEnum.string, alias: "Location Type", columnRole: "dimension" },
+            { id: "Latitude",     		dataType: tableau.dataTypeEnum.float,  alias: "Latitude",  columnRole: "dimension" },
+            { id: "Longitude", 	  		dataType: tableau.dataTypeEnum.float,  alias: "Longitude", columnRole: "dimension" },
+            { id: "Elevation", 	  		dataType: tableau.dataTypeEnum.float,  alias: "Elevation", columnRole: "dimension" },
+            { id: "ElevationUnits",		dataType: tableau.dataTypeEnum.string, alias: "Elevation Units", },
+            { id: "UtcOffsetHours",		dataType: tableau.dataTypeEnum.float,  alias: "UTC Offset Hours", columnRole: "measure" }
+		];
 
-        // Schema for time series info
+		// Schema for time series info
+		var time_series_cols = [
+			{ id: "TimeSeriesIdentifier", dataType: tableau.dataTypeEnum.string, alias: "Time Series Identifier" },
+			{ id: "LocationIdentifier", dataType: tableau.dataTypeEnum.string, alias: "Location Identifier" },
+			{ id: "Parameter", dataType: tableau.dataTypeEnum.string, columnRole: "dimension" },
+			{ id: "Unit", dataType: tableau.dataTypeEnum.string, columnRole: "dimension" },
+			{ id: "Label", dataType: tableau.dataTypeEnum.string },
+			{ id: "Comment", dataType: tableau.dataTypeEnum.string },
+			{ id: "Description", dataType: tableau.dataTypeEnum.string },
+			{ id: "UtcOffsetHours", dataType: tableau.dataTypeEnum.float, alias: "UTC Offset Hours", columnRole: "measure" },
+			{ id: "LastModified", dataType: tableau.dataTypeEnum.datetime, alias: "Last Modified", columnRole: "measure" },
+			{ id: "RawStartTime", dataType: tableau.dataTypeEnum.datetime, alias: "Raw Start Time", columnRole: "measure" },
+			{ id: "RawEndTime", dataType: tableau.dataTypeEnum.datetime, alias: "Raw End Time", columnRole: "measure" },
+			{ id: "TimeSeriesType", dataType: tableau.dataTypeEnum.string, alias: "Time Series Type", columnRole: "dimension" },
+			{ id: "ComputationIdentifier", dataType: tableau.dataTypeEnum.string, alias: "Computation Identifier", columnRole: "dimension" },
+			{ id: "ComputationPeriodIdentifier", dataType: tableau.dataTypeEnum.string, alias: "Computation Period Identifier", columnRole: "dimension" },
+			{ id: "SubLocationIdentifier", dataType: tableau.dataTypeEnum.string, alias: "SubLocation Identifier", columnRole: "dimension" }
+		];
+
+        // Schema for time series points
         var time_series_pts_cols = [           
             { id: "Time",        dataType: tableau.dataTypeEnum.datetime, alias: "Time", columnRole: "measure" } ];
             //create table columns for each of the time series: 
@@ -38,6 +61,7 @@
 
                 time_series_pts_cols.push(
                     { id: 'Loc_ID' + propertySuffix, dataType: tableau.dataTypeEnum.string, alias: locationIdentifier },
+                    { id: 'TS_ID' + propertySuffix, dataType: tableau.dataTypeEnum.string, alias: tsname },
                     { id: 'Value' + propertySuffix, dataType: tableau.dataTypeEnum.float, alias: tsname, columnRole: "measure" }, 
                     { id: 'GradeName' + propertySuffix, dataType: tableau.dataTypeEnum.string, alias: "Grade: " + tsname,    columnRole: "dimension" }, 
                     { id: 'ApprovalName' + propertySuffix, dataType: tableau.dataTypeEnum.string, alias: "Approval: " + tsname, columnRole: "dimension" } );
@@ -46,9 +70,22 @@
         //give the schema back to tableau
         schemaCallback(
             [ { id: "Location",   columns: location_cols,    alias: "AQUARIUS Locations" },
+			  { id: "TimeSeries", columns: time_series_cols, alias: "AQUARIUS Time Series" },
               { id: "Points",     columns: time_series_pts_cols,  alias: "AQUARIUS Time Series Points" } ],
             [] );
     };
+	
+	// Convert AQTS ISO 8601 timestamps to Tableau format
+	function convertIso8601Timestamp(isoText) {
+		// AQTS ISO-8601 timestamps with timezone
+		// 000000000011111111112222222222333
+		// 012345678901234567890123456789012
+		// yyyy-MM-ddTHH:mm:ss.SSSSSSS+zH:zM
+		
+		// Simply dropping the timezone (rather than applying the offset) is often OK.
+		// yyyy-MM-dd HH:mm:ss.SSS
+		return isoText.replace('T', ' ').substring(0, 23);
+	}
 
     //Helper function to convert AQUARIUS json timeseries data into tableau table rows
     function parseAQUARIUSData (propertySuffix, data) {
@@ -66,17 +103,7 @@
             //construct the tableau data
             var tablerow = {};
 			
-			var timestamp = point.Timestamp;
-			
-			// AQTS ISO-8601 timestamps with timezone
-			// 000000000011111111112222222222333
-			// 012345678901234567890123456789012
-			// yyyy-MM-ddTHH:mm:ss.SSSSSSS+zH:zM
-			
-			// Simply dropping the timezone (rather than applying the offset) is often OK.
-			timestamp = timestamp.replace('T', ' ').substring(0, 23);  //convert to supported time format
-			
-            tablerow['Time'] = timestamp;
+            tablerow['Time'] = convertIso8601Timestamp(point.Timestamp);
 
             var tsIndex;
             for (tsIndex = 0; tsIndex < timeSeriesList.length; ++tsIndex) {
@@ -85,6 +112,7 @@
                 var columnSuffix = propertySuffix.length ? propertySuffix : tsSuffix;
 
                 tablerow['Loc_ID'       + columnSuffix] = timeSeries.LocationIdentifier;
+                tablerow['TS_ID'        + columnSuffix] = timeSeries.Identifier;
                 tablerow['Value'        + columnSuffix] = point['NumericValue' + tsSuffix];
                 tablerow['GradeName'    + columnSuffix] = point['GradeName'    + tsSuffix];
                 tablerow['ApprovalName' + columnSuffix] = point['ApprovalName' + tsSuffix];
@@ -185,7 +213,7 @@
 			}
 		}
 
-        //LOCATIONS TABLE
+        // LOCATIONS TABLE
         if (table.tableInfo.id == "Location") {
             //Get the list of locations in the given folder
 			var params = {};
@@ -202,10 +230,13 @@
                         .done(function(data) {
                             tableData.push({
                                 'LocationName': data.LocationName,
-                                'Loc_ID': data.Identifier,
+                                'LocationIdentifier': data.Identifier,
                                 'LocationType': data.LocationType,
                                 'Latitude': data.Latitude,
-                                'Longitude': data.Longitude
+                                'Longitude': data.Longitude,
+								'Elevation': data.Elevation,
+								'ElevationUnits': data.ElevationUnits,
+								'UtcOffsetHours': data.UtcOffset
                             });
                             //This is asynchronous ajax, so do the final step in the innermost function
                             if (tableData.length == locations.length) {
@@ -226,7 +257,35 @@
             });
         }
 
-        //TIME SERIES POINTS TABLE
+		// TIME SERIES TABLE
+		else if (table.tableInfo.id == "TimeSeries") {
+			var rows = [];
+			
+			$.each(AQTSDescs, function(index, data) {
+				rows.push({
+					'TimeSeriesIdentifier'			: data.Identifier,
+					'LocationIdentifier' 			: data.LocationIdentifier,
+					'Parameter' 					: data.Parameter,
+					'Unit' 							: data.Unit,
+					'Label' 						: data.Label,
+					'Comment' 						: data.Comment,
+					'Description' 					: data.Description,
+					'UtcOffsetHours' 				: data.UtcOffset,
+					'LastModified' 					: convertIso8601Timestamp(data.LastModified),
+					'RawStartTime' 					: convertIso8601Timestamp(data.RawStartTime),
+					'RawEndTime' 					: convertIso8601Timestamp(data.RawEndTime),
+					'TimeSeriesType' 				: data.TimeSeriesType,
+					'ComputationIdentifier' 		: data.ComputationIdentifier,
+					'ComputationPeriodIdentifier'	: data.ComputationPeriodIdentifier,
+					'SubLocationIdentifier' 		: data.SubLocationIdentifier
+				});
+			});
+
+			table.appendRows(rows);
+			dataCallback();
+		}
+		
+        // TIME SERIES POINTS TABLE
         else if (table.tableInfo.id == "Points") {
             if (!AQTSDescs) { dataCallback(); }	
             else {
