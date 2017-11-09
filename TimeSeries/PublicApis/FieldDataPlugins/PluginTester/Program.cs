@@ -210,7 +210,7 @@ namespace PluginTester
 
             Log.Info($"Loading data file '{DataPath}'");
 
-            return new FileStream(DataPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            return new MemoryStream(File.ReadAllBytes(DataPath));
         }
 
         private IFieldDataPlugin LoadPlugin()
@@ -220,6 +220,7 @@ namespace PluginTester
             if (!File.Exists(pluginPath))
                 throw new ExpectedException($"Plugin file '{pluginPath}' does not exist.");
 
+            // ReSharper disable once PossibleNullReferenceException
             var assembliesInPluginFolder = new FileInfo(pluginPath).Directory.GetFiles("*.dll");
 
             AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
