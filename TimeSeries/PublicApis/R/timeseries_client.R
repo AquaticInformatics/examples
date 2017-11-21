@@ -62,7 +62,7 @@ timeseriesClient <- setRefClass("timeseriesClient",
 #' Sys.setenv(http_proxy="http://localhost:8888") # Enables Fiddler capturing of traffic
 #' Sys.setenv(http_proxy="") # Disables Fiddler proxying
     configureProxy = function() {
-      if (length(Sys.getenv("R_DISABLE_FIDDLER")[0]) > 0 && Sys.info()['sysname'] != "Windows")
+      if (length(Sys.getenv("R_DISABLE_FIDDLER")[0]) > 0 || Sys.info()['sysname'] != "Windows")
         return()
 
       # Check if Fiddler is running
@@ -420,6 +420,60 @@ timeseriesClient <- setRefClass("timeseriesClient",
   deleteReport = function(reportUniqueId) {
     r <- DELETE(paste0(acquisitionUri, "/attachments/reports/", reportUniqueId))
     stop_for_status(r, paste("delete report", reportUniqueId))
+  },
+
+#' Performs a batch of identical operations
+#' 
+#' This method is useful for requesting large amounts of similar data from AQTS,
+#' taking advantage of ServiceStack's support for auto-batched requests.
+#' 
+#' http://docs.servicestack.net/auto-batched-requests
+#' 
+#' When you find that a public API only supports a 1-at-a-time approach, and your
+#' code needs to request thousands of items, the sendBatchRequests() method is the one to use.
+#' 
+#' @param endpoint The base REST endpoint
+#' @param operationName The name of operation, from the AQTS Metadata page, to perform multiple times. NOT the route, but the operation name.
+#' @param requests A collection of individual request objects
+#' @param batchSize Optional batch size (defaults to 100 requests per batch)
+#' @param verb Optional HTTP verb of the operation (defaults to "GET")
+#' @returns A single dataframe containing all the batched responses
+#' @examples 
+#' # Request info for 3 locations.
+#' # Single-request URL is GET /Publish/v2/GetLocationData?LocationIdentifer=loc1
+#' # Operation name is "LocationDataServiceRequest"
+#' requests = c(list(LocationIdentifier="Loc1"), list(LocationIdentifier="Loc3"), list(LocationIdentifier="Loc3"))
+#' responses = timeseries$sendBatchRequests(timeseries$publishUri,"LocationDataServiceRequest", requests)
+  sendBatchRequests = function(endpoint, operationName, requests, batchSize, verb) {
+    
+    if (missing(batchSize)) {
+      # Use a reasonable batch size
+      batchSize <- 100
+    }
+    
+    if (missing(verb)) {
+      verb <- "GET"
+    }
+    
+    # Compose the special batch-operation URL supported by ServiceStack
+    url = paste0(endpoint, "/json/reply/", operationName, "[]")
+    
+    # Split the requests into batche-sized chunks
+    batches <- split(requests, ceiling(seq_along(requests) / batchSize))
+    
+    # Create a local function to request each batch of requests, using the verb as an override to the POST
+    batchPost <- function(batches) {
+      r <- POST(url, body = batches, encode = "json", add_headers("X-Http-Method-Override" = verb))
+      stop_for_status(r, "sending batch requests")
+      
+      j <- fromJSON(content(r, "text"))
+    }
+    
+    # Call the operation in batches
+    batchResponses <- lapply(batches, batchPost)
+    
+    # Flatten the list of response dataframes into a single data frame
+    j <- do.call("rbind", batchResponses)
   }
   )
 )
