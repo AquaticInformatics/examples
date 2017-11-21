@@ -458,22 +458,24 @@ timeseriesClient <- setRefClass("timeseriesClient",
     # Compose the special batch-operation URL supported by ServiceStack
     url = paste0(endpoint, "/json/reply/", operationName, "[]")
     
-    # Split the requests into batche-sized chunks
-    batches <- split(requests, ceiling(seq_along(requests) / batchSize))
-    
+    # Split the requests into batch-sized chunks
+    requestBatches <- split(requests, ceiling(seq_along(requests) / batchSize))
+
     # Create a local function to request each batch of requests, using the verb as an override to the POST
-    batchPost <- function(batches) {
-      r <- POST(url, body = batches, encode = "json", add_headers("X-Http-Method-Override" = verb))
-      stop_for_status(r, "sending batch requests")
+    batchPost <- function(batchOfRequests, index) {
+      offset <- batchSize * index
+      r <- POST(url, body = batchOfRequests, encode = "json", add_headers("X-Http-Method-Override" = verb))
+      stop_for_status(r, paste("receive", length(batchOfRequests), "batch responses at offset", offset))
       
-      j <- fromJSON(content(r, "text"))
+      # Return the batch of responses
+      responses <- fromJSON(content(r, "text"))
     }
     
     # Call the operation in batches
-    batchResponses <- lapply(batches, batchPost)
+    responseBatches <- mapply(batchPost, requestBatches, seq_along(requestBatches) - 1, SIMPLIFY = FALSE)
     
-    # Flatten the list of response dataframes into a single data frame
-    j <- do.call("rbind", batchResponses)
+    # Flatten the list of response data frames into a single data frame
+    rbind_pages(responseBatches)
   }
   )
 )
