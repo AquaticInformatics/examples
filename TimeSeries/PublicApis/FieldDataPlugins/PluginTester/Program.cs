@@ -210,7 +210,11 @@ namespace PluginTester
 
             Log.Info($"Loading data file '{DataPath}'");
 
-            return new MemoryStream(File.ReadAllBytes(DataPath));
+            using (var stream = new FileStream(DataPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using(var reader = new BinaryReader(stream))
+            {
+                return new MemoryStream(reader.ReadBytes((int)stream.Length));
+            }
         }
 
         private IFieldDataPlugin LoadPlugin()
