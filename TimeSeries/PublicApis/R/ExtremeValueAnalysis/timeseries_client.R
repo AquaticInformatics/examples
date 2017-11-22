@@ -159,7 +159,14 @@ timeseriesClient <- setRefClass("timeseriesClient",
 
         # Find the unique ID by matching the full identifier
         j <- fromJSON(content(r, "text"))
-        j$TimeSeries$UniqueId[which(j$TimeSeries$Identifier == timeSeriesIdentifier)]
+        uniqueId <- j$TimeSeries$UniqueId[which(j$TimeSeries$Identifier == timeSeriesIdentifier)]
+        
+        if (length(uniqueId) <= 0) {
+          # Throw on the brakes
+          stop("Can't find time-series '", timeSeriesIdentifier, "' in location '", location, "'.")
+        }
+        
+        uniqueId
       }
     },
 
