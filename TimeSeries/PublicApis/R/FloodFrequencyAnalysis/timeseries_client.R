@@ -1,6 +1,6 @@
 # Load dependencies
-require('jsonlite')
-require('httr')
+require(jsonlite)
+require(httr)
 
 # Sys.setenv(http_proxy="http://localhost:8888") # Enables Fiddler capturing of traffic
 # Sys.setenv(http_proxy="") # Disables Fiddler proxying
@@ -272,10 +272,9 @@ timeseriesClient <- setRefClass("timeseriesClient",
 
 #' Gets the location data for a location
     getLocationData = function(locationIdentifier) {
-      r <- GET(paste0(publishUri, "/GetLocationData"), query = list(LocationIdentifier = locationIdentifier))
-      stop_for_status(r, paste("get location data for", locationIdentifier))
-
-      j <- fromJSON(content(r, "text"))
+      locationData <- fromJSON(content(stop_for_status(
+        GET(paste0(publishUri, "/GetLocationData"), query = list(LocationIdentifier = locationIdentifier))
+      , paste("get location data for", locationIdentifier)), "text"))
     },
 
 #' Gets the rating models matching the optional filters
@@ -317,7 +316,7 @@ timeseriesClient <- setRefClass("timeseriesClient",
     # Get the rating models for the time period
     ratingModels <- fromJSON(content(stop_for_status(
       GET(paste0(.self$publishUri, "/GetRatingModelDescriptionList"), query = q)
-    ), "text"))$RatingModelDescriptions
+    , paste("get rating models for", locationIdentifier)), "text"))$RatingModelDescriptions
     
     # Get the rating curves active in those models
     ratingCurveRequests <- lapply(ratingModels$Identifier, function(identifier) {
@@ -332,6 +331,37 @@ timeseriesClient <- setRefClass("timeseriesClient",
     ratingModels$Curves <- ratingCurves$RatingCurves
     
     ratingModels
+  },
+
+#' Gets output values from a rating model
+#' 
+#' @param ratingModelIdentifier The identifier of the rating model
+#' @param inputValues The list of input values to run through the model
+#' @param effectiveTime Optional time of applicability. Assumes current time if omitted
+#' @param applyShifts Optional boolean, defaults to FALSE
+#' @return The output values from the applicable curve of the rating model. An output value of NA is returned if the input is outside the curve.
+  getRatingModelOutputValues = function(ratingModelIdentifier, inputValues, effectiveTime, applyShifts) {
+    
+    if (missing(effectiveTime)) { effectiveTime <- NULL }
+    if (missing(applyShifts))   { applyShifts <- NULL }
+    
+    # Coerce native R dates to an ISO 8601 string
+    if (is.double(effectiveTime)) { effectiveTime <- .self$formatIso8601(effectiveTime) }
+    
+    # Build the query
+    q <- list(
+      RatingModelIdentifier = ratingModelIdentifier,
+      InputValues = .self$toJSV(inputValues),
+      EffectiveTime = effectiveTime,
+      ApplyShifts = applyShifts
+    )
+    q <- q[!sapply(q, is.null)]
+    
+    # Get the output values of the rating curve
+    outputValues <- fromJSON(content(stop_for_status(
+      GET(paste0(.self$publishUri, "/GetRatingModelOutputValues"), query = q)
+    , paste("get rating model output values for", ratingModelIdentifier)), "text"))$OutputValues
+    
   },
 
 #' Gets field visits
@@ -365,7 +395,7 @@ timeseriesClient <- setRefClass("timeseriesClient",
     # Get the filed visits descriptions for the time period
     visits <- fromJSON(content(stop_for_status(
       GET(paste0(.self$publishUri, "/GetFieldVisitDescriptionList"), query = q)
-    ), "text"))$FieldVisitDescriptions
+      , paste("get field visits for", locationIdentifier)), "text"))$FieldVisitDescriptions
     
     # Get the activities performed during those visits
     visitDataRequests <- lapply(visits$Identifier, function(identifier) {
@@ -379,6 +409,101 @@ timeseriesClient <- setRefClass("timeseriesClient",
     visits$Details <- visitData
     
     visits
+  },
+
+  #' Gets Change list for a given time-series
+  #' 
+  #' @param timeSeriesIdentifier The time-series identifier or unique ID
+  #' @param queryFrom Optional QueryFrom filter
+  #' @param queryTo Optional QueryTo filter
+  #' @return The list of change trasactions
+  #' @examples 
+  getMetadataChangeTransactionList = function(timeSeriesIdentifier, queryFrom, queryTo) {
+    
+    if (missing(queryFrom))     { queryFrom <- NULL }
+    if (missing(queryTo))       { queryTo <- NULL }
+    
+    # Coerce native R dates to an ISO 8601 string
+    if (is.double(queryFrom)) { queryFrom <- timeseries$formatIso8601(queryFrom) }
+    if (is.double(queryTo))   { queryTo   <- timeseries$formatIso8601(queryTo) }
+    
+    # Build the query
+    q <- list(
+      TimeSeriesUniqueId = .self$getTimeSeriesUniqueId(timeSeriesIdentifier),
+      QueryFrom = queryFrom,
+      QueryTo = queryTo
+    )
+    q <- q[!sapply(q, is.null)]
+    
+    # Get metadata transaction list
+    metadataChangeList <- fromJSON(content(stop_for_status(
+      GET(paste0(.self$publishUri, "/GetMetadataChangeTransactionList"), query = q)
+      , paste("get metadata change list for", timeSeriesIdentifier)), "text"))
+    
+    metadataChangeList
+  },
+
+#' Converts an item to JSV format, for GET request query parameter values
+#' 
+#' Converts vectors or named lists to JSV. Everything else is left unmodified.
+#' 
+#' Query parameters in a GET request need to be in JSV format.
+#' JSON body parameters in POST/PUT/DELETE requests do not need JSV formatting (they are, JSON)
+#' 
+#' https://github.com/ServiceStack/ServiceStack.Text/wiki/JSV-Format
+#' 
+  toJSV = function(item) {
+    if (is.list(item)) {
+      if (is.null(names(item))) {
+        
+        # Treat lists without names like a vector
+        item = .self$toJSV(unlist(item))
+      } else {
+        
+        # List the key value pairs
+        n = names(item)
+        v = unlist(item)
+        item <- .self$toJSV(sapply(seq_along(item), function (i) paste0(n[i], ":", v[i])))
+      }
+    } else if (is.vector(item)) {
+      
+      # Commas separate arrays
+      item <- paste0(item, collapse = ",")
+    }
+    
+    item
+  },
+
+#' Fetch all requested time-series descriptions matching the filter
+#' 
+#' @param locationIdentifier Optional location identifier filter
+#' @param parameter Optional parameter filter
+#' @param publish Optional publish filter
+#' @param computationIdentifier Optional computation identifier filter
+#' @param computationPeriodIdentifier Optional computation period identifier filter
+#' @param extendedFilters Optional extended attribute filter
+#' @return All the time-series descriptions matching the filters
+  getTimeSeriesDescriptions = function(locationIdentifier, parameter, publish, computationIdentifier, computationPeriodIdentifier, extendedFilters) {
+    
+    if (missing(locationIdentifier))          { locationIdentifier = NULL }
+    if (missing(parameter))                   { parameter = NULL }
+    if (missing(publish))                     { publish = NULL }
+    if (missing(computationIdentifier))       { computationIdentifier = NULL }
+    if (missing(computationPeriodIdentifier)) { computationPeriodIdentifier = NULL }
+    if (missing(extendedFilters))             { extendedFilters = NULL }
+    
+    q <- list(
+      LocationIdentifier = locationIdentifier,
+      Parameter = parameter,
+      Publish = publish,
+      ComputationIdentifier = computationIdentifier,
+      ExtendedFilters = .self$toJSV(extendedFilters))
+    q <- q[!sapply(q, is.null)]
+    
+    # Get all the time series at the location
+    timeSeries <- fromJSON(content(stop_for_status(
+      GET(paste0(timeseries$publishUri, "/GetTimeSeriesDescriptionList"), query = q)
+      , paste("get time-series descriptions for", locationIdentifier)), "text"))$TimeSeriesDescriptions
   },
 
 #' Gets time-series points for multiple time-series
@@ -427,27 +552,52 @@ timeseriesClient <- setRefClass("timeseriesClient",
       if (is.double(queryFrom)) { queryFrom <- .self$formatIso8601(queryFrom) }
       if (is.double(queryTo))   { queryTo   <- .self$formatIso8601(queryTo) }
 
-      if (!is.null(outputUnitIds)) {
-        if (is.character(outputUnitIds)) {
-          # Coerce a single unit ID into a vector
-          outputUnitIds <- c(outputUnitIds)
-        }
-
-        outputUnitIds <- paste(outputUnitIds, collapse = ",")
-      }
-
       q <- list(
-        TimeSeriesUniqueIds = paste(uniqueIds, collapse = ","),
-        TimeSeriesOutputUnitIds = outputUnitIds,
+        TimeSeriesUniqueIds = .self$toJSV(uniqueIds),
+        TimeSeriesOutputUnitIds = .self$toJSV(outputUnitIds),
         QueryFrom = queryFrom,
         QueryTo = queryTo,
         IncludeGapMarkers = includeGapMarkers)
       q <- q[!sapply(q, is.null)]
+      
       r <- GET(paste0(publishUri, "/GetTimeSeriesData"), query = q)
       stop_for_status(r, paste("get time-aligned data for", length(uniqueIds), "time-series"))
 
       j <- fromJSON(content(r, "text"))
     },
+
+#' Get corrected data for a time-series
+#'
+#' The getTimeSeriesData() method is usually a better choice, since it can pull corrected data from multiple time-series.
+#' But when you need to look at the metadata of a time-series, this method is required.
+#' 
+#' @param timeSeriesIdentifier
+#' @return The corrected data and metadata for the time-series
+  getTimeSeriesCorrectedData = function (timeSeriesIdentifier, queryFrom, queryTo, getParts, includeGapMarkers) {
+    
+    if (missing(queryFrom))         { queryFrom <- NULL }
+    if (missing(queryTo))           { queryTo <- NULL }
+    if (missing(getParts))          { getParts <- NULL }
+    if (missing(includeGapMarkers)) { includeGapMarkers <- NULL }
+    
+    # Coerce native R dates to an ISO 8601 string
+    if (is.double(queryFrom)) { queryFrom <- .self$formatIso8601(queryFrom) }
+    if (is.double(queryTo))   { queryTo   <- .self$formatIso8601(queryTo) }
+    
+    # Build the query
+    q <- list(
+      TimeSeriesUniqueId = .self$getTimeSeriesUniqueId(timeSeriesIdentifier),
+      QueryFrom = queryFrom,
+      QueryTo = queryTo,
+      GetParts = getParts,
+      IncludeGapMarkers = includeGapMarkers)
+    q <- q[!sapply(q, is.null)]
+    
+    data <- fromJSON(content(stop_for_status(
+      GET(paste0(.self$publishUri, "/GetTimeSeriesCorrectedData"), query = q)
+    , paste("get corrected data for", timeSeriesIdentifier)), "text"))
+    
+  },
 
 #' Uploads a file to a location as an external report
 #'
