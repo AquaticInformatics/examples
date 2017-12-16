@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using Server.BusinessInterfaces.FieldDataPluginCore;
-using Server.BusinessInterfaces.FieldDataPluginCore.Context;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel.CrossSection;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel.DischargeActivities;
-using Server.BusinessInterfaces.FieldDataPluginCore.Results;
+using FieldDataPluginFramework;
+using FieldDataPluginFramework.Context;
+using FieldDataPluginFramework.DataModel;
+using FieldDataPluginFramework.DataModel.CrossSection;
+using FieldDataPluginFramework.DataModel.DischargeActivities;
+using FieldDataPluginFramework.DataModel.Readings;
+using FieldDataPluginFramework.Results;
 
 namespace PluginTester
 {
@@ -72,6 +72,11 @@ namespace PluginTester
         public void AddCrossSectionSurvey(FieldVisitInfo fieldVisit, CrossSectionSurvey crossSectionSurvey)
         {
             fieldVisit.CrossSectionSurveys.Add(crossSectionSurvey);
+        }
+
+        public void AddReading(FieldVisitInfo fieldVisit, Reading reading)
+        {
+            fieldVisit.Readings.Add(reading);
         }
     }
 }

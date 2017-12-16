@@ -1,4 +1,4 @@
-﻿using Server.BusinessInterfaces.FieldDataPluginCore.Units;
+﻿using FieldDataPluginFramework.Units;
 
 namespace StageDischargePlugin
 {

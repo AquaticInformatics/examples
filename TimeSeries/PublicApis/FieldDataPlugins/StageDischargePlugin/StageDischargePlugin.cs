@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
-using Server.BusinessInterfaces.FieldDataPluginCore;
-using Server.BusinessInterfaces.FieldDataPluginCore.Context;
-using Server.BusinessInterfaces.FieldDataPluginCore.Results;
+using FieldDataPluginFramework;
+using FieldDataPluginFramework.Context;
+using FieldDataPluginFramework.Results;
 using StageDischargePlugin.FileData;
 
 namespace StageDischargePlugin

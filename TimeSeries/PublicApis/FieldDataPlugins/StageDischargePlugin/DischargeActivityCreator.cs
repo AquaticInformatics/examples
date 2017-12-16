@@ -1,10 +1,10 @@
 ﻿using System;
-using Server.BusinessInterfaces.FieldDataPluginCore;
-using Server.BusinessInterfaces.FieldDataPluginCore.Context;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel.DischargeActivities;
+using FieldDataPluginFramework;
+using FieldDataPluginFramework.Context;
+using FieldDataPluginFramework.DataModel;
+using FieldDataPluginFramework.DataModel.DischargeActivities;
 using StageDischargePlugin.FileData;
-using Measurement = Server.BusinessInterfaces.FieldDataPluginCore.DataModel.Measurement;
+using Measurement = FieldDataPluginFramework.DataModel.Measurement;
 
 namespace StageDischargePlugin
 {

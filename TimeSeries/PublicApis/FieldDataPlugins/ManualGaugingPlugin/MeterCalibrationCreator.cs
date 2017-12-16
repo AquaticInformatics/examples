@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using FieldDataPluginFramework;
+using FieldDataPluginFramework.DataModel.Meters;
 using ManualGaugingPlugin.FileData;
-using Server.BusinessInterfaces.FieldDataPluginCore;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel.Meters;
 
 namespace ManualGaugingPlugin
 {

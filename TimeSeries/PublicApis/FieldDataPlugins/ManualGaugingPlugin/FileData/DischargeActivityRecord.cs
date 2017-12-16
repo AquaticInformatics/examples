@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel.Verticals;
+using FieldDataPluginFramework.DataModel.Verticals;
 
 namespace ManualGaugingPlugin.FileData
 {

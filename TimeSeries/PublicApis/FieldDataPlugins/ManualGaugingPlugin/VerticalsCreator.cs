@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using FieldDataPluginFramework;
+using FieldDataPluginFramework.DataModel;
+using FieldDataPluginFramework.DataModel.ChannelMeasurements;
+using FieldDataPluginFramework.DataModel.Meters;
+using FieldDataPluginFramework.DataModel.Verticals;
 using ManualGaugingPlugin.FileData;
-using Server.BusinessInterfaces.FieldDataPluginCore;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel.ChannelMeasurements;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel.Meters;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel.Verticals;
-using VelocityObservation = Server.BusinessInterfaces.FieldDataPluginCore.DataModel.Verticals.VelocityObservation;
+using VelocityObservation = FieldDataPluginFramework.DataModel.Verticals.VelocityObservation;
 
 namespace ManualGaugingPlugin
 {
