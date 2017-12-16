@@ -54,6 +54,14 @@ $(document).ready(function() {
 			dataType: 'text',
 			success: function (data) {
 				AQToken = data;
+				
+				// Set the auth header on every call. Required to support CORS requests
+				$.ajaxSetup({
+					beforeSend: function (xhr) {
+						xhr.setRequestHeader('X-Authentication-Token', AQToken);
+					}
+				});
+
 				$('#loginstatus').text("Connected");
 				$('#loginstatus').css({'color': 'black'});
 			},
