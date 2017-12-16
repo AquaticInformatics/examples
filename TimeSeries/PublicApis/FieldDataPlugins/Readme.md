@@ -2,12 +2,16 @@
 
 [**Download** this project folder](https://minhaskamal.github.io/DownGit/#/home?url=https:%2F%2Fgithub.com%2FAquaticInformatics%2FExamples%2Ftree%2Fmaster%2FTimeSeries%2FPublicApis%2FFieldDataPlugins)
 
-Requires: Visual Studio 2015+ (Community Edition is fine)
+Requires: Visual Studio 2017+ (Community Edition is fine)
 
 The ExampleFieldDataPlugins solution includes some example plugins for the AQ-TS field data plugin framework.  The core assembly required to implement a field data plugin is installed with your AQ-TS server, located at
 %Program Files%\AquaticInformatics\AQUARIUS Server\FieldDataPlugins\Library
 
-All plugins implement the interface Server.BusinessInterfaces.FieldDataPluginCore.IFieldDataPlugin
+All plugins implement the interface `Server.BusinessInterfaces.FieldDataPluginCore.IFieldDataPlugin`
+
+### Documentation
+
+A developer guide is available [here.](docs/AQUARIUSDeveloperGuideFieldDataPluginFramework.pdf)
 
 ### Examples
 

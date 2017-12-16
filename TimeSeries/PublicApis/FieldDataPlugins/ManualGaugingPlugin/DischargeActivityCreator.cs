@@ -1,11 +1,11 @@
 ﻿using System;
+using FieldDataPluginFramework;
+using FieldDataPluginFramework.Context;
+using FieldDataPluginFramework.DataModel;
+using FieldDataPluginFramework.DataModel.ChannelMeasurements;
+using FieldDataPluginFramework.DataModel.DischargeActivities;
 using ManualGaugingPlugin.FileData;
-using Server.BusinessInterfaces.FieldDataPluginCore;
-using Server.BusinessInterfaces.FieldDataPluginCore.Context;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel.ChannelMeasurements;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel.DischargeActivities;
-using Measurement = Server.BusinessInterfaces.FieldDataPluginCore.DataModel.Measurement;
+using Measurement = FieldDataPluginFramework.DataModel.Measurement;
 
 namespace ManualGaugingPlugin
 {

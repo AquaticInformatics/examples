@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
+using FieldDataPluginFramework;
+using FieldDataPluginFramework.Context;
+using FieldDataPluginFramework.Results;
 using ManualGaugingPlugin.FileData;
-using Server.BusinessInterfaces.FieldDataPluginCore;
-using Server.BusinessInterfaces.FieldDataPluginCore.Context;
-using Server.BusinessInterfaces.FieldDataPluginCore.Results;
 
 namespace ManualGaugingPlugin
 {

@@ -1,5 +1,5 @@
-﻿using ManualGaugingPlugin.FileData;
-using Server.BusinessInterfaces.FieldDataPluginCore;
+﻿using FieldDataPluginFramework;
+using ManualGaugingPlugin.FileData;
 
 namespace ManualGaugingPlugin
 {

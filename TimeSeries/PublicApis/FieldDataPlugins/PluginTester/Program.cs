@@ -3,12 +3,12 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using FieldDataPluginFramework;
+using FieldDataPluginFramework.Results;
 using log4net;
-using Server.BusinessInterfaces.FieldDataPluginCore;
-using Server.BusinessInterfaces.FieldDataPluginCore.Results;
 using ServiceStack;
 using ServiceStack.Text;
-using ILog = Server.BusinessInterfaces.FieldDataPluginCore.ILog;
+using ILog = FieldDataPluginFramework.ILog;
 
 namespace PluginTester
 {

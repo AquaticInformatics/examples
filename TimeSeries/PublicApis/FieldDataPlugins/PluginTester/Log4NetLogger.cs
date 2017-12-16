@@ -1,5 +1,5 @@
 ﻿using Log4NetILog = log4net.ILog;
-using PluginILog = Server.BusinessInterfaces.FieldDataPluginCore.ILog;
+using PluginILog = FieldDataPluginFramework.ILog;
 
 namespace PluginTester
 {

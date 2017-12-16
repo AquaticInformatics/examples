@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Server.BusinessInterfaces.FieldDataPluginCore.DataModel.Verticals;
+using FieldDataPluginFramework.DataModel.Verticals;
 
 namespace ManualGaugingPlugin
 {
