@@ -96,6 +96,7 @@
     <Compile Include="Context.cs" />
     <Compile Include="ExpectedException.cs" />
     <Compile Include="ExternalDataSet.cs" />
+    <Compile Include="GroupBy.cs" />
     <Compile Include="Option.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

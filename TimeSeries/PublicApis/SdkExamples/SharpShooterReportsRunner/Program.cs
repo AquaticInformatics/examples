@@ -176,13 +176,15 @@ namespace SharpShooterReportsRunner
         {
             var values = ParseDictionary(value);
 
+            var groupByText = GetValueOrDefault(values, "GroupBy", GroupBy.Year.ToString());
+
             return new TimeSeries
             {
                 Identifier = values[string.Empty],
                 OutputUnitId = GetValueOrDefault(values, "Unit"),
                 QueryFrom = GetValueOrDefault(values, "From"),
                 QueryTo = GetValueOrDefault(values, "To"),
-                GroupBy = GetValueOrDefault(values, "GroupBy", ReportRunner.GroupBy.Year.ToString()),
+                GroupBy = (GroupBy)Enum.Parse(typeof(GroupBy), groupByText, true),
             };
         }
 

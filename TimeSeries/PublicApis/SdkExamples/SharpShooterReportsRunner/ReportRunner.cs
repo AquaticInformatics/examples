@@ -243,7 +243,8 @@ namespace SharpShooterReportsRunner
                 TimeSeriesUniqueId = timeSeriesDescription.UniqueId,
                 QueryFrom = ParseDateTime(timeSeriesDescription, timeSeries.QueryFrom),
                 QueryTo = ParseDateTime(timeSeriesDescription, timeSeries.QueryTo),
-                Unit = timeSeries.OutputUnitId
+                Unit = timeSeries.OutputUnitId,
+                IncludeGapMarkers = true
             });
 
             AddLocation(dataSet, timeSeriesDescription.LocationIdentifier);
@@ -322,11 +323,11 @@ namespace SharpShooterReportsRunner
                 location.LocationRemarks.Select(locationRemark => new object[]
                 {
                     location.Identifier,
-                    locationRemark.TypeName,
+                    location.LocationName,
                     locationRemark.FromTime?.DateTime,
                     locationRemark.ToTime?.DateTime,
-                    locationRemark.Remark,
                     locationRemark.Description,
+                    locationRemark.Remark,
                 }).ToArray());
         }
 
@@ -370,14 +371,7 @@ namespace SharpShooterReportsRunner
             });
         }
 
-        public enum GroupBy
-        {
-            Day,
-            Month,
-            Year,
-        }
-
-        private void AddPoints(DataSet dataSet, TimeSeriesDataServiceResponse correctedData, string groupByText)
+        private void AddPoints(DataSet dataSet, TimeSeriesDataServiceResponse correctedData, GroupBy groupBy)
         {
             var interpolationTypeText = correctedData.InterpolationTypes.First().Type;
             var interpolationType = (int)Enum.Parse(typeof(InterpolationType), interpolationTypeText, true);
@@ -398,7 +392,10 @@ namespace SharpShooterReportsRunner
                 ("Grade", typeof(string)),
             });
 
-            var groupBy = (GroupBy)Enum.Parse(typeof(GroupBy), groupByText, true);
+            if (groupBy != GroupBy.None)
+            {
+                dataSet.Relations.Add("GroupByCorrectedData", groupByTable.Columns["GroupBy"], pointsTable.Columns["GroupBy"]);
+            }
 
             var group = 0;
             var lastGroupId = (DateTimeOffset?) null;
@@ -415,7 +412,7 @@ namespace SharpShooterReportsRunner
 
                     var groupRow = new object[groupByTable.Columns.Count];
                     groupRow[0] = group;
-                    groupRow[1] = groupId.DateTime;
+                    groupRow[1] = groupId?.DateTime;
 
                     groupByTable.Rows.Add(groupRow);
                 }
@@ -432,8 +429,12 @@ namespace SharpShooterReportsRunner
             }
         }
 
-        private static DateTimeOffset CreateGroupId(DateTimeOffset dateTimeOffset, GroupBy groupBy)
+        private static DateTimeOffset? CreateGroupId(DateTimeOffset dateTimeOffset, GroupBy groupBy)
         {
+            if (groupBy == GroupBy.None)
+                return null;
+
+            var year = dateTimeOffset.Year;
             var month = dateTimeOffset.Month;
             var day = dateTimeOffset.Day;
 
@@ -451,9 +452,30 @@ namespace SharpShooterReportsRunner
                     month = 1;
                     break;
                 }
+
+                case GroupBy.Decade:
+                {
+                    day = 1;
+                    month = 1;
+                    year /= 10;
+                    year *= 10;
+                    break;
+                }
+
+                case GroupBy.Week:
+                {
+                    var startOfDay = new DateTimeOffset(year, month, day, 0, 0, 0, dateTimeOffset.Offset);
+
+                    while (startOfDay.DayOfWeek != DayOfWeek.Monday)
+                    {
+                        startOfDay = startOfDay.AddDays(-1);
+                    }
+
+                    return startOfDay;
+                }
             }
 
-            return new DateTimeOffset(dateTimeOffset.Year, month, day, 0, 0, 0, dateTimeOffset.Offset);
+            return new DateTimeOffset(year, month, day, 0, 0, 0, dateTimeOffset.Offset);
         }
 
         private TimeSeriesDescription GetTimeSeriesDescription(string timeSeriesIdentifier)
