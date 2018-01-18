@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Aquarius.TimeSeries.Client;
+using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using log4net;
@@ -67,6 +68,7 @@ namespace SharpShooterReportsRunner
             }
 
             RenderReport();
+            UploadReport();
         }
 
         private void LaunchReportDesigner()
@@ -105,6 +107,8 @@ namespace SharpShooterReportsRunner
         private ReportManager CreateReportManager()
         {
             var reportManager = new ReportManager();
+
+            Log.Info($"Loading data for {_context.TimeSeries.Count + _context.ExternalDataSets.Count} time-series ...");
 
             AddDataSets(reportManager, CreateCompatibilityDataSet(), CreateCommonDataSet());
             AddDataSets(reportManager, CreateExternalDataSets().ToArray());
@@ -281,7 +285,7 @@ namespace SharpShooterReportsRunner
 
         private void AddLocation(DataSet dataSet, string locationIdentifier)
         {
-            var location = _client.Publish.Get(new LocationDataServiceRequest {LocationIdentifier = locationIdentifier});
+            var location = GetLocationData(locationIdentifier);
 
             CreateSingleRowTable(dataSet, "Location", new List<(string ColumnName, Type ColumnType, object RowValue)>
             {
@@ -518,6 +522,11 @@ namespace SharpShooterReportsRunner
             return match.Groups["location"].Value;
         }
 
+        private LocationDataServiceResponse GetLocationData(string locationIdentifier)
+        {
+            return _client.Publish.Get(new LocationDataServiceRequest { LocationIdentifier = locationIdentifier });
+        }
+
         private static readonly Regex IdentifierRegex = new Regex(@"^(?<parameter>[^.]+)\.(?<label>[^@]+)@(?<location>.*)$");
 
         private void MergeParameterOverrides(ReportManager reportManager)
@@ -603,6 +612,28 @@ namespace SharpShooterReportsRunner
             exportFilter.Export(document, _context.OutputPath, doNotShowDialog);
 
             Log.Info($"Exported to '{_context.OutputPath}'.");
+        }
+
+        private void UploadReport()
+        {
+            if (string.IsNullOrWhiteSpace(_context.UploadedReportLocationIdentifier))
+                return;
+
+            var location = GetLocationData(_context.UploadedReportLocationIdentifier);
+
+            var reportTitle = !string.IsNullOrWhiteSpace(_context.UploadedReportTitle)
+                ? _context.UploadedReportTitle
+                : Path.GetFileNameWithoutExtension(_context.OutputPath);
+
+            Log.Info($"Uploading external report '{reportTitle}' to {location.Identifier} ...");
+
+            _client.Acquisition.PostFileWithRequest(_context.OutputPath, new PostReportAttachment
+            {
+                Title = reportTitle,
+                LocationUniqueId = location.UniqueId
+            });
+
+            Log.Info($"Upload of external report complete.");
         }
     }
 }
