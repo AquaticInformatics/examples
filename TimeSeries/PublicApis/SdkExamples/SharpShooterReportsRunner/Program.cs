@@ -176,7 +176,19 @@ namespace SharpShooterReportsRunner
         {
             var values = ParseDictionary(value);
 
-            return new TimeSeries {Identifier = values[string.Empty]};
+            return new TimeSeries
+            {
+                Identifier = values[string.Empty],
+                OutputUnitId = GetValueOrDefault(values, "Unit"),
+                QueryFrom = GetValueOrDefault(values, "From"),
+                QueryTo = GetValueOrDefault(values, "To"),
+                GroupBy = GetValueOrDefault(values, "GroupBy", ReportRunner.GroupBy.Year.ToString()),
+            };
+        }
+
+        private static string GetValueOrDefault(Dictionary<string, string> values, string key, string defaultValue = null)
+        {
+            return values.TryGetValue(key, out var value) ? value : defaultValue;
         }
 
         private void Run()
