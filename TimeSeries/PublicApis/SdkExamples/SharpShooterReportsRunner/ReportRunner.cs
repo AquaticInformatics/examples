@@ -616,10 +616,10 @@ namespace SharpShooterReportsRunner
 
         private void UploadReport()
         {
-            if (string.IsNullOrWhiteSpace(_context.UploadedReportLocationIdentifier))
+            if (string.IsNullOrWhiteSpace(_context.UploadedReportLocation))
                 return;
 
-            var location = GetLocationData(_context.UploadedReportLocationIdentifier);
+            var location = GetLocationData(_context.UploadedReportLocation);
 
             var reportTitle = !string.IsNullOrWhiteSpace(_context.UploadedReportTitle)
                 ? _context.UploadedReportTitle

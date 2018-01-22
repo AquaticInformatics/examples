@@ -16,7 +16,7 @@ namespace SharpShooterReportsRunner
             if (!string.IsNullOrEmpty(defaultValue))
                 defaultValue = $" [default: {defaultValue}]";
 
-            return $"{Key,-32} {Description}{defaultValue}";
+            return $"{Key,-22} {Description}{defaultValue}";
         }
     }
 }
