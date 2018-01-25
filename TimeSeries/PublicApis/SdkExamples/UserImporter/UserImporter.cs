@@ -85,7 +85,7 @@ namespace UserImporter
         private List<User> GetAqUsers(IAquariusClient client)
         {
             Log.Info("Retrieving existing users from Aquarius ...");
-            var response = client.ProvisioningClient.Get(new GetUsers());
+            var response = client.Provisioning.Get(new GetUsers());
 
             Log.Info($"Successfully retrieved {response.Results.Count} current users from Aquarius");
 
@@ -98,7 +98,7 @@ namespace UserImporter
             {
                 var user = CreateUserByAuthenticationType[userRecord.AuthenticationType](userRecord);
 
-                var createdUser = client.ProvisioningClient.Post(user);
+                var createdUser = client.Provisioning.Post(user);
                 
                 Log.Debug($"Created {createdUser.AuthenticationType} user: '{userRecord.Username}'");
                 return true;
@@ -132,7 +132,7 @@ namespace UserImporter
                     SwitchUserAuthenticationMode(client, userRecord, aquariusUser.UniqueId);
                 }
 
-                var updatedUser = client.ProvisioningClient.Put(user);
+                var updatedUser = client.Provisioning.Put(user);
 
                 Log.Debug($"Updated {updatedUser.AuthenticationType} user: '{userRecord.Username}'");
                 return true;
@@ -158,7 +158,7 @@ namespace UserImporter
             {
                 var userAuth = SwitchUserAuthenticationModeByAuthenticationType[userRecord.AuthenticationType](userRecord, uniqueId);
 
-                var changedUser = client.ProvisioningClient.Put(userAuth);
+                var changedUser = client.Provisioning.Put(userAuth);
 
                 Log.Debug($"Changed user '{userRecord.Username}' to authentication type {changedUser.AuthenticationType}.");
             }
