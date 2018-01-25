@@ -121,7 +121,7 @@ namespace AppendPoints
 
             var stopwatch = Stopwatch.StartNew();
 
-            var result = _client.AcquisitionClient.RequestAndPollUntilComplete(
+            var result = _client.Acquisition.RequestAndPollUntilComplete(
                 client => client.Post(new PostTimeSeriesAppend {UniqueId = uniqueId, Points = points}),
                 (client, response) => client.Get(new GetTimeSeriesAppendStatus {AppendRequestIdentifier = response.AppendRequestIdentifier}),
                 polledStatus => polledStatus.AppendStatus != AppendStatusCode.Pending);
@@ -141,7 +141,7 @@ namespace AppendPoints
 
             var location = ParseLocationIdentifier(_timeSeriesIdentifier);
 
-            var response = _client.PublishClient.Get(new TimeSeriesDescriptionServiceRequest {LocationIdentifier = location});
+            var response = _client.Publish.Get(new TimeSeriesDescriptionServiceRequest {LocationIdentifier = location});
 
             var timeSeriesDescription = response.TimeSeriesDescriptions.FirstOrDefault(t => t.Identifier == _timeSeriesIdentifier);
 

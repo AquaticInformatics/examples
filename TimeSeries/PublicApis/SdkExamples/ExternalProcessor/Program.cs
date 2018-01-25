@@ -137,7 +137,7 @@ namespace ExternalProcessor
                     ChangesSinceToken = _changesSinceTime.ToDateTimeUtc(),
                     LocationIdentifier = sourceLocation
                 };
-                var response = _client.PublishClient.Get(request);
+                var response = _client.Publish.Get(request);
 
                 var nextToken = Instant.FromDateTimeUtc(response.NextToken ?? DateTime.UtcNow.AddHours(-1));
                 _changesSinceTime = nextToken;
@@ -171,7 +171,7 @@ namespace ExternalProcessor
                 QueryFrom = firstPointTime.ToDateTimeOffset(),
                 GetParts = "PointsOnly"
             };
-            var sourcePoints = _client.PublishClient.Get(request).Points;
+            var sourcePoints = _client.Publish.Get(request).Points;
 
             var points = RecalculatePoints(sourcePoints).ToList();
 
@@ -179,7 +179,7 @@ namespace ExternalProcessor
 
             var stopwatch = Stopwatch.StartNew();
 
-            var result = _client.AcquisitionClient.RequestAndPollUntilComplete(
+            var result = _client.Acquisition.RequestAndPollUntilComplete(
                 client => client.Post(new PostReflectedTimeSeries
                 {
                     UniqueId = _reflectedTimeSeriesUniqueId,
@@ -215,7 +215,7 @@ namespace ExternalProcessor
 
             var location = ParseLocationIdentifier(timeSeriesIdentifier);
 
-            var response = _client.PublishClient.Get(new TimeSeriesDescriptionServiceRequest {LocationIdentifier = location});
+            var response = _client.Publish.Get(new TimeSeriesDescriptionServiceRequest {LocationIdentifier = location});
 
             var timeSeriesDescription = response.TimeSeriesDescriptions.FirstOrDefault(t => t.Identifier == timeSeriesIdentifier);
 
