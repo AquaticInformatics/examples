@@ -120,9 +120,9 @@ And here is the plot, which should match the rating curve for 2012.
 |getTimeSeriesUniqueId(timeSeriesIdentifier)| 201x | Gets the uniqueID of the time-series, required for many other methods. For 3.x systems, this method just returns the identifier, since uniqueIDs are a 201x feature.|
 |getLocationIdentifier(timeSeriesIdentifier)| All | Extracts the location identifier from a "Parameter.Label@Location" time-series identifier |
 |getLocationData(locationIdentifier)| All | Gets the location data, including extended-attributes. |
-|getRatings(locationIdentifier, queryFrom, queryTo, inputParameter, outputParameter)| All | Gets all the rating models matching the request filter. (currently failing for 3.X) |
+|getRatings(locationIdentifier, queryFrom, queryTo, inputParameter, outputParameter)| All | Gets all the rating models matching the request filter. |
 |getRatingModelOutputValues(ratingModelIdentifier, inputValues, effectiveTime, applyShifts)| All | Gets the output values of a rating model using specific inputs |
-|getFieldVisits(locationIdentifier, queryFrom, queryTo, activityType)| All | Gets all the field visit data matching the filter. (currently failing for 3.x) |
+|getFieldVisits(locationIdentifier, queryFrom, queryTo, activityType)| All | Gets all the field visit data matching the filter. |
 |getTimeSeriesDescriptions(locationIdentifier, parameter, publish, computationIdentifier, computationPeriodIdentifier, extendedFilters)| All | Gets the time-series matching the filter.  |
 |getTimeSeriesData(timeSeriesIds, queryFrom, queryTo, outputUnitIds, includeGapMarkers)| 2017.2+ | Gets the time-aligned data for multiple time-series. |
 |getTimeSeriesCorrectedData(timeSeriesIdentifier, queryFrom, queryTo, getParts, includeGapMarkers)| All | Gets the corrected data for the time-series. |
