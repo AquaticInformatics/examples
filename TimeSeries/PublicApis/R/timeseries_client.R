@@ -356,7 +356,7 @@ timeseriesClient <- setRefClass("timeseriesClient",
       r <- r[!sapply(r, is.null)]
       })
     
-    ratingCurves <- .self$sendBatchRequests(.self$publishUri, "RatingCurveListServiceRequest", ratingCurveRequests)
+    ratingCurves <- .self$sendBatchRequests(.self$publishUri, "RatingCurveListServiceRequest", "/GetRatingCurveList", ratingCurveRequests)
     ratingModels$Curves <- ratingCurves$RatingCurves
     
     ratingModels
@@ -434,7 +434,7 @@ timeseriesClient <- setRefClass("timeseriesClient",
       r <- r[!sapply(r, is.null)]
     })
     
-    visitData <- .self$sendBatchRequests(.self$publishUri, "FieldVisitDataServiceRequest", visitDataRequests)
+    visitData <- .self$sendBatchRequests(.self$publishUri, "FieldVisitDataServiceRequest", "/GetFieldVisitData", visitDataRequests)
     visits$Details <- visitData
     
     visits
@@ -728,6 +728,7 @@ timeseriesClient <- setRefClass("timeseriesClient",
 #' 
 #' @param endpoint The base REST endpoint
 #' @param operationName The name of operation, from the AQTS Metadata page, to perform multiple times. NOT the route, but the operation name.
+#' @param operationRoute The route of the operation
 #' @param requests A collection of individual request objects
 #' @param batchSize Optional batch size (defaults to 100 requests per batch)
 #' @param verb Optional HTTP verb of the operation (defaults to "GET")
@@ -738,34 +739,46 @@ timeseriesClient <- setRefClass("timeseriesClient",
 #' # Operation name is "LocationDataServiceRequest"
 #' requests = c(list(LocationIdentifier="Loc1"), list(LocationIdentifier="Loc3"), list(LocationIdentifier="Loc3"))
 #' responses = timeseries$sendBatchRequests(timeseries$publishUri,"LocationDataServiceRequest", requests)
-  sendBatchRequests = function(endpoint, operationName, requests, batchSize, verb) {
+  sendBatchRequests = function(endpoint, operationName, operationRoute, requests, batchSize, verb) {
     
     if (missing(batchSize)) { batchSize <- 100 }
     if (missing(verb))      { verb <- "GET" }
     
     if (batchSize > 500)    { batchSize <- 500 }
     
-    # Compose the special batch-operation URL supported by ServiceStack
-    url = paste0(endpoint, "/json/reply/", operationName, "[]")
-    
-    # Split the requests into batch-sized chunks
-    requestBatches <- split(requests, ceiling(seq_along(requests) / batchSize))
-
-    # Create a local function to request each batch of requests, using the verb as an override to the POST
-    batchPost <- function(batchOfRequests, index) {
-      offset <- batchSize * index
-      r <- POST(url, body = batchOfRequests, encode = "json", add_headers("X-Http-Method-Override" = verb))
-      stop_for_status(r, paste("receive", length(batchOfRequests), "batch responses at offset", offset))
+    if (isLegacy) {
+      # No batch support in 3.X, so just perform each request sequentially
+      lapply(requests, function(request) {
+        # TODO: Support more that GET requests
+        fromJSON(content(stop_for_status(
+          GET(paste0(.self$publishUri, operationRoute), query = request)
+          , paste(operationRoute)), "text"))
+      })
       
-      # Return the batch of responses
-      responses <- fromJSON(content(r, "text"))
+    } else {
+    
+      # Compose the special batch-operation URL supported by ServiceStack
+      url = paste0(endpoint, "/json/reply/", operationName, "[]")
+      
+      # Split the requests into batch-sized chunks
+      requestBatches <- split(requests, ceiling(seq_along(requests) / batchSize))
+  
+      # Create a local function to request each batch of requests, using the verb as an override to the POST
+      batchPost <- function(batchOfRequests, index) {
+        offset <- batchSize * index
+        r <- POST(url, body = batchOfRequests, encode = "json", add_headers("X-Http-Method-Override" = verb))
+        stop_for_status(r, paste("receive", length(batchOfRequests), "batch", operationRoute, "responses at offset", offset))
+        
+        # Return the batch of responses
+        responses <- fromJSON(content(r, "text"))
+      }
+      
+      # Call the operation in batches
+      responseBatches <- mapply(batchPost, requestBatches, seq_along(requestBatches) - 1, SIMPLIFY = FALSE)
+      
+      # Flatten the list of response data frames into a single data frame
+      rbind_pages(responseBatches)
     }
-    
-    # Call the operation in batches
-    responseBatches <- mapply(batchPost, requestBatches, seq_along(requestBatches) - 1, SIMPLIFY = FALSE)
-    
-    # Flatten the list of response data frames into a single data frame
-    rbind_pages(responseBatches)
   }
   )
 )
