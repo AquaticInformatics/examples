@@ -125,7 +125,7 @@ And here is the plot, which should match the rating curve for 2012.
 |getFieldVisits(locationIdentifier, queryFrom, queryTo, activityType)| All | Gets all the field visit data matching the filter. (currently failing for 3.x) |
 |getTimeSeriesDescriptions(locationIdentifier, parameter, publish, computationIdentifier, computationPeriodIdentifier, extendedFilters)| All | Gets the time-series matching the filter.  |
 |getTimeSeriesData(timeSeriesIds, queryFrom, queryTo, outputUnitIds, includeGapMarkers)| 2017.2+ | Gets the time-aligned data for multiple time-series. |
-|getTimeSeriesCorrectedData(timeSeriesIdentifier, queryFrom, queryTo, getParts, includeGapMarkers)| All | Gets the corrected data for the time-series. (currently failing for 3.x) |
+|getTimeSeriesCorrectedData(timeSeriesIdentifier, queryFrom, queryTo, getParts, includeGapMarkers)| All | Gets the corrected data for the time-series. |
 |uploadExternalReport(locationDataOrIdentifier, pathToFile, title, deleteDuplicateReports) | 2017.3+ | Uploads an external report to the given location. |
 |getReportList() | 2017.3+ | Gets all the generated reports on the system. |
 |deleteReport(reportUniqueId) | 2017.3+ | Deletes a report from the system. |
