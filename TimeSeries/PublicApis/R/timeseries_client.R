@@ -7,7 +7,14 @@ require(httr)
 
 # Create a simple AQUARIUS Time-Series API client.
 timeseriesClient <- setRefClass("timeseriesClient",
-  fields = list(version = "character", publishUri = "character", acquisitionUri = "character", provisioningUri = "character"),
+  fields = list(
+    version = "character",
+    publishUri = "character",
+    acquisitionUri = "character",
+    provisioningUri = "character",
+    legacyPublishUri = "character",
+    legacyAcquisitionUri = "character",
+    isLegacy = "logical"),
   methods = list(
 #' Connects to an AQTS server
 #' 
@@ -38,21 +45,43 @@ timeseriesClient <- setRefClass("timeseriesClient",
 
       j <- fromJSON(content(r, "text"))
       version <<- j$ApiVersion
+      
+      # Anything earlier than 14.3 is considered legacy code
+      isLegacy <<- .self$isVersionLessThan("14.3")
 
       # Compose the base URI for all API endpoints
       publishUri <<- paste0(prefix, hostname, "/AQUARIUS/Publish/v2")
       acquisitionUri <<- paste0(prefix, hostname, "/AQUARIUS/Acquisition/v2")
       provisioningUri <<- paste0(prefix, hostname, "/AQUARIUS/Provisioning/v1")
+      
+      if (isLegacy) {
+        legacyPublishUri <<- paste0(prefix, hostname, "/AQUARIUS/Publish/AquariusPublishRestService.svc")
+        legacyAcquisitionUri <<- paste0(prefix, hostname, "/AQUARIUS/AQAcquisitionService.svc")
+      }
 
       # Try to authenticate using the supplied credentials
-      r <- POST(paste0(publishUri, "/session"), body = list(Username = username, EncryptedPassword = password), encode = "json")
+      credentials <- list(Username = username, EncryptedPassword = password)
+      
+      if (isLegacy) {
+        # Authenticate via the older operation, so that a session cookie is set
+        r <- GET(paste0(publishUri, "/GetAuthToken"), query = credentials)
+      } else {
+        # Authenticate via the preferred endpoint
+        r <- POST(paste0(publishUri, "/session"), body = credentials, encode = "json")
+      }
       stop_for_status(r, "authenticate with AQTS")
     },
 
 #' Disconnects immediately from an AQTS server
     disconnect = function() {
-      r <- DELETE(paste0(publishUri, "/session"))
-      stop_for_status(r, "disconnect from AQTS")
+      
+      if (isLegacy) {
+        # 3.X doesn't support proper disconnection, so just abandon the session and allow it to expire in 60 minutes
+      } else {
+        # Delete the session immediately, like we should
+        r <- DELETE(paste0(publishUri, "/session"))
+        stop_for_status(r, "disconnect from AQTS")
+      }
     },
 
 #' Auto-configures the proxy to route all requests through Fiddler
@@ -146,7 +175,7 @@ timeseriesClient <- setRefClass("timeseriesClient",
 #' @examples
 #' getTimeSeriesUniqueId("Stage.Working@MyLocation") # cdf184928c8249abb872f852f0fa7d01
     getTimeSeriesUniqueId = function(timeSeriesIdentifier) {
-      if (!grepl("@", timeSeriesIdentifier)) {
+      if (isLegacy | !grepl("@", timeSeriesIdentifier)) {
         # It's not in Param.Label@Location format, so just leave it as-is
         timeSeriesIdentifier
       } else {
