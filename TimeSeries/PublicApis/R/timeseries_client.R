@@ -614,12 +614,21 @@ timeseriesClient <- setRefClass("timeseriesClient",
     if (is.double(queryTo))   { queryTo   <- .self$formatIso8601(queryTo) }
     
     # Build the query
-    q <- list(
-      TimeSeriesUniqueId = .self$getTimeSeriesUniqueId(timeSeriesIdentifier),
-      QueryFrom = queryFrom,
-      QueryTo = queryTo,
-      GetParts = getParts,
-      IncludeGapMarkers = includeGapMarkers)
+    if (isLegacy) {
+      q <- list(
+        TimeSeriesIdentifier = timeSeriesIdentifier,
+        QueryFrom = queryFrom,
+        QueryTo = queryTo,
+        GetParts = getParts,
+        IncludeGapMarkers = includeGapMarkers)
+    } else {
+      q <- list(
+        TimeSeriesUniqueId = .self$getTimeSeriesUniqueId(timeSeriesIdentifier),
+        QueryFrom = queryFrom,
+        QueryTo = queryTo,
+        GetParts = getParts,
+        IncludeGapMarkers = includeGapMarkers)
+    }
     q <- q[!sapply(q, is.null)]
     
     data <- fromJSON(content(stop_for_status(
