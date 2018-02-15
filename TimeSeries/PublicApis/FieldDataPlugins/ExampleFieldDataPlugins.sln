@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2020
+VisualStudioVersion = 15.0.27130.2026
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StageDischargePlugin", "StageDischargePlugin\StageDischargePlugin.csproj", "{BAA6EB6F-2010-4692-BA22-F4388D0C62E2}"
 EndProject
@@ -15,6 +15,73 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PluginTester", "PluginTester\PluginTester.csproj", "{C429E4A0-DD6D-4701-93FF-ECDB2B59C2CD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FieldDataPluginTool", "FieldDataPluginTool\FieldDataPluginTool.csproj", "{1C67C5D9-CC6F-474C-AB8E-B8A282AABA68}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SampleFiles", "SampleFiles", "{1C4018FA-E9A1-4D41-8581-E49EB8D332F9}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\SampleFiles\FieldData\Readme.md = ..\..\SampleFiles\FieldData\Readme.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Stock", "Stock", "{E2850023-7409-4CC2-BF83-8135C020F78B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugin", "Plugin", "{9E759CE0-3997-45FC-8E65-7CBE855DB39C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CrossSectionSurvey", "CrossSectionSurvey", "{5308261F-DC26-46DE-9049-776EA5B4DDC2}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\SampleFiles\FieldData\Plugin\CrossSectionSurvey\Readme.md = ..\..\SampleFiles\FieldData\Plugin\CrossSectionSurvey\Readme.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PocketGauger", "PocketGauger", "{0E7052F9-02F0-483E-9907-29C3CD52617D}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\SampleFiles\FieldData\Plugin\PocketGauger\PGData.zip = ..\..\SampleFiles\FieldData\Plugin\PocketGauger\PGData.zip
+		..\..\SampleFiles\FieldData\Plugin\PocketGauger\Readme.md = ..\..\SampleFiles\FieldData\Plugin\PocketGauger\Readme.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "StageDischarge", "StageDischarge", "{46115B6C-A22E-4F3C-8BBF-AA38329454C9}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\SampleFiles\FieldData\Plugin\StageDischarge\Readme.md = ..\..\SampleFiles\FieldData\Plugin\StageDischarge\Readme.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AquaCalc", "AquaCalc", "{EC19A74C-5AE8-41F6-AD91-E3C301E9A294}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\SampleFiles\FieldData\Stock\AquaCalc\AquaCalcSample.csv = ..\..\SampleFiles\FieldData\Stock\AquaCalc\AquaCalcSample.csv
+		..\..\SampleFiles\FieldData\Stock\AquaCalc\Readme.md = ..\..\SampleFiles\FieldData\Stock\AquaCalc\Readme.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "FlowTracker", "FlowTracker", "{79C3EF45-0711-4102-8256-1871E67B4F6D}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\SampleFiles\FieldData\Stock\FlowTracker\FlowTrackerSample.dis = ..\..\SampleFiles\FieldData\Stock\FlowTracker\FlowTrackerSample.dis
+		..\..\SampleFiles\FieldData\Stock\FlowTracker\Readme.md = ..\..\SampleFiles\FieldData\Stock\FlowTracker\Readme.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "HFC", "HFC", "{BF690FE1-E822-49E8-85E8-51ABFA19BC69}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\SampleFiles\FieldData\Stock\HFC\HfcSample.MQ1 = ..\..\SampleFiles\FieldData\Stock\HFC\HfcSample.MQ1
+		..\..\SampleFiles\FieldData\Stock\HFC\Readme.md = ..\..\SampleFiles\FieldData\Stock\HFC\Readme.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RiverSurveyor", "RiverSurveyor", "{0C6143AA-2A5D-4927-8F7E-00DEE642917B}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\SampleFiles\FieldData\Stock\RiverSurveyor\Readme.md = ..\..\SampleFiles\FieldData\Stock\RiverSurveyor\Readme.md
+		..\..\SampleFiles\FieldData\Stock\RiverSurveyor\RiverSurveyorSample.dis = ..\..\SampleFiles\FieldData\Stock\RiverSurveyor\RiverSurveyorSample.dis
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "USGS", "USGS", "{931C2DF0-D578-42A4-A0CA-0568FCFFCEE2}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\SampleFiles\FieldData\Stock\USGS\Readme.md = ..\..\SampleFiles\FieldData\Stock\USGS\Readme.md
+		..\..\SampleFiles\FieldData\Stock\USGS\UsgsHydroMLSample.xml = ..\..\SampleFiles\FieldData\Stock\USGS\UsgsHydroMLSample.xml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WinRiver", "WinRiver", "{269FF070-9274-4096-9031-DD517342C963}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\SampleFiles\FieldData\Stock\WinRiver\Readme.md = ..\..\SampleFiles\FieldData\Stock\WinRiver\Readme.md
+		..\..\SampleFiles\FieldData\Stock\WinRiver\WinRiverSample.xml = ..\..\SampleFiles\FieldData\Stock\WinRiver\WinRiverSample.xml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scottech", "Scottech", "{B7F8B6DE-77D7-47DB-BA6E-E56FCDB7CA2D}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\SampleFiles\FieldData\Stock\Scottech\Readme.md = ..\..\SampleFiles\FieldData\Stock\Scottech\Readme.md
+		..\..\SampleFiles\FieldData\Stock\Scottech\ScottechSample.glr = ..\..\SampleFiles\FieldData\Stock\Scottech\ScottechSample.glr
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,6 +122,21 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1C4018FA-E9A1-4D41-8581-E49EB8D332F9} = {F2704BB2-F23E-45EA-8B12-3611F413F454}
+		{E2850023-7409-4CC2-BF83-8135C020F78B} = {1C4018FA-E9A1-4D41-8581-E49EB8D332F9}
+		{9E759CE0-3997-45FC-8E65-7CBE855DB39C} = {1C4018FA-E9A1-4D41-8581-E49EB8D332F9}
+		{5308261F-DC26-46DE-9049-776EA5B4DDC2} = {9E759CE0-3997-45FC-8E65-7CBE855DB39C}
+		{0E7052F9-02F0-483E-9907-29C3CD52617D} = {9E759CE0-3997-45FC-8E65-7CBE855DB39C}
+		{46115B6C-A22E-4F3C-8BBF-AA38329454C9} = {9E759CE0-3997-45FC-8E65-7CBE855DB39C}
+		{EC19A74C-5AE8-41F6-AD91-E3C301E9A294} = {E2850023-7409-4CC2-BF83-8135C020F78B}
+		{79C3EF45-0711-4102-8256-1871E67B4F6D} = {E2850023-7409-4CC2-BF83-8135C020F78B}
+		{BF690FE1-E822-49E8-85E8-51ABFA19BC69} = {E2850023-7409-4CC2-BF83-8135C020F78B}
+		{0C6143AA-2A5D-4927-8F7E-00DEE642917B} = {E2850023-7409-4CC2-BF83-8135C020F78B}
+		{931C2DF0-D578-42A4-A0CA-0568FCFFCEE2} = {E2850023-7409-4CC2-BF83-8135C020F78B}
+		{269FF070-9274-4096-9031-DD517342C963} = {E2850023-7409-4CC2-BF83-8135C020F78B}
+		{B7F8B6DE-77D7-47DB-BA6E-E56FCDB7CA2D} = {E2850023-7409-4CC2-BF83-8135C020F78B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1BFE59B2-DBB4-48D9-A511-4B473C7C9F10}

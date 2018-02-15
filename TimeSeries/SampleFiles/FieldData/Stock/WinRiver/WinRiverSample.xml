@@ -1,0 +1,604 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HYDROML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://water.usgs.gov/nwis_activities/XML/Hydroml.xsd"><Source><SoftwareName>WinRiver II</SoftwareName><SoftwareVersionText>2.05</SoftwareVersionText><AgencyCode></AgencyCode></Source><BinaryOrder>BigEndian</BinaryOrder><UnitsFamily>English</UnitsFamily><SiteData><Site><SiteIdentifier type="SiteAgency"></SiteIdentifier><SiteIdentifier type="SiteNumber">01AD003</SiteIdentifier><SiteIdentifier type="SiteName">Arid River</SiteIdentifier><SiteIdentifier type="RiverName">Arid River</SiteIdentifier><SiteIdentifier type="GridReference"></SiteIdentifier></Site><Location><DescriptionText>600 M BLW GAUGE</DescriptionText></Location><SiteVisit><StartDateTime timeDatumCode="ADT">2007121209452708</StartDateTime><EndDateTime timeDatumCode="ADT">2007121209455046</EndDateTime><PartyText>MD TA</PartyText><DischargeMeasurement><Number>0</Number><MeasurementQualityCode>UNSP</MeasurementQualityCode><DischargeCode>MEAS</DischargeCode><Discharge unitsCode="cfs">2860.0</Discharge><StreamStage unitsCode="ft">9.800</StreamStage><StageDifference unitsCode="ft">0.000</StageDifference><TailWaterLevel unitsCode="ft">0.000</TailWaterLevel><MeanIndexVelocity unitsCode="ft/s">0.000</MeanIndexVelocity><StandardSectionArea unitsCode="ft/s">0.00</StandardSectionArea><RemarksText></RemarksText><Channel><Number>1</Number><Name>Channel 1</Name><Discharge unitsCode="cfs">2860.0</Discharge><MeasurementCode>ADCP</MeasurementCode><ADCPDischargeMeasurement><CompassCalibration><Text>[ALT-BREAK Wakeup] WorkHorse Rio Grande Broadband ADCP Version 10.16
+Teledyne RD Instruments (c) 1996-2007
+All Rights Reserved.
+&gt;CR1
+[Parameters set to FACTORY defaults]
+&gt;TS?
+TS = 10/04/07,12:43:19 --- Time Set (yr/mon/day,hour:min:sec)
+&gt;PS0
+  Instrument S/N:  6181
+       Frequency:  1228800 HZ
+   Configuration:  4 BEAM, JANUS
+      Beam Angle:  20 DEGREES
+    Beam Pattern:  CONVEX 
+     Orientation:  DOWN
+       Sensor(s):  HEADING  TILT 1  TILT 2  TEMPERATURE
+Temp Sens Offset:  -0.17 degrees C
+
+    CPU Firmware:  10.16 [0]
+   Boot Code Ver:  Required:  1.13   Actual:  1.13
+    DEMOD #1 Ver:  ad48, Type:  1f
+    DEMOD #2 Ver:  ad48, Type:  1f
+    PWRTIMG  Ver:  85d3, Type:   7
+
+Board Serial Number Data:
+   32  00 00 03 A4 4A 16  09 REC727-1000-02E
+   9A  00 00 03 B5 DB CE  09 PIO727-3008-02A
+   47  00 00 02 00 4B 25  09 DSP727-2001-02G
+   B7  00 00 02 00 3E 8B  09 CPU727-2000-00J
+&gt;PS3
+Beam Width:   3.7 degrees
+
+Beam     Elevation     Azimuth
+  1         -69.94      269.91
+  2         -70.01       89.90
+  3         -70.04        0.09
+  4         -69.99      180.10
+
+Beam Directional Matrix (Down):
+  0.3432    0.0006    0.9393    0.2415  
+ -0.3418   -0.0006    0.9398    0.2424  
+ -0.0006   -0.3413    0.9399   -0.2422  
+  0.0006    0.3422    0.9397   -0.2416  
+
+Instrument Transformation Matrix (Down):    Q14:
+  1.4615   -1.4583    0.0012   -0.0037       23945  -23892      20     -61  
+ -0.0033    0.0016   -1.4620    1.4641         -54      27  -23954   23988  
+  0.2655    0.2665    0.2664    0.2657        4350    4367    4365    4354  
+  1.0315    1.0356   -1.0346   -1.0319       16900   16967  -16951  -16907  
+Beam Angle Corrections Are Loaded.
+&gt;AF
+
+-------------------------------------------------------------------------------
+                         Field Calibration Procedure
+Choose calibration method:
+     a.  Remove hard iron error (single cycle) only.
+     b.  Remove hard and soft iron error (single + double cycle).
+     c.  Calibration for a single tilt orientation (single + double cycle).
+     d.  Help.
+     e.  Quit.
+c
+
+
+-------------------------------------------------------------------------------
+                         Field Calibration Procedure
+          Calibration for Constant Tilt Applications (e.g., Rivers)
+
+Select one:
+     a.  Start calibration procedure.
+     b.  Zero calibration coefficients (only constant tilt coefs).
+     c.  Display correction coefficients.
+     d.  Instructions.
+     e.  Quit.
+a
+
+
+------------------------------------------------------------------------------
+                    RDI Compass Error Estimating Algorithm
+
+
+   Press space bar to start taking data after the instrument is setup.
+
+
+
+Rotate the unit in a plane until all data samples are acquired...
+   rotate less than 5ø/sec.  Press Q to quit.
+
+ N       NE       E        SE       S       SW        W        NW       N
+ ^                ^                 ^                 ^                 ^
+ ***************&gt;********************************************************
+Calculating compass performance ...                               
+
+
+                          &gt;&gt;&gt; Total error:   1.4ø &lt;&lt;&lt;
+
+Press D for details or any other key to continue...
+                                                               
+
+
+
+
+
+
+
+
+
+
+HEADING ERROR ESTIMATE FOR THE CURRENT COMPASS CALIBRATION:
+
+   OVERALL ERROR:
+      Peak Double + Single Cycle Error (should be &lt; 5ø):  ñ 1.35ø
+
+   DETAILED ERROR SUMMARY:
+      Single Cycle Error:                                 ñ 1.02ø
+      Double Cycle Error:                                 ñ 0.56ø
+      Largest Double plus Single Cycle Error:             ñ 1.58ø
+      RMS of 3rd Order and Higher + Random Error:         ñ 1.19ø
+
+      Orientation:    Down
+      Average Pitch:   1.59ø         Pitch Standard Dev:    1.60ø
+      Average Roll:   -0.42ø         Roll Standard Dev:     0.93ø
+
+
+Pitch or Roll Standard Deviation is higher than recommended (&gt; 1.0ø) - 
+   results may be biased.
+
+
+Press C to display Percent Horizontal Field Conponents
+     Relative to Calibration or any other key to continue....
+
+
+   Percent Horizontal Field Component Relative to Calibration:
+           a0 + a1*cosé + b1*siné + a2*cos2*é + b2*sin2*é
+          a0 =                                             40.729%
+          a1 =                                             -0.554%
+          b1 =                                              0.471%
+          a2 =                                             -0.360%
+          b2 =                                              0.171%
+
+          OneCycleK =                                       0.009 tw_rad
+          Add MagVar to get "OneCycOffset" =              139.636ø
+Press space bar to continue...
+Calibration parameters have been updated in NRAM.
+
+&gt;</Text><DateTime timeDatumCode="ADT">2008031812431900</DateTime></CompassCalibration><CompassEvaluation><Text>[ALT-BREAK Wakeup] WorkHorse Rio Grande Broadband ADCP Version 10.16
+Teledyne RD Instruments (c) 1996-2007
+All Rights Reserved.
+&gt;CR1
+[Parameters set to FACTORY defaults]
+&gt;TS?
+TS = 10/04/07,12:43:19 --- Time Set (yr/mon/day,hour:min:sec)
+&gt;PS0
+  Instrument S/N:  6181
+       Frequency:  1228800 HZ
+   Configuration:  4 BEAM, JANUS
+      Beam Angle:  20 DEGREES
+    Beam Pattern:  CONVEX 
+     Orientation:  DOWN
+       Sensor(s):  HEADING  TILT 1  TILT 2  TEMPERATURE
+Temp Sens Offset:  -0.17 degrees C
+
+    CPU Firmware:  10.16 [0]
+   Boot Code Ver:  Required:  1.13   Actual:  1.13
+    DEMOD #1 Ver:  ad48, Type:  1f
+    DEMOD #2 Ver:  ad48, Type:  1f
+    PWRTIMG  Ver:  85d3, Type:   7
+
+Board Serial Number Data:
+   32  00 00 03 A4 4A 16  09 REC727-1000-02E
+   9A  00 00 03 B5 DB CE  09 PIO727-3008-02A
+   47  00 00 02 00 4B 25  09 DSP727-2001-02G
+   B7  00 00 02 00 3E 8B  09 CPU727-2000-00J
+&gt;PS3
+Beam Width:   3.7 degrees
+
+Beam     Elevation     Azimuth
+  1         -69.94      269.91
+  2         -70.01       89.90
+  3         -70.04        0.09
+  4         -69.99      180.10
+
+Beam Directional Matrix (Down):
+  0.3432    0.0006    0.9393    0.2415  
+ -0.3418   -0.0006    0.9398    0.2424  
+ -0.0006   -0.3413    0.9399   -0.2422  
+  0.0006    0.3422    0.9397   -0.2416  
+
+Instrument Transformation Matrix (Down):    Q14:
+  1.4615   -1.4583    0.0012   -0.0037       23945  -23892      20     -61  
+ -0.0033    0.0016   -1.4620    1.4641         -54      27  -23954   23988  
+  0.2655    0.2665    0.2664    0.2657        4350    4367    4365    4354  
+  1.0315    1.0356   -1.0346   -1.0319       16900   16967  -16951  -16907  
+Beam Angle Corrections Are Loaded.
+&gt;AF
+
+-------------------------------------------------------------------------------
+                         Field Calibration Procedure
+Choose calibration method:
+     a.  Remove hard iron error (single cycle) only.
+     b.  Remove hard and soft iron error (single + double cycle).
+     c.  Calibration for a single tilt orientation (single + double cycle).
+     d.  Help.
+     e.  Quit.
+c
+
+
+-------------------------------------------------------------------------------
+                         Field Calibration Procedure
+          Calibration for Constant Tilt Applications (e.g., Rivers)
+
+Select one:
+     a.  Start calibration procedure.
+     b.  Zero calibration coefficients (only constant tilt coefs).
+     c.  Display correction coefficients.
+     d.  Instructions.
+     e.  Quit.
+a
+
+
+------------------------------------------------------------------------------
+                    RDI Compass Error Estimating Algorithm
+
+
+   Press space bar to start taking data after the instrument is setup.
+
+
+
+Rotate the unit in a plane until all data samples are acquired...
+   rotate less than 5ø/sec.  Press Q to quit.
+
+ N       NE       E        SE       S       SW        W        NW       N
+ ^                ^                 ^                 ^                 ^
+ ***************&gt;********************************************************
+Calculating compass performance ...                               
+
+
+                          &gt;&gt;&gt; Total error:   1.4ø &lt;&lt;&lt;
+
+Press D for details or any other key to continue...
+                                                               
+
+
+
+
+
+
+
+
+
+
+HEADING ERROR ESTIMATE FOR THE CURRENT COMPASS CALIBRATION:
+
+   OVERALL ERROR:
+      Peak Double + Single Cycle Error (should be &lt; 5ø):  ñ 1.35ø
+
+   DETAILED ERROR SUMMARY:
+      Single Cycle Error:                                 ñ 1.02ø
+      Double Cycle Error:                                 ñ 0.56ø
+      Largest Double plus Single Cycle Error:             ñ 1.58ø
+      RMS of 3rd Order and Higher + Random Error:         ñ 1.19ø
+
+      Orientation:    Down
+      Average Pitch:   1.59ø         Pitch Standard Dev:    1.60ø
+      Average Roll:   -0.42ø         Roll Standard Dev:     0.93ø
+
+
+Pitch or Roll Standard Deviation is higher than recommended (&gt; 1.0ø) - 
+   results may be biased.
+
+
+Press C to display Percent Horizontal Field Conponents
+     Relative to Calibration or any other key to continue....
+
+
+   Percent Horizontal Field Component Relative to Calibration:
+           a0 + a1*cosé + b1*siné + a2*cos2*é + b2*sin2*é
+          a0 =                                             40.729%
+          a1 =                                             -0.554%
+          b1 =                                              0.471%
+          a2 =                                             -0.360%
+          b2 =                                              0.171%
+
+          OneCycleK =                                       0.009 tw_rad
+          Add MagVar to get "OneCycOffset" =              139.636ø
+Press space bar to continue...
+Calibration parameters have been updated in NRAM.
+
+&gt;
+[ALT-BREAK Wakeup] WorkHorse Rio Grande Broadband ADCP Version 10.16
+Teledyne RD Instruments (c) 1996-2007
+All Rights Reserved.
+&gt;CR1
+[Parameters set to FACTORY defaults]
+&gt;TS?
+TS = 10/04/07,12:44:55 --- Time Set (yr/mon/day,hour:min:sec)
+&gt;PS0
+  Instrument S/N:  6181
+       Frequency:  1228800 HZ
+   Configuration:  4 BEAM, JANUS
+      Beam Angle:  20 DEGREES
+    Beam Pattern:  CONVEX 
+     Orientation:  DOWN
+       Sensor(s):  HEADING  TILT 1  TILT 2  TEMPERATURE
+Temp Sens Offset:  -0.17 degrees C
+
+    CPU Firmware:  10.16 [0]
+   Boot Code Ver:  Required:  1.13   Actual:  1.13
+    DEMOD #1 Ver:  ad48, Type:  1f
+    DEMOD #2 Ver:  ad48, Type:  1f
+    PWRTIMG  Ver:  85d3, Type:   7
+
+Board Serial Number Data:
+   32  00 00 03 A4 4A 16  09 REC727-1000-02E
+   9A  00 00 03 B5 DB CE  09 PIO727-3008-02A
+   47  00 00 02 00 4B 25  09 DSP727-2001-02G
+   B7  00 00 02 00 3E 8B  09 CPU727-2000-00J
+&gt;PS3
+Beam Width:   3.7 degrees
+
+Beam     Elevation     Azimuth
+  1         -69.94      269.91
+  2         -70.01       89.90
+  3         -70.04        0.09
+  4         -69.99      180.10
+
+Beam Directional Matrix (Down):
+  0.3432    0.0006    0.9393    0.2415  
+ -0.3418   -0.0006    0.9398    0.2424  
+ -0.0006   -0.3413    0.9399   -0.2422  
+  0.0006    0.3422    0.9397   -0.2416  
+
+Instrument Transformation Matrix (Down):    Q14:
+  1.4615   -1.4583    0.0012   -0.0037       23945  -23892      20     -61  
+ -0.0033    0.0016   -1.4620    1.4641         -54      27  -23954   23988  
+  0.2655    0.2665    0.2664    0.2657        4350    4367    4365    4354  
+  1.0315    1.0356   -1.0346   -1.0319       16900   16967  -16951  -16907  
+Beam Angle Corrections Are Loaded.
+&gt;AX
+
+------------------------------------------------------------------------------
+                    RDI Compass Error Estimating Algorithm
+
+
+   Press space bar to start taking data after the instrument is setup.
+
+
+
+Rotate the unit in a plane until all data samples are acquired...
+   rotate less than 5ø/sec.  Press Q to quit.
+
+ N       NE       E        SE       S       SW        W        NW       N
+ ^                ^                 ^                 ^                 ^
+ *************************&gt;**********************************************
+Calculating compass performance ...                               
+
+
+                          &gt;&gt;&gt; Total error:   0.6ø &lt;&lt;&lt;
+
+Press D for details or any other key to continue...
+                                                               
+
+
+
+
+
+
+
+
+
+
+HEADING ERROR ESTIMATE FOR THE CURRENT COMPASS CALIBRATION:
+
+   OVERALL ERROR:
+      Peak Double + Single Cycle Error (should be &lt; 5ø):  ñ 0.56ø
+
+   DETAILED ERROR SUMMARY:
+      Single Cycle Error:                                 ñ 0.28ø
+      Double Cycle Error:                                 ñ 0.35ø
+      Largest Double plus Single Cycle Error:             ñ 0.63ø
+      RMS of 3rd Order and Higher + Random Error:         ñ 0.89ø
+
+      Orientation:    Down
+      Average Pitch:   1.82ø         Pitch Standard Dev:    2.47ø
+      Average Roll:    0.04ø         Roll Standard Dev:     1.27ø
+
+
+Pitch or Roll Standard Deviation is higher than recommended (&gt; 1.0ø) - 
+   results may be biased.
+
+
+Press C to display Percent Horizontal Field Conponents
+     Relative to Calibration or any other key to continue....
+
+
+   Percent Horizontal Field Component Relative to Calibration:
+           a0 + a1*cosé + b1*siné + a2*cos2*é + b2*sin2*é
+          a0 =                                             40.509%
+          a1 =                                              0.098%
+          b1 =                                             -0.173%
+          a2 =                                              0.247%
+          b2 =                                             -0.010%
+
+          OneCycleK =                                       0.002 tw_rad
+          Add MagVar to get "OneCycOffset" =              299.631ø
+Press space bar to continue...
+
+&gt;</Text><DateTime timeDatumCode="ADT">2008031812445500</DateTime></CompassEvaluation><DiagnosticsTest><Text>[ALT-BREAK Wakeup] WorkHorse Rio Grande Broadband ADCP Version 10.16
+Teledyne RD Instruments (c) 1996-2007
+All Rights Reserved.
+&gt;CR1
+[Parameters set to FACTORY defaults]
+&gt;TS?
+TS = 10/04/07,12:41:37 --- Time Set (yr/mon/day,hour:min:sec)
+&gt;PS0
+  Instrument S/N:  6181
+       Frequency:  1228800 HZ
+   Configuration:  4 BEAM, JANUS
+      Beam Angle:  20 DEGREES
+    Beam Pattern:  CONVEX 
+     Orientation:  DOWN
+       Sensor(s):  HEADING  TILT 1  TILT 2  TEMPERATURE
+Temp Sens Offset:  -0.17 degrees C
+
+    CPU Firmware:  10.16 [0]
+   Boot Code Ver:  Required:  1.13   Actual:  1.13
+    DEMOD #1 Ver:  ad48, Type:  1f
+    DEMOD #2 Ver:  ad48, Type:  1f
+    PWRTIMG  Ver:  85d3, Type:   7
+
+Board Serial Number Data:
+   32  00 00 03 A4 4A 16  09 REC727-1000-02E
+   9A  00 00 03 B5 DB CE  09 PIO727-3008-02A
+   47  00 00 02 00 4B 25  09 DSP727-2001-02G
+   B7  00 00 02 00 3E 8B  09 CPU727-2000-00J
+&gt;PS3
+Beam Width:   3.7 degrees
+
+Beam     Elevation     Azimuth
+  1         -69.94      269.91
+  2         -70.01       89.90
+  3         -70.04        0.09
+  4         -69.99      180.10
+
+Beam Directional Matrix (Down):
+  0.3432    0.0006    0.9393    0.2415  
+ -0.3418   -0.0006    0.9398    0.2424  
+ -0.0006   -0.3413    0.9399   -0.2422  
+  0.0006    0.3422    0.9397   -0.2416  
+
+Instrument Transformation Matrix (Down):    Q14:
+  1.4615   -1.4583    0.0012   -0.0037       23945  -23892      20     -61  
+ -0.0033    0.0016   -1.4620    1.4641         -54      27  -23954   23988  
+  0.2655    0.2665    0.2664    0.2657        4350    4367    4365    4354  
+  1.0315    1.0356   -1.0346   -1.0319       16900   16967  -16951  -16907  
+Beam Angle Corrections Are Loaded.
+&gt;PT200
+
+  Ambient  Temperature =     2.74 Degrees C
+  Attitude Temperature =     8.96 Degrees C
+  Internal Moisture    = 951Fh
+
+Correlation Magnitude: Wide Bandwidth
+
+               Lag  Bm1  Bm2  Bm3  Bm4
+                 0  255  255  255  255
+                 1  163  161  166  172
+                 2   24   22   23   34
+                 3   32   23    8   15
+                 4   19   31   33   24
+                 5   12   16   26   17
+                 6    7    8    4    4
+                 7    8    9    6    8
+
+  High Gain RSSI:    46   46   51   47
+   Low Gain RSSI:    27   28   31   28
+
+  SIN Duty Cycle:    44   46   44   44
+  COS Duty Cycle:    50   52   50   53
+
+Receive Test Results = $00000000 ... PASS
+
+IXMT    =      0.7 Amps rms  [Data=3ch]
+VXMT    =     27.4 Volts rms [Data=6ch]
+   Z    =     39.9 Ohms
+Transmit Test Results = $0 ... PASS
+
+    0   17   17    0
+    0    8    8    0
+    0    8    0    0
+    0    0    0    0
+  255  255  255  255
+    0    8   17    8
+   17    0   17   12
+  255  255  255  255
+    0    8    0    0
+    0    8    8    0
+    8    0    8    0
+  255  255  255  255
+Electronics Test Results = $00000000 ... 
+Receive Bandwidth:
+    Sample      bw    bw    bw    bw    bw
+      rate  expect   Bm1   Bm2   Bm3   Bm4
+      1229     480   394   389   396   373 Khz
+   results          PASS  PASS  PASS  PASS
+RSSI Time Constant:
+
+RSSI Filter Strobe 1 =   38400 Hz
+  time   Bm1   Bm2   Bm3   Bm4
+  msec  cnts  cnts  cnts  cnts
+     1    14    16    16    15
+     2    25    26    27    25
+     3    32    33    35    33
+     4    37    38    40    38
+     5    41    42    44    41
+     6    43    44    46    43
+     7    45    45    47    45
+     8    46    46    49    46
+     9    47    47    49    47
+    10    47    47    50    47
+   nom    48    48    51    48
+result    PASS  PASS  PASS  PASS
+&gt;PA
+
+PRE-DEPLOYMENT TESTS
+
+CPU TESTS:
+  RTC......................................PASS
+  RAM......................................PASS
+  ROM......................................PASS
+RECORDER TESTS:
+  PC Card #0...............................NOT DETECTED
+  PC Card #1...............................NOT DETECTED
+DSP TESTS:
+  Timing RAM...............................PASS
+  Demod  RAM...............................PASS
+  Demod  REG...............................PASS
+  FIFOs....................................PASS
+SYSTEM TESTS:
+  XILINX Interrupts... IRQ3  IRQ3  IRQ3 ...PASS
+  Wide Bandwidth...........................PASS
+  Narrow Bandwidth.........................PASS
+  RSSI Filter..............................PASS
+  Transmit.................................PASS
+SENSOR TESTS:
+  H/W Operation............................PASS
+&gt;PC2
+
+Press any key to quit sensor display ...
+
+Heading   Pitch    Roll   Up/Down    Attitude Temp   Ambient Temp   PRESSURE
+ 86.71ø   9.61ø  -3.20ø    Down          9.13øC         2.69øC         0.0 kPa
+ 87.43ø   9.79ø  -3.25ø    Down          9.08øC         2.70øC         0.0 kPa
+ 87.61ø   9.98ø  -3.23ø    Down          9.08øC         2.68øC         0.0 kPa
+ 87.54ø   9.99ø  -3.11ø    Down          9.07øC         2.71øC         0.0 kPa
+ 87.57ø  10.00ø  -3.12ø    Down          9.06øC         2.68øC         0.0 kPa
+ 87.58ø   9.99ø  -3.10ø    Down          9.06øC         2.68øC         0.0 kPa
+ 87.64ø   9.99ø  -3.13ø    Down          9.07øC         2.71øC         0.0 kPa
+ 87.65ø  10.05ø  -3.13ø    Down          9.06øC         2.69øC         0.0 kPa
+ 87.72ø  10.07ø  -3.10ø    Down          9.07øC         2.70øC         0.0 kPa
+ 87.73ø  10.08ø  -3.09ø    Down          9.07øC         2.71øC         0.0 kPa
+ 87.71ø  10.14ø  -3.00ø    Down          9.06øC         2.70øC         0.0 kPa
+ 87.59ø  10.12ø  -3.02ø    Down          9.06øC         2.73øC         0.0 kPa
+ 87.45ø  10.04ø  -3.04ø    Down          9.08øC         2.72øC         0.0 kPa
+ 87.53ø   9.98ø  -3.11ø    Down          9.09øC         2.71øC         0.0 kPa
+ 87.42ø   9.99ø  -3.16ø    Down          9.07øC         2.71øC         0.0 kPa
+ 87.29ø   9.97ø  -3.15ø    Down          9.08øC         2.72øC         0.0 kPa
+ 87.21ø   9.92ø  -3.16ø    Down          9.07øC         2.72øC         0.0 kPa
+ 87.01ø   9.80ø  -3.16ø    Down          9.09øC         2.71øC         0.0 kPa
+ 86.95ø   9.70ø  -3.11ø    Down          9.11øC         2.70øC         0.0 kPa
+ 86.97ø   9.62ø  -3.15ø    Down          9.08øC         2.71øC         0.0 kPa
+ 86.94ø   9.56ø  -3.18ø    Down          9.15øC         2.70øC         0.0 kPa
+ 86.85ø   9.50ø  -3.15ø    Down          9.15øC         2.71øC         0.0 kPa
+ 86.97ø   9.48ø  -3.14ø    Down          9.15øC         2.68øC         0.0 kPa
+ 87.09ø   9.52ø  -3.19ø    Down          9.14øC         2.70øC         0.0 kPa
+ 87.09ø   9.58ø  -3.23ø    Down          9.07øC         2.69øC         0.0 kPa
+ 87.18ø   9.59ø  -3.22ø    Down          9.09øC         2.67øC         0.0 kPa
+ 87.12ø   9.61ø  -3.19ø    Down          9.08øC         2.69øC         0.0 kPa
+ 87.21ø   9.66ø  -3.16ø    Down          9.09øC         2.72øC         0.0 kPa
+ 87.07ø   9.68ø  -3.16ø    Down          9.06øC         2.71øC         0.0 kPa
+ 87.09ø   9.69ø  -3.19ø    Down          9.11øC         2.71øC         0.0 kPa
+ 87.28ø   9.83ø  -3.19ø    Down          9.09øC         2.70øC         0.0 kPa
+ 87.30ø   9.83ø  -3.17ø    Down          9.10øC         2.70øC         0.0 kPa
+ 87.29ø   9.83ø  -3.21ø    Down          9.09øC         2.70øC         0.0 kPa
+ 87.20ø   9.83ø  -3.18ø    Down          9.10øC         2.67øC         0.0 kPa
+ 87.27ø   9.83ø  -3.15ø    Down          9.12øC         2.72øC         0.0 kPa
+ 87.24ø   9.85ø  -3.17ø    Down          9.07øC         2.71øC         0.0 kPa
+ 87.17ø   9.83ø  -3.14ø    Down          9.11øC         2.71øC         0.0 kPa
+ 87.07ø   9.70ø  -3.08ø    Down          9.13øC         2.75øC         0.0 kPa
+ 87.04ø   9.61ø  -3.15ø    Down          9.09øC         2.69øC         0.0 kPa
+ 87.07ø   9.61ø  -3.19ø    Down          9.10øC         2.71øC         0.0 kPa
+ 87.12ø   9.65ø  -3.18ø    Down          9.11øC         2.70øC         0.0 kPa
+ 87.16ø   9.74ø  -3.17ø    Down          9.11øC         2.73øC         0.0 kPa
+ 87.12ø   9.75ø  -3.16ø    Down          9.10øC         2.70øC         0.0 kPa
+ 87.13ø   9.74ø  -3.16ø    Down          9.11øC         2.70øC         0.0 kPa
+ 86.95ø   9.66ø  -3.18ø    Down          9.10øC         2.70øC         0.0 kPa
+ 87.12ø   9.69ø  -3.21ø    Down          9.09øC         2.70øC         0.0 kPa
+ 87.36ø   9.86ø  -3.21ø    Down          9.11øC         2.70øC         0.0 kPa
+ 87.29ø   9.96ø  -3.24ø    Down          9.09øC         2.71øC         0.0 kPa
+
+&gt;
+[ALT-BREAK Wakeup] WorkHorse Rio Grande Broadband ADCP Version 10.16
+Teledyne RD Instruments (c) 1996-2007
+All Rights Reserved.
+&gt;</Text><DateTime timeDatumCode="ADT">2008031812413700</DateTime></DiagnosticsTest><QualityControlWaterTemperature unitsCode="C">2.00</QualityControlWaterTemperature><BoatMoterUsed></BoatMoterUsed><ExternalDepthSounderIndicator>false </ExternalDepthSounderIndicator><NavigationCode>BT</NavigationCode><Equipment/><SummaryConfigurationSettings><SoftwareVersionText>2.05</SoftwareVersionText><ADCPDepth unitsCode="ft">0.09</ADCPDepth><DepthConsistentIndicator>true</DepthConsistentIndicator><BlankingDistance unitsCode="ft">0.25</BlankingDistance><BlankingDistanceConsistentIndicator>true</BlankingDistanceConsistentIndicator><WaterMode>1</WaterMode><WaterModeConsistentIndicator>true</WaterModeConsistentIndicator><BottomMode>5</BottomMode><BottomModeConsistentIndicator>true</BottomModeConsistentIndicator><WaterPings>1</WaterPings><WaterPingsConsistentIndicator>true</WaterPingsConsistentIndicator><BottomPings>1</BottomPings><BottomPingsConsistentIndicator>true</BottomPingsConsistentIndicator><LeftEdgeCoefficient>0.353</LeftEdgeCoefficient><LeftEdgeCoefficientConsistentIndicator>true</LeftEdgeCoefficientConsistentIndicator><RightEdgeCoefficient>0.353</RightEdgeCoefficient><RightEdgeCoefficientConsistentIndicator>true</RightEdgeCoefficientConsistentIndicator><AreaComputationMethod>PARA</AreaComputationMethod><AreaComputationConsistentIndicator>true</AreaComputationConsistentIndicator><TopExtrapolationMethod>POWER</TopExtrapolationMethod><TopExtrapolationConsistentIndicator>true</TopExtrapolationConsistentIndicator><BottomExtrapolationMethod>POWER</BottomExtrapolationMethod><BottomExtrapolationConsistentIndicator>true</BottomExtrapolationConsistentIndicator></SummaryConfigurationSettings><MeanCrossSectionWidth unitsCode="ft">103.00</MeanCrossSectionWidth><MeanCrossSectionArea unitsCode="ft/s">977.4</MeanCrossSectionArea><MeanDepth unitsCode="ft">1.82</MeanDepth><MeanNumberEnsembles>765</MeanNumberEnsembles><MaximumVelocity unitsCode="ft/s">2.997</MaximumVelocity><MaximumDepth unitsCode="ft">2.377</MaximumDepth><MeanVelocity unitsCode="ft/s">3.04</MeanVelocity><TopDischarge unitsCode="cfs">2860.0</TopDischarge><MiddleDischarge unitsCode="cfs">70.135</MiddleDischarge><BottomDischarge unitsCode="cfs">22.353</BottomDischarge><LeftDischarge unitsCode="cfs">22.602</LeftDischarge><RightDischarge unitsCode="cfs">27.675</RightDischarge><FlowMeasuredPercent>39.453</FlowMeasuredPercent><MeanBoatSpeed unitsCode="ft/s">0.400</MeanBoatSpeed><MeanADCPTemperature unitsCode="C">1.97</MeanADCPTemperature><MeanBadBinsPercent>0.22</MeanBadBinsPercent><MeanBadEnsemblesPercent>0.52</MeanBadEnsemblesPercent><FileLocked>NO</FileLocked><Transect><Number>0</Number><Name>01AD003_20080318000</Name><FileName>01AD003_20080318_000.PD0</FileName><Discharge unitsCode="cfs">2902.9</Discharge><StartDateTime timeDatumCode="ADT">20071212094527</StartDateTime><EndDateTime timeDatumCode="ADT">20080318131729</EndDateTime><Duration unitsCode="s">602</Duration><FlowDirection>185.79</FlowDirection><MeanBoatSpeed unitsCode="ft/s">0.055</MeanBoatSpeed><MeanBoatCourse>54.48</MeanBoatCourse><LeftEdgeDistance unitsCode="ft">55.00</LeftEdgeDistance><ConfigurationSettings><NumberOfShorePings>10</NumberOfShorePings><CutBinsAboveSidelobe>0</CutBinsAboveSidelobe><CutTopBins>0</CutTopBins><ProjectionAngle>0.00</ProjectionAngle><BeginShore>Right</BeginShore><TopExtrapolationMethod>POWER</TopExtrapolationMethod><BottomExtrapolationMethod>POWER</BottomExtrapolationMethod><AreaComputationMethodCode>PARA</AreaComputationMethodCode><MagneticVariationMethod>NONE</MagneticVariationMethod><BTErrorVelocityThreshold unitsCode="ft/s">0.100</BTErrorVelocityThreshold><WTErrorVelocityThreshold unitsCode="ft/s">1.067</WTErrorVelocityThreshold><WeightedMeanDepthUsed>true</WeightedMeanDepthUsed><WM3BeamSolutionUsed>false</WM3BeamSolutionUsed><BTUpVelocityThreshold unitsCode="ft/s">0.305</BTUpVelocityThreshold><BT3BeamSolutionUsed>true</BT3BeamSolutionUsed><WTUpVelocityThreshold unitsCode="ft/s">2.600</WTUpVelocityThreshold><ADCPDepth unitsCode="ft">0.09</ADCPDepth><BlankingDistance unitsCode="ft">0.25</BlankingDistance><DepthCellSize unitsCode="ft">0.25</DepthCellSize><WaterMode>1</WaterMode><WaterPings>1</WaterPings><BottomMode>5</BottomMode><BottomPings>1</BottomPings><LeftEdgeCoefficient>0.353</LeftEdgeCoefficient><RightEdgeCoefficient>0.353</RightEdgeCoefficient><SalinityValue>0</SalinityValue></ConfigurationSettings><MagneticVariation>0.00</MagneticVariation><PercentBadBins>0.03</PercentBadBins><PercentBadEnsemble>0.00</PercentBadEnsemble><CrossSectionWidth unitsCode="ft">104.6</CrossSectionWidth><CrossSectionArea unitsCode="ft/s">992.0</CrossSectionArea><MeanDepth unitsCode="ft">1.12</MeanDepth><NumberEnsembles>1997</NumberEnsembles><MaximumVelocity unitsCode="ft/s">2.859</MaximumVelocity><MeanVelocity unitsCode="ft/s">3.09</MeanVelocity><TopDischarge unitsCode="cfs">0.200</TopDischarge><MiddleDischarge unitsCode="cfs">0.544</MiddleDischarge><BottomDischarge unitsCode="cfs">0.202</BottomDischarge><LeftDischarge unitsCode="cfs">88.178</LeftDischarge><RightDischarge unitsCode="cfs">91.465</RightDischarge><FlowMeasuredPercent>0.301</FlowMeasuredPercent><ADCPTemperatureMeasure unitsCode="C">2.02</ADCPTemperatureMeasure></Transect><Transect><Number>2</Number><Name>01AD003_20080318002</Name><FileName>01AD003_20080318_002.PD0</FileName><Discharge unitsCode="cfs">2817.7</Discharge><StartDateTime timeDatumCode="ADT">20071212094817</StartDateTime><EndDateTime timeDatumCode="ADT">20080318132227</EndDateTime><Duration unitsCode="s">69</Duration><FlowDirection>182.04</FlowDirection><MeanBoatSpeed unitsCode="ft/s">0.647</MeanBoatSpeed><MeanBoatCourse>86.94</MeanBoatCourse><LeftEdgeDistance unitsCode="ft">1.75</LeftEdgeDistance><ConfigurationSettings><NumberOfShorePings>10</NumberOfShorePings><CutBinsAboveSidelobe>0</CutBinsAboveSidelobe><CutTopBins>0</CutTopBins><ProjectionAngle>0.00</ProjectionAngle><BeginShore>Right</BeginShore><TopExtrapolationMethod>POWER</TopExtrapolationMethod><BottomExtrapolationMethod>POWER</BottomExtrapolationMethod><AreaComputationMethodCode>PARA</AreaComputationMethodCode><MagneticVariationMethod>NONE</MagneticVariationMethod><BTErrorVelocityThreshold unitsCode="ft/s">0.100</BTErrorVelocityThreshold><WTErrorVelocityThreshold unitsCode="ft/s">1.067</WTErrorVelocityThreshold><WeightedMeanDepthUsed>true</WeightedMeanDepthUsed><WM3BeamSolutionUsed>false</WM3BeamSolutionUsed><BTUpVelocityThreshold unitsCode="ft/s">0.305</BTUpVelocityThreshold><BT3BeamSolutionUsed>true</BT3BeamSolutionUsed><WTUpVelocityThreshold unitsCode="ft/s">2.600</WTUpVelocityThreshold><ADCPDepth unitsCode="ft">0.09</ADCPDepth><BlankingDistance unitsCode="ft">0.25</BlankingDistance><DepthCellSize unitsCode="ft">0.25</DepthCellSize><WaterMode>1</WaterMode><WaterPings>1</WaterPings><BottomMode>5</BottomMode><BottomPings>1</BottomPings><LeftEdgeCoefficient>0.353</LeftEdgeCoefficient><RightEdgeCoefficient>0.353</RightEdgeCoefficient><SalinityValue>0</SalinityValue></ConfigurationSettings><MagneticVariation>0.00</MagneticVariation><PercentBadBins>0.17</PercentBadBins><PercentBadEnsemble>0.37</PercentBadEnsemble><CrossSectionWidth unitsCode="ft">101.5</CrossSectionWidth><CrossSectionArea unitsCode="ft/s">962.9</CrossSectionArea><MeanDepth unitsCode="ft">2.05</MeanDepth><NumberEnsembles>273</NumberEnsembles><MaximumVelocity unitsCode="ft/s">2.997</MaximumVelocity><MeanVelocity unitsCode="ft/s">3.00</MeanVelocity><TopDischarge unitsCode="cfs">46.927</TopDischarge><MiddleDischarge unitsCode="cfs">94.157</MiddleDischarge><BottomDischarge unitsCode="cfs">29.326</BottomDischarge><LeftDischarge unitsCode="cfs">0.930</LeftDischarge><RightDischarge unitsCode="cfs">5.518</RightDischarge><FlowMeasuredPercent>53.239</FlowMeasuredPercent><ADCPTemperatureMeasure unitsCode="C">1.96</ADCPTemperatureMeasure></Transect><Transect><Number>3</Number><Name>01AD003_20080318003</Name><FileName>01AD003_20080318_003.PD0</FileName><Discharge unitsCode="cfs">2922.889</Discharge><StartDateTime timeDatumCode="ADT">20071212095011</StartDateTime><EndDateTime timeDatumCode="ADT">20080318132458</EndDateTime><Duration unitsCode="s">106</Duration><FlowDirection>182.06</FlowDirection><MeanBoatSpeed unitsCode="ft/s">0.414</MeanBoatSpeed><MeanBoatCourse>267.64</MeanBoatCourse><LeftEdgeDistance unitsCode="ft">1.75</LeftEdgeDistance><ConfigurationSettings><NumberOfShorePings>10</NumberOfShorePings><CutBinsAboveSidelobe>0</CutBinsAboveSidelobe><CutTopBins>0</CutTopBins><ProjectionAngle>0.00</ProjectionAngle><BeginShore>Left</BeginShore><TopExtrapolationMethod>POWER</TopExtrapolationMethod><BottomExtrapolationMethod>POWER</BottomExtrapolationMethod><AreaComputationMethodCode>PARA</AreaComputationMethodCode><MagneticVariationMethod>NONE</MagneticVariationMethod><BTErrorVelocityThreshold unitsCode="ft/s">0.100</BTErrorVelocityThreshold><WTErrorVelocityThreshold unitsCode="ft/s">1.067</WTErrorVelocityThreshold><WeightedMeanDepthUsed>true</WeightedMeanDepthUsed><WM3BeamSolutionUsed>false</WM3BeamSolutionUsed><BTUpVelocityThreshold unitsCode="ft/s">0.305</BTUpVelocityThreshold><BT3BeamSolutionUsed>true</BT3BeamSolutionUsed><WTUpVelocityThreshold unitsCode="ft/s">2.600</WTUpVelocityThreshold><ADCPDepth unitsCode="ft">0.09</ADCPDepth><BlankingDistance unitsCode="ft">0.25</BlankingDistance><DepthCellSize unitsCode="ft">0.25</DepthCellSize><WaterMode>1</WaterMode><WaterPings>1</WaterPings><BottomMode>5</BottomMode><BottomPings>1</BottomPings><LeftEdgeCoefficient>0.353</LeftEdgeCoefficient><RightEdgeCoefficient>0.353</RightEdgeCoefficient><SalinityValue>0</SalinityValue></ConfigurationSettings><MagneticVariation>0.00</MagneticVariation><PercentBadBins>0.00</PercentBadBins><PercentBadEnsemble>0.70</PercentBadEnsemble><CrossSectionWidth unitsCode="ft">105.3</CrossSectionWidth><CrossSectionArea unitsCode="ft/s">998.9</CrossSectionArea><MeanDepth unitsCode="ft">2.04</MeanDepth><NumberEnsembles>426</NumberEnsembles><MaximumVelocity unitsCode="ft/s">2.713</MaximumVelocity><MeanVelocity unitsCode="ft/s">3.11</MeanVelocity><TopDischarge unitsCode="cfs">45.647</TopDischarge><MiddleDischarge unitsCode="cfs">91.483</MiddleDischarge><BottomDischarge unitsCode="cfs">29.702</BottomDischarge><LeftDischarge unitsCode="cfs">0.863</LeftDischarge><RightDischarge unitsCode="cfs">6.165</RightDischarge><FlowMeasuredPercent>52.618</FlowMeasuredPercent><ADCPTemperatureMeasure unitsCode="C">1.95</ADCPTemperatureMeasure></Transect><Transect><Number>4</Number><Name>01AD003_20080318004</Name><FileName>01AD003_20080318_004.PD0</FileName><Discharge unitsCode="cfs">2798.4</Discharge><StartDateTime timeDatumCode="ADT">20071212095216</StartDateTime><EndDateTime timeDatumCode="ADT">20071212094550</EndDateTime><Duration unitsCode="s">93</Duration><FlowDirection>181.19</FlowDirection><MeanBoatSpeed unitsCode="ft/s">0.485</MeanBoatSpeed><MeanBoatCourse>86.74</MeanBoatCourse><LeftEdgeDistance unitsCode="ft">1.40</LeftEdgeDistance><ConfigurationSettings><NumberOfShorePings>10</NumberOfShorePings><CutBinsAboveSidelobe>0</CutBinsAboveSidelobe><CutTopBins>0</CutTopBins><ProjectionAngle>0.00</ProjectionAngle><BeginShore>Right</BeginShore><TopExtrapolationMethod>POWER</TopExtrapolationMethod><BottomExtrapolationMethod>POWER</BottomExtrapolationMethod><AreaComputationMethodCode>PARA</AreaComputationMethodCode><MagneticVariationMethod>NONE</MagneticVariationMethod><BTErrorVelocityThreshold unitsCode="ft/s">0.100</BTErrorVelocityThreshold><WTErrorVelocityThreshold unitsCode="ft/s">1.067</WTErrorVelocityThreshold><WeightedMeanDepthUsed>true</WeightedMeanDepthUsed><WM3BeamSolutionUsed>false</WM3BeamSolutionUsed><BTUpVelocityThreshold unitsCode="ft/s">0.305</BTUpVelocityThreshold><BT3BeamSolutionUsed>true</BT3BeamSolutionUsed><WTUpVelocityThreshold unitsCode="ft/s">2.600</WTUpVelocityThreshold><ADCPDepth unitsCode="ft">0.09</ADCPDepth><BlankingDistance unitsCode="ft">0.25</BlankingDistance><DepthCellSize unitsCode="ft">0.25</DepthCellSize><WaterMode>1</WaterMode><WaterPings>1</WaterPings><BottomMode>5</BottomMode><BottomPings>1</BottomPings><LeftEdgeCoefficient>0.353</LeftEdgeCoefficient><RightEdgeCoefficient>0.353</RightEdgeCoefficient><SalinityValue>0</SalinityValue></ConfigurationSettings><MagneticVariation>0.00</MagneticVariation><PercentBadBins>0.70</PercentBadBins><PercentBadEnsemble>3.28</PercentBadEnsemble><CrossSectionWidth unitsCode="ft">100.8</CrossSectionWidth><CrossSectionArea unitsCode="ft/s">956.3</CrossSectionArea><MeanDepth unitsCode="ft">2.05</MeanDepth><NumberEnsembles>366</NumberEnsembles><MaximumVelocity unitsCode="ft/s">2.753</MaximumVelocity><MeanVelocity unitsCode="ft/s">2.98</MeanVelocity><TopDischarge unitsCode="cfs">47.239</TopDischarge><MiddleDischarge unitsCode="cfs">94.357</MiddleDischarge><BottomDischarge unitsCode="cfs">30.183</BottomDischarge><LeftDischarge unitsCode="cfs">0.438</LeftDischarge><RightDischarge unitsCode="cfs">7.550</RightDischarge><FlowMeasuredPercent>52.488</FlowMeasuredPercent><ADCPTemperatureMeasure unitsCode="C">1.94</ADCPTemperatureMeasure></Transect></ADCPDischargeMeasurement></Channel></DischargeMeasurement></SiteVisit></SiteData></HYDROML>

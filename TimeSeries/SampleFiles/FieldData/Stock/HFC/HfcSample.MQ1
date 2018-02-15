@@ -1,0 +1,467 @@
+ -------ORIGINAL-------
+ STN.NUM : 05QE012
+ DATUM NUM: 0.000  
+ STN.NAME: LONG-LEGGED RIVER BELOW LONG-LEGGED LAKE
+ TimeZone: EST
+ PRS.NAME: TD HN
+ RECORDED: 2011-04-01
+ MMT.TYPE: 1 OPEN WATER
+ MMT.PROC: BRIDGE (P)
+ RIV.BANK: L
+ AffraCal: N
+ ----------------------
+ NO.OF PANELS   : 25
+ -------PANEL  1-------
+  %D  Dep  Ct Time  VEL
+ 0.6 0.62  46 40.5 0.779
+                      
+ DISTtoSHORE:    4.0000
+ TAGMARK    :    8.0000
+ SHORE WIDTH:    2.0000
+ SHORE DEPTH:    0.0000
+ SHORE AREA :    0.0000
+ SHORE E.VEL:    0.0000
+ SHORE DISCH:    0.0000
+ WIDTH      :    3.0000
+ DEPTH      :    1.0400
+ VELOCITY   :    0.7634
+ AREA       :    3.1200
+ DISCHARGE  :    2.3817
+ FACTOR     :    0.9800
+ MMT. TIME  :     10:58
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL  2-------
+  %D  Dep  Ct Time  VEL
+ 0.6 0.74  55 40.5 0.931
+                      
+ DISTtoSHORE:    6.0000
+ TAGMARK    :   10.0000
+ WIDTH      :    2.0000
+ DEPTH      :    1.2400
+ VELOCITY   :    0.9126
+ AREA       :    2.4800
+ DISCHARGE  :    2.2633
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:00
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL  3-------
+  %D  Dep  Ct Time  VEL
+ 0.6 0.76  64 40.5 1.082
+                      
+ DISTtoSHORE:    8.0000
+ TAGMARK    :   12.0000
+ WIDTH      :    1.7500
+ DEPTH      :    1.2700
+ VELOCITY   :    1.0608
+ AREA       :    2.2225
+ DISCHARGE  :    2.3575
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:03
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL  4-------
+  %D  Dep  Ct Time  VEL
+ 0.6 0.84  79 40.3 1.341
+                      
+ DISTtoSHORE:    9.5000
+ TAGMARK    :   13.5000
+ WIDTH      :    1.5000
+ DEPTH      :    1.4000
+ VELOCITY   :    1.3143
+ AREA       :    2.1000
+ DISCHARGE  :    2.7599
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:05
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL  5-------
+  %D  Dep  Ct Time  VEL
+ 0.6 0.89  82 40.5 1.385
+                      
+ DISTtoSHORE:   11.0000
+ TAGMARK    :   15.0000
+ WIDTH      :    1.5000
+ DEPTH      :    1.4900
+ VELOCITY   :    1.3570
+ AREA       :    2.2350
+ DISCHARGE  :    3.0328
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:07
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL  6-------
+  %D  Dep  Ct Time  VEL
+ 0.6 0.91  91 40.3 1.545
+                      
+ DISTtoSHORE:   12.5000
+ TAGMARK    :   16.5000
+ WIDTH      :    1.5000
+ DEPTH      :    1.5200
+ VELOCITY   :    1.5144
+ AREA       :    2.2800
+ DISCHARGE  :    3.4529
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:09
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL  7-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.32 118 40.0 2.016
+ 0.8 1.27  80 40.2 1.362
+                      
+ DISTtoSHORE:   14.0000
+ TAGMARK    :   18.0000
+ WIDTH      :    1.5000
+ DEPTH      :    1.5900
+ VELOCITY   :    1.6551
+ AREA       :    2.3850
+ DISCHARGE  :    3.9475
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:12
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL  8-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.33 127 40.3 2.153
+ 0.8 1.33  87 40.3 1.476
+                      
+ DISTtoSHORE:   15.5000
+ TAGMARK    :   19.5000
+ WIDTH      :    1.5000
+ DEPTH      :    1.6600
+ VELOCITY   :    1.7785
+ AREA       :    2.4900
+ DISCHARGE  :    4.4284
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:14
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL  9-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.35 128 40.2 2.175
+ 0.8 1.42  83 40.2 1.411
+                      
+ DISTtoSHORE:   17.0000
+ TAGMARK    :   21.0000
+ WIDTH      :    1.2500
+ DEPTH      :    1.7700
+ VELOCITY   :    1.7571
+ AREA       :    2.2125
+ DISCHARGE  :    3.8875
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:17
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 10-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.36 127 40.1 2.163
+ 0.8 1.42  89 40.3 1.511
+                      
+ DISTtoSHORE:   18.0000
+ TAGMARK    :   22.0000
+ WIDTH      :    1.0000
+ DEPTH      :    1.7800
+ VELOCITY   :    1.8001
+ AREA       :    1.7800
+ DISCHARGE  :    3.2043
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:20
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 11-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.37 134 40.3 2.274
+ 0.8 1.47  91 40.1 1.551
+                      
+ DISTtoSHORE:   19.0000
+ TAGMARK    :   23.0000
+ WIDTH      :    1.0000
+ DEPTH      :    1.8400
+ VELOCITY   :    1.8741
+ AREA       :    1.8400
+ DISCHARGE  :    3.4483
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:22
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 12-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.38 133 40.1 2.265
+ 0.8 1.51  94 40.1 1.604
+                      
+ DISTtoSHORE:   20.0000
+ TAGMARK    :   24.0000
+ WIDTH      :    1.0000
+ DEPTH      :    1.8900
+ VELOCITY   :    1.8954
+ AREA       :    1.8900
+ DISCHARGE  :    3.5823
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:24
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 13-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.40 126 40.0 2.150
+ 0.8 1.59  81 40.0 1.384
+                      
+ DISTtoSHORE:   21.0000
+ TAGMARK    :   25.0000
+ WIDTH      :    1.0000
+ DEPTH      :    1.9900
+ VELOCITY   :    1.7317
+ AREA       :    1.9900
+ DISCHARGE  :    3.4462
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:26
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 14-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.41 108 40.4 1.826
+ 0.8 1.63  87 40.3 1.475
+                      
+ DISTtoSHORE:   22.0000
+ TAGMARK    :   26.0000
+ WIDTH      :    1.0000
+ DEPTH      :    2.0400
+ VELOCITY   :    1.6179
+ AREA       :    2.0400
+ DISCHARGE  :    3.3005
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:29
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 15-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.40 134 40.3 2.275
+ 0.8 1.61  91 40.3 1.543
+                      
+ DISTtoSHORE:   23.0000
+ TAGMARK    :   27.0000
+ WIDTH      :    1.0000
+ DEPTH      :    2.0100
+ VELOCITY   :    1.8709
+ AREA       :    2.0100
+ DISCHARGE  :    3.7605
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:31
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 16-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.42 133 40.1 2.267
+ 0.8 1.68  92 40.2 1.565
+                      
+ DISTtoSHORE:   24.0000
+ TAGMARK    :   28.0000
+ WIDTH      :    1.0000
+ DEPTH      :    2.1000
+ VELOCITY   :    1.8778
+ AREA       :    2.1000
+ DISCHARGE  :    3.9434
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:33
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 17-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.43 140 40.1 2.385
+ 0.8 1.71  97 40.5 1.636
+                      
+ DISTtoSHORE:   25.0000
+ TAGMARK    :   29.0000
+ WIDTH      :    1.0000
+ DEPTH      :    2.1400
+ VELOCITY   :    1.9704
+ AREA       :    2.1400
+ DISCHARGE  :    4.2167
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:35
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 18-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.43 142 40.1 2.417
+ 0.8 1.74 100 40.1 1.706
+                      
+ DISTtoSHORE:   26.0000
+ TAGMARK    :   30.0000
+ WIDTH      :    1.0000
+ DEPTH      :    2.1700
+ VELOCITY   :    2.0204
+ AREA       :    2.1700
+ DISCHARGE  :    4.3842
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:37
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 19-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.43 147 40.2 2.497
+ 0.8 1.72  88 40.4 1.490
+                      
+ DISTtoSHORE:   27.0000
+ TAGMARK    :   31.0000
+ WIDTH      :    1.0000
+ DEPTH      :    2.1500
+ VELOCITY   :    1.9537
+ AREA       :    2.1500
+ DISCHARGE  :    4.2005
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:39
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 20-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.40 144 40.1 2.455
+ 0.8 1.62  97 40.3 1.647
+                      
+ DISTtoSHORE:   28.0000
+ TAGMARK    :   32.0000
+ WIDTH      :    1.0000
+ DEPTH      :    2.0200
+ VELOCITY   :    2.0095
+ AREA       :    2.0200
+ DISCHARGE  :    4.0592
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:41
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 21-------
+  %D  Dep  Ct Time  VEL
+ 0.2 0.38 144 40.0 2.458
+ 0.8 1.50  84 40.1 1.435
+                      
+ DISTtoSHORE:   29.0000
+ TAGMARK    :   33.0000
+ WIDTH      :    1.0000
+ DEPTH      :    1.8800
+ VELOCITY   :    1.9071
+ AREA       :    1.8800
+ DISCHARGE  :    3.5854
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:44
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 22-------
+  %D  Dep  Ct Time  VEL
+ 0.6 0.82 114 40.3 1.932
+                      
+ DISTtoSHORE:   30.0000
+ TAGMARK    :   34.0000
+ WIDTH      :    1.0000
+ DEPTH      :    1.3700
+ VELOCITY   :    1.8933
+ AREA       :    1.3700
+ DISCHARGE  :    2.5939
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:45
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 23-------
+  %D  Dep  Ct Time  VEL
+ 0.6 0.90  85 40.3 1.444
+                      
+ DISTtoSHORE:   31.0000
+ TAGMARK    :   35.0000
+ WIDTH      :    1.0000
+ DEPTH      :    1.5000
+ VELOCITY   :    1.4155
+ AREA       :    1.5000
+ DISCHARGE  :    2.1233
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:46
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 24-------
+  %D  Dep  Ct Time  VEL
+ 0.6 0.82  70 40.5 1.182
+                      
+ DISTtoSHORE:   32.0000
+ TAGMARK    :   36.0000
+ WIDTH      :    1.0000
+ DEPTH      :    1.3700
+ VELOCITY   :    1.1584
+ AREA       :    1.3700
+ DISCHARGE  :    1.5870
+ FACTOR     :    0.9800
+ MMT. TIME  :     11:48
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ -------PANEL 25-------
+  %D  Dep  Ct Time  VEL
+ 0.6 0.55  44 40.4 0.747
+                      
+ DISTtoSHORE:   33.0000
+ TAGMARK    :   37.0000
+ SHORE WIDTH:    0.4000
+ SHORE AREA :    0.0000
+ SHORE DISCH:    0.0000
+ WIDTH      :    0.9000
+ DEPTH      :    0.9200
+ VELOCITY   :    0.7320
+ AREA       :    0.8280
+ DISCHARGE  :    0.6061
+ FACTOR     :    0.9800
+ NextP/ShDep:    0.0000
+ NextP/ShVel:    0.0000
+ DisToN P/Sh:    0.8000
+ P/SH Area  :    0.0000
+ NextP/ShDis:    0.0000
+ MMT. TIME  :     11:49
+ METER USED : 1-096A
+ AMTofWT    : 50.00
+ DisMtABW   : 0.310
+ --------SUMMARY-------
+ START TIME :     18:58
+ END TIME   :     20:49
+ NUM. PANELS:        25
+ IP to SHORE:    4.0000
+ WIDTH      :   33.8000
+ Avg DEPTH  :    1.4971
+ AREA       :   50.6030
+ AvgVELOCITY:    1.5919
+ DISCHARGE  :   80.5533
+ AvgWATERLEV:    1.345
+ AIR   TEMP :
+ WATER TEMP :
+ MAX %Q @P8 :      5.50
+ --PrimaryWaterLevels--
+ W.L.#1     :    1.3640
+ W.L.#1 TIME:     10:33
+ W.L.#2     :    1.3440
+ W.L.#2 TIME:     12:00
+ RECORDER   :    INSIDE
+ --METERS INFORMATION--
+ METER USED : 1-096A
+ CALIBRATED : 2000/02/14
+ SLOPE      : 0.6822
+ INTERCEPT  : 0.0041
+ -S/W VER 2.1.1 -Mar 2007-

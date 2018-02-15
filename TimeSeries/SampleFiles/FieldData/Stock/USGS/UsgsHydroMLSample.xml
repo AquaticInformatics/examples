@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<UsgsHydroML xmlns="http://water.usgs.gov/XML/AQ"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://water.usgs.gov/XML/AQ http://water.usgs.gov/XML/AQ/schema/UsgsAquariusHydroML.xsd">
+  <Site>
+    <SiteIdentifier organizationCode="TEST">00000001</SiteIdentifier>
+    <Name>Test</Name>
+    <SiteData>
+      <SiteVisit>
+        <StartDateTime timeDatumCode="PST">2013-10-01T11:23:00</StartDateTime>
+        <EndDateTime timeDatumCode="PST">2013-10-01T14:30:00</EndDateTime>
+        <PartyText>Test</PartyText>
+        <Comment>Test</Comment>
+        <StreamZeroFlowInspection>
+          <InspectionDateTime timeDatumCode="PST">2013-10-01T12:45:00</InspectionDateTime>
+          <GageHeightZeroFlowMeasure>2.26</GageHeightZeroFlowMeasure>
+          <GageHeightZeroFlowAccuracy>.1</GageHeightZeroFlowAccuracy>
+          <DepthWaterMeasure>1.90</DepthWaterMeasure>
+          <StreamStageMeasure>4.16</StreamStageMeasure>
+          <Comment>Test</Comment>
+        </StreamZeroFlowInspection>
+        <DischargeMeasurement>
+          <MeasurementNumber>1</MeasurementNumber>
+          <DischargeDateTime timeDatumCode="PST">2013-10-01T12:47:09</DischargeDateTime>
+          <StartDateTime timeDatumCode="PST">2013-10-01T12:02:54</StartDateTime>
+          <EndDateTime timeDatumCode="PST">2013-10-01T13:31:25</EndDateTime>
+          <DischargeCode Description="Measured">MEAS</DischargeCode>
+          <DischargeMeasure>5.00608</DischargeMeasure>
+          <MeasurementQualityCode Description="Fair (8%)">FAIR</MeasurementQualityCode>
+          <Comment>Test</Comment>
+          <Channel>
+            <ChannelNumber>1</ChannelNumber>
+            <ChannelName>A</ChannelName>
+            <DischargeMeasure>0.0227</DischargeMeasure>
+            <DeploymentMethodCode>OTHR</DeploymentMethodCode>
+            <MeasurementMethodCode Description="Volumetric">QVOLUMETRIC</MeasurementMethodCode>
+            <VolumetricDischargeMeasurement>
+              <ContainerUnitCode Description="Gallons">55</ContainerUnitCode>
+              <VolumetricReading>
+                <StartVolumeMeasure>0</StartVolumeMeasure>
+                <EndVolumeMeasure>1.0</EndVolumeMeasure>
+                <VolumeDifferenceMeasure>1</VolumeDifferenceMeasure>
+                <FillDurationMeasure>5.76</FillDurationMeasure>
+                <DischargeMeasure>0.0228</DischargeMeasure>
+              </VolumetricReading>
+              <VolumetricReading>
+                <StartVolumeMeasure>0</StartVolumeMeasure>
+                <EndVolumeMeasure>1.0</EndVolumeMeasure>
+                <VolumeDifferenceMeasure>1</VolumeDifferenceMeasure>
+                <FillDurationMeasure>6.44</FillDurationMeasure>
+                <DischargeMeasure>0.0236</DischargeMeasure>
+              </VolumetricReading>
+              <VolumetricReading>
+                <StartVolumeMeasure>0</StartVolumeMeasure>
+                <EndVolumeMeasure>1.0</EndVolumeMeasure>
+                <VolumeDifferenceMeasure>1</VolumeDifferenceMeasure>
+                <FillDurationMeasure>5.51</FillDurationMeasure>
+                <DischargeMeasure>0.0217</DischargeMeasure>
+              </VolumetricReading>
+            </VolumetricDischargeMeasurement>
+          </Channel>
+          <Channel>
+            <ChannelNumber>2</ChannelNumber>
+            <ChannelName>B</ChannelName>
+            <DischargeMeasure>0.0227</DischargeMeasure>
+            <DeploymentMethodCode Description="Wading">WADE</DeploymentMethodCode>
+            <MeasurementMethodCode Description="Midsection">QMIDSECTION</MeasurementMethodCode>
+            <VelocityMethodCode Description="ADV">VADV</VelocityMethodCode>
+            <ChannelMaterialCode Description="bedrock-ledge-artificial">LDGE</ChannelMaterialCode>
+            <ChannelStabilityCode Description="firm">FIRM</ChannelStabilityCode>
+            <ChannelEvennessCode Description="even">EVEN</ChannelEvennessCode>
+            <HorizontalFlowCode Description="Even">EVEN</HorizontalFlowCode>
+            <VerticalVelocityDistributionCode Description="uniform">UNFM</VerticalVelocityDistributionCode>
+            <VelocityVariation Description="steady">STDY</VelocityVariation>
+            <SectionLocationCode Description="Unspecified">UNSP</SectionLocationCode>
+            <SectionDistanceMeasure />
+            <MidSectionDischargeMeasurement>
+              <StartPointCode Description="Left edge of water">LEW</StartPointCode>
+              <AcousticDopplerVelocitySensor>
+                <SensorType>
+                  <Parameter>
+                    <USGSParameterCode>00055</USGSParameterCode>
+                    <Name>Stream velocity</Name>
+                    <Units>ft/s</Units>
+                  </Parameter>
+                  <MethodCode Description="ADV">VADV</MethodCode>
+                  <ManufacturerName>Sontek</ManufacturerName>
+                  <ModelNumber>Flowtracker ADV</ModelNumber>
+                </SensorType>
+                <SerialNumber>P202-LA-Rus</SerialNumber>
+              </AcousticDopplerVelocitySensor>
+              <SuspensionCode Description="A-reel">AREL</SuspensionCode>
+              <DistanceToMeterMeasure>1.00</DistanceToMeterMeasure>
+              <InspectedBeforeIndicator>true</InspectedBeforeIndicator>
+              <InspectedAfterIndicator>true</InspectedAfterIndicator>
+              <SuspensionWeightCode Description="75 C">75CO</SuspensionWeightCode>
+              <AreaMeasure>2.20</AreaMeasure>
+              <WidthMeasure>1.10</WidthMeasure>
+              <MeanVelocityMeasure>1.0684</MeanVelocityMeasure>
+              <NumberSectionsMeasure>1</NumberSectionsMeasure>
+              <MeanObservationDuration>40</MeanObservationDuration>
+              <VelocityObservationCode Description=".6 depth">.6D</VelocityObservationCode>
+              <HorizontalAngleIndicator>false</HorizontalAngleIndicator>
+              <MethodCoefficientIndicator>false</MethodCoefficientIndicator>
+              <SuspensionCoefficientIndicator>false</SuspensionCoefficientIndicator>
+              <MidSectionStation>
+                <SectionDateTime timeDatumCode="PST">2013-10-01T12:02:54</SectionDateTime>
+                <DistanceFromInitialPointMeasure>0.00</DistanceFromInitialPointMeasure>
+                <WidthMeasure>2.00</WidthMeasure>
+                <DepthMeasure>1.10</DepthMeasure>
+                <AreaMeasure>2.20</AreaMeasure>
+                <DischargeMeasure>3.32</DischargeMeasure>
+                <VelocityMeasure>1.51</VelocityMeasure>
+                <HorizontalAngleCoefficient>1.00</HorizontalAngleCoefficient>
+                <MidSectionVelocityObservation>
+                  <DepthMeasure>.6</DepthMeasure>
+                  <NumberRevolutionsMeasure>0</NumberRevolutionsMeasure>
+                  <ObservationDurationMeasure>40</ObservationDurationMeasure>
+                  <NumberReadingsMeasure>0</NumberReadingsMeasure>
+                  <NumberSpikesMeasure>0</NumberSpikesMeasure>
+                  <AngleToFlowMeasure>0</AngleToFlowMeasure>
+                  <SignalToNoiseRatioMeasure>0.0</SignalToNoiseRatioMeasure>
+                  <VelocityStandardErrorMeasure>0.0000</VelocityStandardErrorMeasure>
+                  <BoundryQualityIndexMeasure>0</BoundryQualityIndexMeasure>
+                  <WaterTemperatureMeasure>0.00</WaterTemperatureMeasure>
+                  <VelocityMeasure>1.51</VelocityMeasure>
+                </MidSectionVelocityObservation>
+              </MidSectionStation>
+            </MidSectionDischargeMeasurement>
+          </Channel>
+          <DischargeChannelAdjustmentMeasure>5</DischargeChannelAdjustmentMeasure>
+          <MeasurementRemarks>Test</MeasurementRemarks>
+        </DischargeMeasurement>
+        <StreamFlowControlInspection>
+          <ControlCode Description="Section">SECT</ControlCode>
+          <DistanceToGageMeasure>150</DistanceToGageMeasure>
+          <ControlCleanedCode Description="YES">CLEN</ControlCleanedCode>
+          <CleanedDateTime timeDatumCode="PST">2013-10-01T13:40:00</CleanedDateTime>
+          <ConditionCode Description="Light debris">LGDB</ConditionCode>
+          <Comment>test of control inspection comment</Comment>
+        </StreamFlowControlInspection>
+        <EnvironmentalMeasurementList>
+          <EnvironmentalMeasurement>
+            <Location>
+              <SequenceNumber>0</SequenceNumber>
+            </Location>
+            <Parameter>
+              <USGSParameterCode>00020</USGSParameterCode>
+              <Name>Temperature, air</Name>
+              <Units>degC</Units>
+            </Parameter>
+            <MethodCode>THM05</MethodCode>
+            <DateTime timeDatumCode="PST">2013-10-01T11:42:00</DateTime>
+            <Measure>32.0</Measure>
+          </EnvironmentalMeasurement>
+          <Comment>test of comments for enviro measurements.</Comment>
+        </EnvironmentalMeasurementList>
+        <StillingWellInspection>
+          <IntakeServicedCode Description="Flushed and cleaned">FLCL</IntakeServicedCode>
+          <IntakeServicedDateTime timeDatumCode="PST">2013-10-01T11:25:00</IntakeServicedDateTime>
+          <Comment>comment for stilling well inspection</Comment>
+        </StillingWellInspection>
+        <HighWaterMarkObservation>
+          <Description>Seed line on first set of piers of downstream right side of bridge.</Description>
+          <StreamStageMeasure>10.25</StreamStageMeasure>
+          <StageAccuracyMeasure>.05</StageAccuracyMeasure>
+          <EstimatedDateTime>2013-09-10</EstimatedDateTime>
+          <Comment>comment for HWM 1</Comment>
+        </HighWaterMarkObservation>
+        <SensorInspection>
+          <CrestStageGageInspection>
+            <LocationSensor>
+              <Location>
+                <SequenceNumber>0</SequenceNumber>
+              </Location>
+              <Sensor>
+                <SensorType>
+                  <Parameter>
+                    <USGSParameterCode>00065</USGSParameterCode>
+                    <Name>Gage height</Name>
+                    <Units>ft</Units>
+                  </Parameter>
+                  <MethodCode>CSG</MethodCode>
+                  <ManufacturerName>unspecified 00065</ManufacturerName>
+                  <ModelNumber>unspecified CSG 1</ModelNumber>
+                </SensorType>
+                <SerialNumber>generic</SerialNumber>
+                <SensorName>CSG - 1</SensorName>
+              </Sensor>
+              <PrimarySensorIndicator>false</PrimarySensorIndicator>
+              <PrimaryRecorderIndicator>false</PrimaryRecorderIndicator>
+              <MeasuringPointElevation>20</MeasuringPointElevation>
+            </LocationSensor>
+            <GageInspectedCode Description="Read">READ</GageInspectedCode>
+            <IntakeHoleConditionCode Description="Open">INOP</IntakeHoleConditionCode>
+            <VentHoleConditionCode Description="Open">VNOP</VentHoleConditionCode>
+            <CrestStageGageReading>
+              <HighWaterMarkMeasure>10.24</HighWaterMarkMeasure>
+              <StreamStageMeasure inputPrecision="8" roundedPrecision="4" readingType="Extreme - Max">17.640000</StreamStageMeasure>
+              <EstimatedDateTime>2013-09-10</EstimatedDateTime>
+            </CrestStageGageReading>
+          </CrestStageGageInspection>
+          <Comment>test of comment for CSG-1 at default location</Comment>
+        </SensorInspection>
+        <MonitorInspection>
+          <Equipment>
+            <EquipmentType>
+              <EquipmentCode>QMON</EquipmentCode>
+              <ManufacturerName>unspecified</ManufacturerName>
+              <ModelNumber>unspecified</ModelNumber>
+            </EquipmentType>
+            <SerialNumber>M06891501</SerialNumber>
+          </Equipment>
+          <InspectionDateTime timeDatumCode="PST">2013-10-01T12:18:00</InspectionDateTime>
+          <DriftCheckWaterTemperature>
+            <Sensor>
+              <SensorType>
+                <Parameter>
+                  <USGSParameterCode>00010</USGSParameterCode>
+                  <Name>Temperature, water</Name>
+                  <Units>degC</Units>
+                </Parameter>
+                <MethodCode>THM01</MethodCode>
+                <Units>C</Units>
+                <Name>Temp</Name>
+                <ManufacturerName>unspecified 00010</ManufacturerName>
+                <ModelNumber>unspecified THM01</ModelNumber>
+                <ChimpManufacturerName>
+                </ChimpManufacturerName>
+                <ChimpModelNumber>
+                </ChimpModelNumber>
+              </SensorType>
+              <SerialNumber>M06891501</SerialNumber>
+              <ChimpSerialNumber>00010</ChimpSerialNumber>
+            </Sensor>
+            <FieldSensor>
+              <SensorType>
+                <Parameter>
+                  <USGSParameterCode>00010</USGSParameterCode>
+                  <Name>Temperature, water</Name>
+                  <Units>degC</Units>
+                </Parameter>
+                <MethodCode>THM01</MethodCode>
+                <ManufacturerName>unspecified 00010</ManufacturerName>
+                <ModelNumber>unspecified THM01</ModelNumber>
+                <ChimpManufacturerName>
+                </ChimpManufacturerName>
+                <ChimpModelNumber>
+                </ChimpModelNumber>
+              </SensorType>
+              <SerialNumber>generic</SerialNumber>
+              <ChimpSerialNumber>unspecified</ChimpSerialNumber>
+            </FieldSensor>
+            <ReadingDateTime timeDatumCode="PST">2013-10-01T12:23:00</ReadingDateTime>
+            <WaterTemperatureMeasure>1.5</WaterTemperatureMeasure>
+            <WaterTemperatureMeterMeasure>1.6</WaterTemperatureMeterMeasure>
+            <TwoPointCheckDate>2013-10-01</TwoPointCheckDate>
+            <FivePointCheckDate>2013-10-01</FivePointCheckDate>
+            <Comment>WT comment</Comment>
+          </DriftCheckWaterTemperature>
+        </MonitorInspection>
+        <CrossSectionSurvey>
+        </CrossSectionSurvey>
+      </SiteVisit>
+    </SiteData>
+  </Site>
+</UsgsHydroML>
