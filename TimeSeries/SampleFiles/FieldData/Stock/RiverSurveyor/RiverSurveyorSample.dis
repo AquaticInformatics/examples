@@ -1,0 +1,97 @@
+Discharge Measurement Summary
+Date Measured:Wednesday, July 1, 2015
+
+Site Information
+Site Name; comal005
+Station Number; 05
+Location; isla 5
+
+Measurement Information
+Party; am jq
+Boat/Motor; hb
+Meas. Number; 
+
+System Information
+System Type;RS-M9
+Serial Number;3758
+Firmware Version;3.00
+
+System Setup
+Tagline Azimuth (deg); 308.5
+Salinity (ppt); 0.0
+Rated Discharge (cfs); 0.00
+Discharge Method; Mid-Section
+Measurement Quality; --
+Temperature (F); 
+Speed of Sound (ft/s); 
+
+Units
+Distance; ft
+Velocity; ft/s
+Area; ft2
+Discharge; cfs
+Temperature; degF
+
+Discharge Calculation Settings
+Track Reference; System (default)
+Left Method; Vertical Bank
+Depth Reference; Vertical Beam
+Right Method; Sloped Bank
+
+Discharge Results
+Total Area; 643.62
+Mean Velocity; 0.23
+Total Width; 122.50
+Total Q; 149.11
+Rated Discharge; 0.00
+Mean Weighted Gauge Height; 0.00
+
+Discharge Uncertainty
+Category; ISO; Stats
+Depth; 0.15%; 0.78%
+Velocity; 1.31%; 4.43%
+Width; 0.15%; 0.11%
+# Cells; 0.23%; --
+# Stations; 1.52%; --
+Instrument; 0.25%; 0.25%
+Overall; 2.04%; 4.51%
+
+Measurement Results
+#	Time	Location	Water Surface Type	Temperature	Depth	Flow Angle	Mean Velocity	Area	Station Q	% Measured	
+1	12:52:49 PM	1.50	Open Water	32.0	0.00	0.0	0.000	0.000	0.000	0.0	
+2	12:52:49 PM	4.00	Open Water	76.3	1.91	51.6	-0.241	6.197	-1.494	-1.0	
+3	12:54:47 PM	8.00	Open Water	76.5	2.91	-19.0	0.107	11.633	1.244	0.8	
+4	12:55:55 PM	12.00	Open Water	76.6	3.55	-16.3	0.173	14.190	2.453	1.6	
+5	12:57:05 PM	16.00	Open Water	76.8	4.59	-4.3	0.170	18.363	3.118	2.1	
+6	12:59:16 PM	20.00	Open Water	76.9	5.49	-8.5	0.193	21.951	4.226	2.8	
+7	1:01:28 PM	24.00	Open Water	76.9	6.92	0.1	0.192	27.676	5.317	3.6	
+8	1:03:10 PM	28.00	Open Water	77.1	6.81	-6.0	0.211	27.239	5.748	3.9	
+9	1:04:42 PM	32.00	Open Water	77.2	7.65	-2.4	0.233	30.596	7.138	4.8	
+10	1:15:14 PM	36.00	Open Water	77.2	7.70	-12.4	0.211	30.812	6.509	4.4	
+11	1:17:17 PM	40.00	Open Water	77.1	8.05	-7.7	0.241	32.217	7.749	5.2	
+12	1:21:37 PM	44.00	Open Water	77.1	8.05	-4.6	0.255	32.186	8.209	5.5	
+13	1:23:20 PM	48.00	Open Water	77.1	7.84	-7.9	0.265	31.358	8.305	5.6	
+14	1:24:59 PM	52.00	Open Water	77.3	7.68	-5.2	0.262	30.736	8.043	5.4	
+15	1:27:11 PM	56.00	Open Water	77.2	7.14	0.5	0.277	28.565	7.910	5.3	
+16	1:28:42 PM	60.00	Open Water	77.2	7.64	-6.0	0.268	30.558	8.205	5.5	
+17	1:30:12 PM	64.00	Open Water	77.3	7.46	-7.8	0.267	29.859	7.985	5.4	
+18	1:32:32 PM	68.00	Open Water	77.3	6.92	-9.1	0.294	27.688	8.130	5.5	
+19	1:36:10 PM	72.00	Open Water	77.0	6.84	-5.9	0.255	27.361	6.975	4.7	
+20	1:38:03 PM	76.00	Open Water	77.2	6.76	-3.8	0.279	27.038	7.544	5.1	
+21	1:39:53 PM	80.00	Open Water	77.3	6.14	-3.9	0.283	24.563	6.945	4.7	
+22	1:41:37 PM	84.00	Open Water	77.3	5.72	-1.8	0.254	22.899	5.809	3.9	
+23	1:43:39 PM	88.00	Open Water	77.4	5.21	-4.9	0.265	20.823	5.519	3.7	
+24	1:45:17 PM	92.00	Open Water	77.5	4.72	-4.6	0.302	18.881	5.693	3.8	
+25	1:47:00 PM	96.00	Open Water	77.5	3.96	-4.7	0.249	15.836	3.945	2.6	
+26	1:48:36 PM	100.00	Open Water	77.3	3.32	-9.7	0.215	13.268	2.852	1.9	
+27	1:50:15 PM	104.00	Open Water	77.3	2.98	-0.2	0.151	11.913	1.799	1.2	
+28	1:52:13 PM	108.00	Open Water	77.3	2.63	-8.5	0.161	10.531	1.698	1.1	
+29	1:54:40 PM	112.00	Open Water	77.3	2.22	-5.6	0.107	8.876	0.951	0.6	
+30	1:55:43 PM	116.00	Open Water	77.3	1.31	-7.1	0.102	5.222	0.534	0.4	
+31	1:56:49 PM	120.00	Open Water	77.3	1.15	70.3	0.011	4.583	0.048	0.0	
+32	1:56:49 PM	124.00	Open Water	32.0	0.00	0.0	0.000	0.000	0.000	0.0	
+
+Comments; 
+
+Parameters and settings marked with a * are not constant for all files.
+Report generated using SonTek RiverSurveyor Stationary Live v2.6.0.3385
