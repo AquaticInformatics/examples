@@ -10,7 +10,7 @@ If the file does not contain an AQUARIUS location identifier, you can import the
 
 ## File extensions
 
-HFC files must have a file extension matching `*.dis` or `*.mq`, otherwise AQUARIUS will not attempt to parse the file as a HFC measurement.
+HFC files must have a file extension matching `*.dat` or `*.mq`, otherwise AQUARIUS will not attempt to parse the file as a HFC measurement.
 
 ## Sample file
 Click [here](./HfcSample.MQ1) to view/download a sample file.
