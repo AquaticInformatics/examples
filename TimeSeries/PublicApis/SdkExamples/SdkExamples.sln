@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppendPoints", "AppendPoints\AppendPoints.csproj", "{E2D7B054-9B51-4F15-B0AA-1A3565D0BAD4}"
 EndProject
@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserImporter", "UserImporter\UserImporter.csproj", "{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PointZilla", "PointZilla\PointZilla.csproj", "{359BF3C7-E80C-4A96-9D0C-1ACECBBFA7C2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,8 +34,15 @@ Global
 		{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}.Release|Any CPU.Build.0 = Release|Any CPU
+		{359BF3C7-E80C-4A96-9D0C-1ACECBBFA7C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{359BF3C7-E80C-4A96-9D0C-1ACECBBFA7C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{359BF3C7-E80C-4A96-9D0C-1ACECBBFA7C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{359BF3C7-E80C-4A96-9D0C-1ACECBBFA7C2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7A7840EC-0F81-4B4B-8470-D6E7A2F4F7CC}
 	EndGlobalSection
 EndGlobal
