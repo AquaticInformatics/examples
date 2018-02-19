@@ -154,7 +154,6 @@ namespace PointZilla
                 if (!match.Success)
                 {
                     // Try positional arguments: [command] [identifierOrGuid] [value] [csvFile]
-
                     if (knownCommands.TryGetValue(arg, out var command))
                     {
                         context.Command = command;

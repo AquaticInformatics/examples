@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -35,7 +36,9 @@ namespace PointZilla
 
                 var timeSeries = client.GetTimeSeriesInfo(Context.TimeSeries);
 
-                Log.Info($"Appending {Points.Count} points to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ...");
+                Log.Info(Context.Command == CommandType.DeleteAllPoints
+                    ? $"Deleting all existing points from {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
+                    : $"Appending {Points.Count} points to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ...");
 
                 var isReflected = timeSeries.TimeSeriesType == TimeSeriesType.Reflected;
 
@@ -62,29 +65,42 @@ namespace PointZilla
                         })
                         .ToList();
 
-                    if (Context.Command == CommandType.OverwriteAppend)
+                    switch (Context.Command)
                     {
-                        appendResponse = client.Acquisition.Post(new PostTimeSeriesOverwriteAppend
-                        {
-                            UniqueId = timeSeries.UniqueId,
-                            TimeRange = GetTimeRange(),
-                            Points = basicPoints
-                        });
-                    }
-                    else
-                    {
-                        appendResponse = client.Acquisition.Post(new PostTimeSeriesAppend
-                        {
-                            UniqueId = timeSeries.UniqueId,
-                            Points = basicPoints
-                        });
+                        case CommandType.DeleteAllPoints:
+                            appendResponse = client.Acquisition.Post(new PostTimeSeriesOverwriteAppend
+                            {
+                                UniqueId = timeSeries.UniqueId,
+                                TimeRange = new Interval(Instant.FromDateTimeOffset(DateTimeOffset.MinValue), Instant.FromDateTimeOffset(DateTimeOffset.MaxValue)),
+                                Points = new List<TimeSeriesPoint>()
+                            });
+                            break;
+
+                        case CommandType.OverwriteAppend:
+                            appendResponse = client.Acquisition.Post(new PostTimeSeriesOverwriteAppend
+                            {
+                                UniqueId = timeSeries.UniqueId,
+                                TimeRange = GetTimeRange(),
+                                Points = basicPoints
+                            });
+                            break;
+
+                        default:
+                            appendResponse = client.Acquisition.Post(new PostTimeSeriesAppend
+                            {
+                                UniqueId = timeSeries.UniqueId,
+                                Points = basicPoints
+                            });
+                            break;
                     }
                 }
 
                 var result = client.Acquisition.RequestAndPollUntilComplete(
                     acquisition => appendResponse,
                     (acquisition, response) => acquisition.Get(new GetTimeSeriesAppendStatus { AppendRequestIdentifier = response.AppendRequestIdentifier }),
-                    polledStatus => polledStatus.AppendStatus != AppendStatusCode.Pending);
+                    polledStatus => polledStatus.AppendStatus != AppendStatusCode.Pending,
+                    null,
+                    Context.AppendTimeout);
 
                 if (result.AppendStatus != AppendStatusCode.Completed)
                     throw new ExpectedException($"Unexpected append status={result.AppendStatus}");
@@ -95,6 +111,9 @@ namespace PointZilla
 
         private List<ReflectedTimeSeriesPoint> GetPoints()
         {
+            if (Context.Command == CommandType.DeleteAllPoints)
+                return new List<ReflectedTimeSeriesPoint>();
+
             if (Context.ManualPoints.Any())
                 return Context.ManualPoints;
 

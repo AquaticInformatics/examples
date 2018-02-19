@@ -89,6 +89,25 @@ namespace PointZilla
                 points.Add(point);
             }
 
+            if (Context.CsvRealign)
+            {
+                points = points
+                    .OrderBy(p => p.Time)
+                    .ToList();
+
+                if (points.Any())
+                {
+                    // ReSharper disable once PossibleInvalidOperationException
+                    var delta = points.First().Time.Value - Context.StartTime;
+
+                    foreach (var point in points)
+                    {
+                        // ReSharper disable once PossibleInvalidOperationException
+                        point.Time = point.Time.Value.Minus(delta);
+                    }
+                }
+            }
+
             Log.Info($"Loaded {points.Count} points from '{path}'.");
 
             return points;

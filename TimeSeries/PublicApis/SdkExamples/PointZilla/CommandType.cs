@@ -5,6 +5,7 @@
         Auto,
         Append,
         OverwriteAppend,
-        Reflected
+        Reflected,
+        DeleteAllPoints
     }
 }
