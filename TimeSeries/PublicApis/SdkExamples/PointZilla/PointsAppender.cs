@@ -1,11 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
-using Aquarius.TimeSeries.Client.ServiceModels.Publish;
+using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
+using NodaTime;
 using ServiceStack.Logging;
+using PostReflectedTimeSeries = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.PostReflectedTimeSeries;
 
 namespace PointZilla
 {
@@ -14,6 +16,7 @@ namespace PointZilla
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private Context Context { get; }
+        private List<ReflectedTimeSeriesPoint> Points { get; set; }
 
         public PointsAppender(Context context)
         {
@@ -22,25 +25,82 @@ namespace PointZilla
 
         public void AppendPoints()
         {
-            var points = GetPoints()
+            Points = GetPoints()
                 .OrderBy(p => p.Time)
                 .ToList();
 
-            using (_client = AquariusClient.CreateConnectedClient(Context.Server, Context.Username, Context.Password))
+            using (var client = AquariusClient.CreateConnectedClient(Context.Server, Context.Username, Context.Password))
             {
-                Log.Info($"Connected to {Context.Server} ({_client.ServerVersion})");
+                Log.Info($"Connected to {Context.Server} ({client.ServerVersion})");
 
-                Log.Info($"Appending {points.Count} points to {Context.TimeSeries}");
+                var timeSeries = client.GetTimeSeriesInfo(Context.TimeSeries);
 
+                Log.Info($"Appending {Points.Count} points to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ...");
+
+                var isReflected = timeSeries.TimeSeriesType == TimeSeriesType.Reflected;
+
+                var stopwatch = Stopwatch.StartNew();
+
+                AppendResponse appendResponse;
+
+                if (Context.Command == CommandType.Reflected || isReflected)
+                {
+                    appendResponse = client.Acquisition.Post(new PostReflectedTimeSeries
+                    {
+                        UniqueId = timeSeries.UniqueId,
+                        TimeRange = GetTimeRange(),
+                        Points = Points
+                    });
+                }
+                else
+                {
+                    var basicPoints = Points
+                        .Select(p => new TimeSeriesPoint
+                        {
+                            Time = p.Time,
+                            Value = p.Value
+                        })
+                        .ToList();
+
+                    if (Context.Command == CommandType.OverwriteAppend)
+                    {
+                        appendResponse = client.Acquisition.Post(new PostTimeSeriesOverwriteAppend
+                        {
+                            UniqueId = timeSeries.UniqueId,
+                            TimeRange = GetTimeRange(),
+                            Points = basicPoints
+                        });
+                    }
+                    else
+                    {
+                        appendResponse = client.Acquisition.Post(new PostTimeSeriesAppend
+                        {
+                            UniqueId = timeSeries.UniqueId,
+                            Points = basicPoints
+                        });
+                    }
+                }
+
+                var result = client.Acquisition.RequestAndPollUntilComplete(
+                    acquisition => appendResponse,
+                    (acquisition, response) => acquisition.Get(new GetTimeSeriesAppendStatus { AppendRequestIdentifier = response.AppendRequestIdentifier }),
+                    polledStatus => polledStatus.AppendStatus != AppendStatusCode.Pending);
+
+                if (result.AppendStatus != AppendStatusCode.Completed)
+                    throw new ExpectedException($"Unexpected append status={result.AppendStatus}");
+
+                Log.Info($"Appended {result.NumberOfPointsAppended} points (deleting {result.NumberOfPointsDeleted} points) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds.");
             }
         }
-
-        private IAquariusClient _client;
 
         private List<ReflectedTimeSeriesPoint> GetPoints()
         {
             if (Context.ManualPoints.Any())
                 return Context.ManualPoints;
+
+            if (Context.SourceTimeSeries != null)
+                return new ExternalPointsReader(Context)
+                    .LoadPoints();
 
             if (Context.CsvFiles.Any())
                 return new CsvReader(Context)
@@ -50,24 +110,19 @@ namespace PointZilla
                 .CreatePoints();
         }
 
-        private Guid GetTimeSeriesUniqueId()
+        private Interval GetTimeRange()
         {
-            Guid uniqueId;
+            if (Context.TimeRange.HasValue)
+                return Context.TimeRange.Value;
 
-            if (Guid.TryParse(_timeSeriesIdentifier, out uniqueId))
-                return uniqueId;
+            if (!Points.Any())
+                throw new ExpectedException($"Can't infer a time-range from an empty points list. Please set the /{nameof(Context.TimeRange)} option explicitly.");
 
-            var location = ParseLocationIdentifier(_timeSeriesIdentifier);
-
-            var response = _client.Publish.Get(new TimeSeriesDescriptionServiceRequest { LocationIdentifier = location });
-
-            var timeSeriesDescription = response.TimeSeriesDescriptions.FirstOrDefault(t => t.Identifier == _timeSeriesIdentifier);
-
-            if (timeSeriesDescription == null)
-                throw new ArgumentException($"Can't find '{_timeSeriesIdentifier}' at location '{location}'");
-
-            return timeSeriesDescription.UniqueId;
+            return new Interval(
+                // ReSharper disable once PossibleInvalidOperationException
+                Points.First().Time.Value,
+                // ReSharper disable once PossibleInvalidOperationException
+                Points.Last().Time.Value.PlusTicks(1));
         }
-
     }
 }

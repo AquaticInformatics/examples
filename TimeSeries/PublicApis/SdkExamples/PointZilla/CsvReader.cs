@@ -40,7 +40,6 @@ namespace PointZilla
         public List<ReflectedTimeSeriesPoint> LoadPoints()
         {
             return Context.CsvFiles.SelectMany(LoadPoints)
-                .OrderBy(p => p.Time)
                 .ToList();
         }
 

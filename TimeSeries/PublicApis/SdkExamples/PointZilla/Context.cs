@@ -20,7 +20,9 @@ namespace PointZilla
         public int? GradeCode { get; set; }
         public List<string> Qualifiers { get; set; } = new List<string>();
 
-        public string SourceTimeSeries { get; set; }
+        public TimeSeriesIdentifier SourceTimeSeries { get; set; }
+        public Instant? SourceQueryFrom { get; set; }
+        public Instant? SourceQueryTo { get; set; }
 
         public List<ReflectedTimeSeriesPoint> ManualPoints { get; set; } = new List<ReflectedTimeSeriesPoint>();
 
