@@ -5,6 +5,7 @@ using System.Reflection;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
+using Get3xCorrectedData = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.TimeSeriesDataCorrectedServiceRequest;
 using NodaTime;
 using ServiceStack.Logging;
 
@@ -31,31 +32,59 @@ namespace PointZilla
             {
                 Log.Info($"Connected to {server} ({client.ServerVersion})");
 
-                // TODO: Make this work for 3.X systems too
+                return client.ServerVersion.IsLessThan(MinimumNgVersion)
+                    ? LoadPointsFrom3X(client)
+                    : LoadPointsFromNg(client);
+            }
+        }
 
-                var timeSeriesInfo = client.GetTimeSeriesInfo(Context.SourceTimeSeries.Identifier);
+        private static readonly AquariusServerVersion MinimumNgVersion = AquariusServerVersion.Create("14");
 
-                var request = new TimeAlignedDataServiceRequest
+        private List<ReflectedTimeSeriesPoint> LoadPointsFromNg(IAquariusClient client)
+        {
+            var timeSeriesInfo = client.GetTimeSeriesInfo(Context.SourceTimeSeries.Identifier);
+
+            var points = client.Publish.Get(new TimeAlignedDataServiceRequest
                 {
-                    TimeSeriesUniqueIds = new List<Guid> {timeSeriesInfo.UniqueId},
+                    TimeSeriesUniqueIds = new List<Guid> { timeSeriesInfo.UniqueId },
                     QueryFrom = Context.SourceQueryFrom?.ToDateTimeOffset(),
                     QueryTo = Context.SourceQueryTo?.ToDateTimeOffset()
-                };
+                })
+                .Points
+                .Select(p => new ReflectedTimeSeriesPoint
+                {
+                    Time = Instant.FromDateTimeOffset(p.Timestamp),
+                    Value = p.NumericValue1,
+                    GradeCode = p.GradeCode1.HasValue ? (int)p.GradeCode1 : (int?)null,
+                    Qualifiers = QualifiersParser.Parse(p.Qualifiers1)
+                })
+                .ToList();
 
-                var points = client.Publish.Get(request).Points
-                    .Select(p => new ReflectedTimeSeriesPoint
-                    {
-                        Time = Instant.FromDateTimeOffset(p.Timestamp),
-                        Value = p.NumericValue1,
-                        GradeCode = p.GradeCode1.HasValue ? (int)p.GradeCode1 : (int?)null,
-                        Qualifiers = QualifiersParser.Parse(p.Qualifiers1)
-                    })
-                    .ToList();
+            Log.Info($"Loaded {points.Count} points from {timeSeriesInfo.Identifier}");
 
-                Log.Info($"Loaded {points.Count} points from {timeSeriesInfo.Identifier}");
+            return points;
+        }
 
-                return points;
-            }
+        private List<ReflectedTimeSeriesPoint> LoadPointsFrom3X(IAquariusClient client)
+        {
+            var points = client.Publish.Get(new Get3xCorrectedData
+                {
+                    TimeSeriesIdentifier = Context.SourceTimeSeries.Identifier,
+                    QueryFrom = Context.SourceQueryFrom?.ToDateTimeOffset(),
+                    QueryTo = Context.SourceQueryTo?.ToDateTimeOffset()
+                })
+                .Points
+                .Select(p => new ReflectedTimeSeriesPoint
+                {
+                    Time = Instant.FromDateTimeOffset(p.Timestamp),
+                    Value = p.Value,
+                    GradeCode = p.Grade
+                })
+                .ToList();
+
+            Log.Info($"Loaded {points.Count} points from {Context.SourceTimeSeries.Identifier}");
+
+            return points;
         }
     }
 }
