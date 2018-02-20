@@ -11,7 +11,9 @@ Points can be specified from:
 
 Basic time-series will append time/value pairs. Reflected time-series also support setting grade codes and/or qualifiers to each point.
 
-![Point](./PointZilla.png)
+Like its namesake, Godzilla, `PointZilla` can be a little scary, and even wreak some havoc every now and then.
+
+![Rawrrr!](./PointZilla.png)
 
 # Requirements
 
@@ -22,6 +24,16 @@ Basic time-series will append time/value pairs. Reflected time-series also suppo
 # Examples
 
 These examples will get you through most of the heavy lifting to get some points into your time-series.
+
+### Authentication credentials
+
+The `/Server` option is required for all operations performed. The `/Username` and `/Password` options default to the stock "admin" credentials, but can be changed as needed.
+
+### Use positional arguments to save typing
+
+Certain frequently used options do not need to be specified using the `/name=value` or `-name=value` syntax.
+
+The `/Command=`, `/TimeSeries=`, and `/CsvFile=` options can all omit their option name. `PointZilla` will be able to determine the appropriate option name from the command line context.
 
 ## Append *something* to a time-zeries
 
@@ -57,10 +69,12 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation 12.5
 
 ## Append values from a CSV file
 
-`PointZilla` can also read times, values, grade codes, and qualifiers from a CSV file. All the CSV parsing options are configurable, but default to values which match the CSV files exported from AQTS Springboard.
+`PointZilla` can also read times, values, grade codes, and qualifiers from a CSV file.
+
+All the CSV parsing options are configurable, but will default to values which match the CSV files exported from AQTS Springboard.
 
 ```sh
-$ ./PointZilla.exe -server=doug-vm2012r2 Stage.Fake2@SchmidtKits Downloads/Stage.Historical@A001002.EntireRecord.csv
+$ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/Stage.Historical@A001002.EntireRecord.csv
 
 15:29:20.984 INFO  - Loaded 621444 points from 'Downloads/Stage.Historical@A001002.EntireRecord.csv'.
 15:29:21.439 INFO  - Connected to myserver (2017.4.79.0)
@@ -68,60 +82,80 @@ $ ./PointZilla.exe -server=doug-vm2012r2 Stage.Fake2@SchmidtKits Downloads/Stage
 15:29:40.086 INFO  - Appended 621444 points (deleting 0 points) in 18.3 seconds.
 ```
 
+Parsing CSV files exported from AQTS 3.X systems requires a different CSV parsing configuration.
+
+```sh
+$ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/ExportedFrom3x.csv -csvTimeField=1 -csvValueField=2 -csvGradeField=3 -csvQualifiersField=0 -csvSkipRows=2 -csvTimeFormat="MM/dd/yyyy HH:mm:ss"
+
+13:45:49.400 INFO  - Loaded 250 points from 'Downloads/ExportedFrom3x.csv'.
+13:45:49.745 INFO  - Connected to myserver (2017.4.79.0)
+13:45:49.944 INFO  - Appending 250 points to Stage.Label@MyLocation (ProcessorBasic) ...
+13:45:51.143 INFO  - Appended 250 points (deleting 0 points) in 1.2 seconds.
+```
+
+## Realigning CSV points with the `/StartTime`
+
+When `/CsvRealign=true` is set, all the imported CSV rows will be realigned to the `/StartTime` option. This can be a useful technique to "stitch together" a simulated signal with special shapes at specific times.
+
+## Appending grades and qualifiers
+
+When the target time-series is a reflected time-series, any grade codes or qualifiers imported from CSV rows or manually set via the `/GradeCode` or `/Qualifiers` options will be appended along with the core timestamp and values.
+
+Grade codes and qualifiers will not be appended to basic time-series.
+
+## Copying points from another time-series
+
+When the `/SourceTimeSeries` option is set, the corrected point values from the source time-series will be copied to the target `/TimeSeries`.
+
+Unlike the target time-series, which are restricted to basic or reflected time-series types, a source time-series can be of any type.
+
+The `/SourceQueryFrom` and `/SourceQueryTo` options can be used to restrict the range of points copied. When omitted, the entire record will be copied.
+
+```sh
+$ ./PointZilla.exe -server=myserver Stage.Label@MyLocation -sourceTimeSeries=Stage.Working@OtherLocation
+
+15:18:32.711 INFO  - Connected to myserver (2017.4.79.0)
+15:18:35.255 INFO  - Loaded 1440 points from Stage.Working@OtherLocation
+15:18:35.356 INFO  - Connected to myserver (2017.4.79.0)
+15:18:35.442 INFO  - Appending 1440 points to Stage.Label@MyLocation (ProcessorBasic) ...
+15:18:37.339 INFO  - Appended 1440 points (deleting 0 points) in 1.9 seconds.
+```
+
+## Copying points from another time-series on another AQTS system
+
+The `/SourceTimeSeries=[otherserver]parameter.label"location` syntax can be used to copy time-series points from a completely separate AQTS system.
+
+If different credentials are required for the other server, use the `[otherserver:username:password]parameter.label@location` syntax.
+
+```sh
+$ ./PointZilla.exe -server=myserver Stage.Label@MyLocation -sourcetimeseries=[otherserver]Stage.Working@OtherLocation
+
+13:31:57.829 INFO  - Connected to otherserver (3.10.905.0)
+13:31:58.501 INFO  - Loaded 250 points from Stage.Working@OtherLocation
+13:31:58.658 INFO  - Connected to myserver (2017.4.79.0)
+13:31:58.944 INFO  - Appending 250 points to Stage.Label@MyLocation (ProcessorBasic) ...
+13:32:00.148 INFO  - Appended 0 points (deleting 0 points) in 1.2 seconds.
+```
+
+The source time-series system can be any AQTS system as far back as AQUARIUS Time-Series 3.8.
+
+## Deleting all points
+
+The `DeleteAllPoints` command can be used to delete the entire record of point values from a time-series.
+
+```sh
+$ ./PointZilla.exe -server=myserver Stage.Label@MyLocation deleteallpoints
+
+15:27:17.220 INFO  - Connected to myserver (2017.4.79.0)
+15:27:17.437 INFO  - Deleting all existing points from Stage.Label@MyLocation (ProcessorBasic) ...
+15:27:21.456 INFO  - Appended 0 points (deleting 622884 points) in 4.0 seconds.
+```
+
+With great power ... yada yada yada.
+
 ## Command line options
 
 Like `curl`, the `PointZilla` tool has dozens of command line options, which can be a bit overwhelming. Fortunately, you'll rarely need to use all the options at once.
 
-Rather than list them all at once, we'll list the related options in sections.
-
-## Authenticating
-
-
-of them at once.The are tons of options
-## Rough notes
-
-/Server=
-/Username=(def. admin)
-/Password=(def. admin)
-
-/Wait=true|false (def. true)
-/AppendTimeout=TimeSpan? (def. null)
-
-/TimeRange=Interval? (for overwrite/reflected append. def. null = use start/end of generated points, "MinInstant" and "MaxInstant" are supported)
-
-/NumberOfPoints=0 (0 means derive from periods)
-/NumberOfPeriods=1
-/StartTime=Instant? (def null = UtcNow)
-/PointInterval=TimeSpan (def 1 minute)
-/FunctionType=Linear|SawTooth|SineWave (def. Sine)
-/FunctionOffset=0
-/FunctionPhase=0
-/FunctionScalar=1.0
-/FunctionPeriod=1440
-
-/Csv=file
-/CsvTimeField=(def. 1) - Field index of 0 means "don't use". number:Format. Assume ISO8601 if format omitted.
-/CsvTimeFormat=ISO8601
-/CsvValueField=(def. 3)
-/CsvGradeField=(def. 5)
-/CsvQualifierField=(def. 6)
-/CsvComment=#
-/CsvSkipLines=int (def. 0)
-/CsvIgnoreInvalidRows=true
-/CsvRealign=false (true will adjust to /StartTime)
-
-Multiple /CSV=file will parse multiple files (useful for combining points)
-Skip any CSV row that doesn't parse (If a time doesn't parse, or a value doesn't parse, then skip it. This will skip the header by default, even when /CsvSkipLines is zero)
+Try the `/Help` option to see the entire list of supported options.
  
-/CreateMode=None|Basic|Reflected (def. None)
-/Command=Auto|Append|Overwrite|Reflected (def. Auto = Append or Reflected, depending on time-series type.)
-/Grade=gradecode (apply to all points)
-/Qualifier=list (apply to all points)
-/TimeSeries=identifierOrGuid
-/SourceTimeSeries=[server:[username:password:]]identifierOrGuid
-
-PointZilla /options [command] [identifierOrGuid] [value] [csvFile]
-
-- Use function generator if no CSV or explicit point values are defined
-- Repeat CSV points by NumberOfPeriods
-- 

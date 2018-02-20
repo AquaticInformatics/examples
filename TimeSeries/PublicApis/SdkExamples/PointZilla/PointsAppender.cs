@@ -68,14 +68,6 @@ namespace PointZilla
                     switch (Context.Command)
                     {
                         case CommandType.DeleteAllPoints:
-                            appendResponse = client.Acquisition.Post(new PostTimeSeriesOverwriteAppend
-                            {
-                                UniqueId = timeSeries.UniqueId,
-                                TimeRange = new Interval(Instant.FromDateTimeOffset(DateTimeOffset.MinValue), Instant.FromDateTimeOffset(DateTimeOffset.MaxValue)),
-                                Points = new List<TimeSeriesPoint>()
-                            });
-                            break;
-
                         case CommandType.OverwriteAppend:
                             appendResponse = client.Acquisition.Post(new PostTimeSeriesOverwriteAppend
                             {
@@ -131,6 +123,11 @@ namespace PointZilla
 
         private Interval GetTimeRange()
         {
+            if (Context.Command == CommandType.DeleteAllPoints)
+                return new Interval(
+                    Instant.FromDateTimeOffset(DateTimeOffset.MinValue).Plus(Duration.FromStandardDays(1)),
+                    Instant.FromDateTimeOffset(DateTimeOffset.MaxValue).Minus(Duration.FromStandardDays(1)));
+
             if (Context.TimeRange.HasValue)
                 return Context.TimeRange.Value;
 
