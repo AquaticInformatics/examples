@@ -30,11 +30,11 @@ namespace PointZilla
         public TimeSpan PointInterval { get; set; } = TimeSpan.FromMinutes(1);
         public int NumberOfPoints { get; set; } // 0 means "derive the point count from number of periods"
         public double NumberOfPeriods { get; set; } = 1;
-        public FunctionType FunctionType { get; set; } = FunctionType.SineWave;
-        public double FunctionOffset { get; set; } = 0;
-        public double FunctionPhase { get; set; } = 0;
-        public double FunctionScalar { get; set; } = 1;
-        public double FunctionPeriod { get; set; } = 1440;
+        public WaveformType WaveformType { get; set; } = WaveformType.SineWave;
+        public double WaveformOffset { get; set; } = 0;
+        public double WaveformPhase { get; set; } = 0;
+        public double WaveformScalar { get; set; } = 1;
+        public double WaveformPeriod { get; set; } = 1440;
 
         public List<string> CsvFiles { get; set; } = new List<string>();
 

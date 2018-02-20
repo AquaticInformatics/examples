@@ -1,9 +1,10 @@
 ﻿namespace PointZilla
 {
-    public enum FunctionType
+    public enum WaveformType
     {
         Linear,
         SawTooth,
         SineWave,
+        SquareWave,
     }
 }

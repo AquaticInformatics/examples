@@ -4,14 +4,17 @@
  
 Points can be specified from:
 - Command line parameters (useful for appending a single point)
-- Function generators: linear, saw-tooth, or sine-wave signals. Useful for just getting *something* into a time-series
+- Signal generators: linear, saw-tooth, square-wave, or sine-wave signals. Useful for just getting *something* into a time-series
 - CSV files (including CSV exports from AQTS Springboard)
 - Points retrieved live from other AQTS systems, including from legacy 3.X systems.
 - `CMD.EXE`, `PowerShell` or `bash`: `PointZilla` works well from within any shell.
 
 Basic time-series will append time/value pairs. Reflected time-series also support setting grade codes and/or qualifiers to each point.
 
-Like its namesake, Godzilla, `PointZilla` can be somewhat awesome, a little scary, and even wreak some havoc every now and then. We don't recommend deploying either `PointZilla` or Godzilla in a production environment.
+Like its namesake, Godzilla, `PointZilla` can be somewhat awesome, a little scary, and even wreak some havoc every now and then.
+- We don't recommend deploying either `PointZilla` or Godzilla in a production environment.
+- Don't try to use `PointZilla` to migrate your data. System-wide data migration has many unexpected challenges.
+- May contain traces of peanuts.
 
 ![Rawrrr!](./PointZilla.png "Rawwr!")
 
@@ -45,7 +48,7 @@ The `/Command=`, `/TimeSeries=`, and `/CsvFile=` options can all omit their opti
 
 ## Append *something* to a time-zeries
 
-With only a server and a target time-series, `PointZilla` will used its built-in function generator and append one day's worth of 1-minute values, as a sine wave between 1 and -1, starting at "right now".
+With only a server and a target time-series, `PointZilla` will used its built-in signal generator and append one day's worth of 1-minute values, as a sine wave between 1 and -1, starting at "right now".
 
 ```cmd
 C:\> PointZilla /Server=myserver Stage.Label@MyLocation
@@ -56,7 +59,7 @@ C:\> PointZilla /Server=myserver Stage.Label@MyLocation
 15:02:39.493 INFO  - Appended 1440 points (deleting 0 points) in 3.0 seconds.
 ```
 
-- The built-in function generator supports `SineWave`, `SawTooth`, and `Linear` signal generation, with configurable amplitude, phase, offset, and period settings.
+- The built-in signal generator supports `SineWave`, `SquareWave`, `SawTooth`, and `Linear` signal generation, with configurable amplitude, phase, offset, and period settings.
 - Use the `/StartTime=yyyy-mm-ddThh:mm:ssZ` option to change where the generated points will start.
 
 ## Append a single point to a time-series

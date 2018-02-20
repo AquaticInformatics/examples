@@ -121,13 +121,14 @@ namespace PointZilla
                 return new CsvReader(Context)
                     .LoadPoints();
 
-            return new FunctionGenerator(Context)
-                .CreatePoints();
+            return new WaveformGenerator(Context)
+                .GeneratePoints();
         }
 
         private Interval GetTimeRange()
         {
             if (Context.Command == CommandType.DeleteAllPoints)
+                // Apply a 1-day margin, to workaround the AQ-23146 OverflowException crash
                 return new Interval(
                     Instant.FromDateTimeOffset(DateTimeOffset.MinValue).Plus(Duration.FromStandardDays(1)),
                     Instant.FromDateTimeOffset(DateTimeOffset.MaxValue).Minus(Duration.FromStandardDays(1)));
