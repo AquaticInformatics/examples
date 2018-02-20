@@ -36,17 +36,24 @@ namespace PointZilla
 
                 var timeSeries = client.GetTimeSeriesInfo(Context.TimeSeries);
 
+                var isReflected = Context.Command == CommandType.Reflected || timeSeries.TimeSeriesType == TimeSeriesType.Reflected;
+                var hasTimeRange = isReflected || Context.Command == CommandType.DeleteAllPoints || Context.Command == CommandType.OverwriteAppend;
+
+                var pointExtents = Points.Any()
+                    ? $"points [{Points.First().Time} to {Points.Last().Time}]"
+                    : "points";
+
                 Log.Info(Context.Command == CommandType.DeleteAllPoints
                     ? $"Deleting all existing points from {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
-                    : $"Appending {Points.Count} points to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ...");
-
-                var isReflected = timeSeries.TimeSeriesType == TimeSeriesType.Reflected;
+                    : hasTimeRange
+                        ? $"Appending {Points.Count} {pointExtents} within TimeRange={GetTimeRange()} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
+                        : $"Appending {Points.Count} {pointExtents} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ...");
 
                 var stopwatch = Stopwatch.StartNew();
 
                 AppendResponse appendResponse;
 
-                if (Context.Command == CommandType.Reflected || isReflected)
+                if (isReflected)
                 {
                     appendResponse = client.Acquisition.Post(new PostReflectedTimeSeries
                     {
@@ -65,25 +72,22 @@ namespace PointZilla
                         })
                         .ToList();
 
-                    switch (Context.Command)
+                    if (hasTimeRange)
                     {
-                        case CommandType.DeleteAllPoints:
-                        case CommandType.OverwriteAppend:
-                            appendResponse = client.Acquisition.Post(new PostTimeSeriesOverwriteAppend
-                            {
-                                UniqueId = timeSeries.UniqueId,
-                                TimeRange = GetTimeRange(),
-                                Points = basicPoints
-                            });
-                            break;
-
-                        default:
-                            appendResponse = client.Acquisition.Post(new PostTimeSeriesAppend
-                            {
-                                UniqueId = timeSeries.UniqueId,
-                                Points = basicPoints
-                            });
-                            break;
+                        appendResponse = client.Acquisition.Post(new PostTimeSeriesOverwriteAppend
+                        {
+                            UniqueId = timeSeries.UniqueId,
+                            TimeRange = GetTimeRange(),
+                            Points = basicPoints
+                        });
+                    }
+                    else
+                    {
+                        appendResponse = client.Acquisition.Post(new PostTimeSeriesAppend
+                        {
+                            UniqueId = timeSeries.UniqueId,
+                            Points = basicPoints
+                        });
                     }
                 }
 

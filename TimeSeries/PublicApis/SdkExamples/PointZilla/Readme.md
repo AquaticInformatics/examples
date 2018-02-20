@@ -11,9 +11,9 @@ Points can be specified from:
 
 Basic time-series will append time/value pairs. Reflected time-series also support setting grade codes and/or qualifiers to each point.
 
-Like its namesake, Godzilla, `PointZilla` can be a little scary, and even wreak some havoc every now and then.
+Like its namesake, Godzilla, `PointZilla` can be somewhat awesome, a little scary, and even wreak some havoc every now and then. We don't recommend deploying either `PointZilla` or Godzilla in a production environment.
 
-![Rawrrr!](./PointZilla.png)
+![Rawrrr!](./PointZilla.png "Rawwr!")
 
 # Requirements
 
@@ -24,6 +24,14 @@ Like its namesake, Godzilla, `PointZilla` can be a little scary, and even wreak 
 # Examples
 
 These examples will get you through most of the heavy lifting to get some points into your time-series.
+
+### Command line option syntax
+
+All command line options are case-insensitive, and support both common shell syntaxes: either `/Name=value` (for CMD.EXE) or `-Name=value` (for bash and PowerShell).
+
+In addition, the `@options.txt` syntax is supported, to read options from a text file. You can mix and match individual `/name=value` and `@somefile.txt` on the same command line.
+
+Try the `/help` option for a detailed list of options and their default values.
 
 ### Authentication credentials
 
@@ -54,6 +62,8 @@ C:\> PointZilla /Server=myserver Stage.Label@MyLocation
 ## Append a single point to a time-series
 
 Need one specific value in a time-series? Just add that value to the command line.
+
+This example appends the value 12.5, using the default timestamp of "right now".
 
 ```sh
 $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation 12.5
@@ -93,13 +103,17 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/ExportedFro
 13:45:51.143 INFO  - Appended 250 points (deleting 0 points) in 1.2 seconds.
 ```
 
-## Realigning CSV points with the `/StartTime`
+## Realigning CSV points with the `/StartTime` value
 
-When `/CsvRealign=true` is set, all the imported CSV rows will be realigned to the `/StartTime` option. This can be a useful technique to "stitch together" a simulated signal with special shapes at specific times.
+When `/CsvRealign=true` is set, all the imported CSV rows will be realigned to the `/StartTime` option.
+
+This option can be a useful technique to "stitch together" a simulated signal with special shapes at specific times.
 
 ## Appending grades and qualifiers
 
 When the target time-series is a reflected time-series, any grade codes or qualifiers imported from CSV rows or manually set via the `/GradeCode` or `/Qualifiers` options will be appended along with the core timestamp and values.
+
+When specifying point values on the command line, you must specify the `/GradeCode` or `/Qualifiers` option before specifying the numeric value.
 
 Grade codes and qualifiers will not be appended to basic time-series.
 
@@ -123,7 +137,7 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation -sourceTimeSeries=Sta
 
 ## Copying points from another time-series on another AQTS system
 
-The `/SourceTimeSeries=[otherserver]parameter.label"location` syntax can be used to copy time-series points from a completely separate AQTS system.
+The `/SourceTimeSeries=[otherserver]parameter.label@location` syntax can be used to copy time-series points from a completely separate AQTS system.
 
 If different credentials are required for the other server, use the `[otherserver:username:password]parameter.label@location` syntax.
 
@@ -151,7 +165,7 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation deleteallpoints
 15:27:21.456 INFO  - Appended 0 points (deleting 622884 points) in 4.0 seconds.
 ```
 
-With great power ... yada yada yada.
+With great power ... yada yada yada. Please don't wipe out your production data with this command.
 
 ## Command line options
 
