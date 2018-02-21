@@ -1,0 +1,15 @@
+﻿# Observations that match the following rules are determined as valid. 
+# The format of the rule: ParamNameLeft ComparisonSymbol ParamNameRight
+#  - ParamName is case sensitive. Cannot be null or empty string. Should not contain comparison symbols.
+#  - 5 Supported comparison symbols: >, <, >=, <=, =
+#  - One rule per line.
+#  - Example: Ammonium Nitrogen < Total Nitrogen
+# Use # at the line start to indicate a comment line.
+# Empty lines are ignored.
+# More examples:
+# Nitrate < Total N
+# 4-4'-DDT < 4-4'-DDD
+# Nitrate 1 >= Total N 1
+# Nitrate 2<= Total N2
+# Nitrate 3 = Total N3
+
