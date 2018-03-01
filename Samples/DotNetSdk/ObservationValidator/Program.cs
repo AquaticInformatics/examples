@@ -69,7 +69,10 @@ namespace ObservationValidator
                 {
                     if (result.ProcessedSpecimenNames.Contains(specimen.Name))
                         continue;
+
+                    Log.Debug($"Examining specimen '{specimen.Name}'.");
                     result.ProcessedSpecimenCount++;
+
 
                     var observationResponse = client.Get(new GetObservations
                     {
@@ -114,20 +117,27 @@ namespace ObservationValidator
 
             foreach (var invalidObservation in invalidObservations)
             {
-                if(invalidObservation.LabResultDetails.QualityFlag == flag)
-                    continue;
-
-                client.Put(new PutSparseObservation
+                try
                 {
-                    Id = invalidObservation.Id,
-                    LabResultDetails = new LabResultDetails
-                    {
-                        QualityFlag = flag
-                    }
-                });
+                    if (invalidObservation.LabResultDetails?.QualityFlag == flag)
+                        continue;
 
-                Log.Info($"Invalid observation:'{invalidObservation.Id}' is flagged.");
-                flaggedCount++;
+                    client.Put(new PutSparseObservation
+                    {
+                        Id = invalidObservation.Id,
+                        LabResultDetails = new LabResultDetails
+                        {
+                            QualityFlag = flag
+                        }
+                    });
+
+                    Log.Info($"Invalid observation:'{invalidObservation.Id}' is flagged.");
+                    flaggedCount++;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Error flagging the invalid observation with id {invalidObservation.Id}.", ex);
+                }
             }
 
             return flaggedCount;
@@ -159,6 +169,7 @@ namespace ObservationValidator
             Log.Info($"Total specimens examined: {result.ProcessedSpecimenCount}");
             Log.Info($"Total observations examined: {result.ExaminedObservationsCount}");
             Log.Info($"Invalid observations flagged: {result.InvalidObservationsTotal}");
+            Log.Info("Please check if there are errors in the log file.");
         }
     }
 }
