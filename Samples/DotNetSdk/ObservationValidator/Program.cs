@@ -32,11 +32,10 @@ namespace ObservationValidator
                 LastRunTimeKeeper.WriteDateTimeOffsetToFile(runStartTime);
 
                 Environment.ExitCode = 0;
-                Log.Info("Finished validation.");
             }
             catch (Exception ex)
             {
-                Log.Error("The program ended with an exception:", ex);
+                result.FatalException = ex;
             }
             finally
             { 
@@ -117,27 +116,20 @@ namespace ObservationValidator
 
             foreach (var invalidObservation in invalidObservations)
             {
-                try
-                {
-                    if (invalidObservation.LabResultDetails?.QualityFlag == flag)
-                        continue;
+                if (invalidObservation.LabResultDetails?.QualityFlag == flag)
+                    continue;
 
-                    client.Put(new PutSparseObservation
+                client.Put(new PutSparseObservation
+                {
+                    Id = invalidObservation.Id,
+                    LabResultDetails = new LabResultDetails
                     {
-                        Id = invalidObservation.Id,
-                        LabResultDetails = new LabResultDetails
-                        {
-                            QualityFlag = flag
-                        }
-                    });
+                        QualityFlag = flag
+                    }
+                });
 
-                    Log.Info($"Invalid observation:'{invalidObservation.Id}' is flagged.");
-                    flaggedCount++;
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"Error flagging the invalid observation with id {invalidObservation.Id}.", ex);
-                }
+                Log.Info($"Invalid observation:'{invalidObservation.Id}' is flagged.");
+                flaggedCount++;
             }
 
             return flaggedCount;
@@ -169,7 +161,15 @@ namespace ObservationValidator
             Log.Info($"Total specimens examined: {result.ProcessedSpecimenCount}");
             Log.Info($"Total observations examined: {result.ExaminedObservationsCount}");
             Log.Info($"Invalid observations flagged: {result.InvalidObservationsTotal}");
-            Log.Info("Please check if there are errors in the log file.");
+
+            if(result.FatalException == null)
+            {
+                Log.Info("Finished validation.");
+            }
+            else
+            {
+                Log.Error("The program ended with an exception:", result.FatalException);
+            }
         }
     }
 }
