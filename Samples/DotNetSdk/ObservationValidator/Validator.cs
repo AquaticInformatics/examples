@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Aquarius.Samples.Client.ServiceModel;
@@ -39,7 +40,7 @@ namespace ObservationValidator
         {
             var invalidObservations = new List<Observation>();
 
-            if (observations == null)
+            if (observations == null || !observations.Any())
             {
                 return invalidObservations;
             }
@@ -55,25 +56,32 @@ namespace ObservationValidator
             {
                 foreach (var observation in observationGroup)
                 {
-                    var parameter = observation.ObservedProperty.CustomId;
-                    if (!_ruleMap.ContainsKey(parameter))
-                        continue;
-
-                    var applicableRules = _ruleMap[parameter];
-                    Log.Debug($"Got {applicableRules.Count} applicable rules for parameter {parameter}.");
-
-                    var invalidRightSideObservations =
-                        GetInvalidRightSideParameterObservations(observation, observationGroup.ToList(), applicableRules);
-
-                    if (!invalidRightSideObservations.Any())
+                    try
                     {
-                        Log.Debug($"No invalid observations found for parameter {parameter} " +
-                                  $"in specimen with id {observationGroup.Key}.");
-                        continue;
-                    }
+                        var parameter = observation.ObservedProperty.CustomId;
+                        if (!_ruleMap.ContainsKey(parameter))
+                            continue;
 
-                    invalidObservations.Add(observation);
-                    invalidObservations.AddRange(invalidRightSideObservations);
+                        var applicableRules = _ruleMap[parameter];
+                        Log.Debug($"Got {applicableRules.Count} applicable rules for parameter {parameter}.");
+
+                        var invalidRightSideObservations =
+                            GetInvalidRightSideParameterObservations(observation, observationGroup.ToList(), applicableRules);
+
+                        if (!invalidRightSideObservations.Any())
+                        {
+                            Log.Debug($"No invalid observations found for parameter {parameter} " +
+                                      $"in specimen with id {observationGroup.Key}.");
+                            continue;
+                        }
+
+                        invalidObservations.Add(observation);
+                        invalidObservations.AddRange(invalidRightSideObservations);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"Error determining validity of observation with id {observation.Id}.", ex);  
+                    }
                 }
             }
 
@@ -88,6 +96,9 @@ namespace ObservationValidator
             foreach (var rule in rules)
             {
                 var rightSideParamObservations = observations.Where(obs => rule.RightParam == obs.ObservedProperty.CustomId).ToList(); 
+
+                if(!rightSideParamObservations.Any())
+                    continue;
 
                 var invalidObservationsThisRule =
                     rightSideParamObservations.Where(
@@ -142,7 +153,8 @@ namespace ObservationValidator
 
         private static bool IsNonDetected(Observation observation)
         {
-            return observation.NumericResult.DetectionCondition == DetectionConditionType.NOT_DETECTED;
+            return observation?.NumericResult != null && 
+                observation.NumericResult.DetectionCondition == DetectionConditionType.NOT_DETECTED;
         }
 
         private bool HasDifferentUnit(Observation left, Observation right)
@@ -158,7 +170,7 @@ namespace ObservationValidator
         {
             //non-detected is treated as 0:
             return IsNonDetected(observation) ||
-                observation.NumericResult?.Quantity != null;
+                observation?.NumericResult?.Quantity != null;
         }
     }
 }

@@ -32,11 +32,10 @@ namespace ObservationValidator
                 LastRunTimeKeeper.WriteDateTimeOffsetToFile(runStartTime);
 
                 Environment.ExitCode = 0;
-                Log.Info("Finished validation.");
             }
             catch (Exception ex)
             {
-                Log.Error("The program ended with an exception:", ex);
+                result.FatalException = ex;
             }
             finally
             { 
@@ -69,7 +68,10 @@ namespace ObservationValidator
                 {
                     if (result.ProcessedSpecimenNames.Contains(specimen.Name))
                         continue;
+
+                    Log.Debug($"Examining specimen '{specimen.Name}'.");
                     result.ProcessedSpecimenCount++;
+
 
                     var observationResponse = client.Get(new GetObservations
                     {
@@ -114,7 +116,7 @@ namespace ObservationValidator
 
             foreach (var invalidObservation in invalidObservations)
             {
-                if(invalidObservation.LabResultDetails.QualityFlag == flag)
+                if (invalidObservation.LabResultDetails?.QualityFlag == flag)
                     continue;
 
                 client.Put(new PutSparseObservation
@@ -159,6 +161,15 @@ namespace ObservationValidator
             Log.Info($"Total specimens examined: {result.ProcessedSpecimenCount}");
             Log.Info($"Total observations examined: {result.ExaminedObservationsCount}");
             Log.Info($"Invalid observations flagged: {result.InvalidObservationsTotal}");
+
+            if(result.FatalException == null)
+            {
+                Log.Info("Finished validation.");
+            }
+            else
+            {
+                Log.Error("The program ended with an exception:", result.FatalException);
+            }
         }
     }
 }
