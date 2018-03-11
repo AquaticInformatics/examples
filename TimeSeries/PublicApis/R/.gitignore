@@ -1,2 +1,3 @@
 # Ignore common R cruft files
 .RHistory
+rsconnect/
