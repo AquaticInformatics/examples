@@ -83,10 +83,10 @@ This example file contains 4 measurements at two different locations.
 # AQUARIUS Stage-Discharge CSV v1.0
 #
 LocationIdentifier, MeasurementId, MeasurementStartDateTime,          MeasurementEndDateTime,            StageAtStart, StageAtEnd, StageUnits, Discharge, DischargeUnits, ChannelName, ChannelWidth, WidthUnits, ChannelArea, AreaUnits, ChannelVelocity, VelocityUnits, Party, Comments
-LocationA         , 46791        , 2016-04-01T00:00:00.0000000Z,      2016-04-01T02:00:00.0000000Z,      12.0,         12.5,       ft,         32.3,      ft^3/s,         Main,        ,             ft,         ,            ft^2,      ,                ft/s
+LocationA         , 46791        , 2016-04-01T00:00:00.0000000Z,      2016-04-01T02:00:00.0000000Z,      12.0,         12.5,       ft,         32.3,      ft^3/s,         Main,        ,             ft,         ,            ft^2,      ,                ft/s,          ,
                                                                                                     
 LocationB         ,              , 2017-05-01T03:00:00.0000000+04:00, 2017-05-01T04:00:00.0000000+04:00, 8.7,          8.6,        ft,         13.5,      ft^3/s,         Main,        ,             ft,         ,            ft^2,      ,                ft/s,          ,      "Bubbler hose was disturbed, so we remeasured"
-LocationB         , 852345       , 2017-05-01T05:00:00.0000000+04:00, 2017-05-01T06:00:00.0000000+04:00, 9.4,          9.4,        ft,         13.6,      ft^3/s,         Main,        ,             ft,         ,            ft^2,      ,                ft/s
+LocationB         , 852345       , 2017-05-01T05:00:00.0000000+04:00, 2017-05-01T06:00:00.0000000+04:00, 9.4,          9.4,        ft,         13.6,      ft^3/s,         Main,        ,             ft,         ,            ft^2,      ,                ft/s,          ,
                                                                                                     
 LocationA         , 46792        , 2016-04-02T03:00:00.0000000Z,      2016-04-02T04:00:00.0000000Z,      11.85,        12.7,       ft,        132.3,      ft^3/s,         Main,        23.4,         ft,         125.63,      ft^2,       85.2,           ft/s,          Doug , My oh my what a comment
 ```
@@ -113,8 +113,8 @@ But all of that whitespace and comments is not needed.
 
 The following CSV text is identical in content to the above file, but with every optional bit of text removed:
 ```
-LocationA,46791,2016-04-01T00:00:00.0000000Z,2016-04-01T02:00:00.0000000Z,12.0,12.5,ft,32.3,ft^3/s,Main,,ft,,ft^2,,ft/s
+LocationA,46791,2016-04-01T00:00:00.0000000Z,2016-04-01T02:00:00.0000000Z,12.0,12.5,ft,32.3,ft^3/s,Main,,ft,,ft^2,,ft/s,,
 LocationB,,2017-05-01T03:00:00.0000000+04:00,2017-05-01T04:00:00.0000000+04:00,8.7,8.6,ft,13.5,ft^3/s,Main,,ft,,ft^2,,ft/s,,"Bubbler hose was disturbed, so we remeasured"
-LocationB,852345,2017-05-01T05:00:00.0000000+04:00,2017-05-01T06:00:00.0000000+04:00,9.4,9.4,ft,13.6,ft^3/s,Main,,ft,,ft^2,,ft/s
+LocationB,852345,2017-05-01T05:00:00.0000000+04:00,2017-05-01T06:00:00.0000000+04:00,9.4,9.4,ft,13.6,ft^3/s,Main,,ft,,ft^2,,ft/s,,
 LocationA,46792,2016-04-02T03:00:00.0000000Z,2016-04-02T04:00:00.0000000Z,11.85,12.7,ft,132.3,ft^3/s,Main,23.4,ft,125.63,ft^2,85.2,ft/s,Doug,My oh my what a comment
 ```
