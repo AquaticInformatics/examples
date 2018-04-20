@@ -1,0 +1,55 @@
+image: Visual Studio 2017
+
+platform: Any CPU
+configuration: Release
+
+shallow_clone: true
+skip_tags: true
+
+environment:
+  GITHUB_AUTH_TOKEN:
+    secure: e24gj/T2VZ5R4XwbNUwj+eu4FbHEqWKUhuvNKXcp4dRPxj8lgW3AbWgSitK5kzek
+
+assembly_info:
+  patch: true
+  file: AssemblyInfo.*
+  assembly_version: "1.0.0.0"
+  assembly_file_version: "{version}"
+  assembly_informational_version: "{version}"
+
+init:
+  - ps: |
+      If (-Not $env:APPVEYOR_PULL_REQUEST_NUMBER) {
+        $env:IS_NOT_PR = "true"
+      }
+
+before_build:
+  - nuget restore Samples\DotNetSdk\DotNetSdkExamples.sln
+  - nuget restore TimeSeries\PublicApis\SdkExamples\SdkExamples.sln
+
+build_script:
+  - msbuild Samples\DotNetSdk\DotNetSdkExamples.sln
+  - msbuild TimeSeries\PublicApis\SdkExamples\SdkExamples.sln
+
+artifacts:
+  - path: Samples\DotNetSdk\ObservationValidator\bin\Release
+    name: ObservationValidator
+    type: zip
+
+  - path: TimeSeries\PublicApis\SdkExamples\PointZilla\bin\Release\PointZilla.exe
+    name: PointZilla
+    type: file
+
+  - path: TimeSeries\PublicApis\SdkExamples\UserImporter\bin\Release\UserImporter.exe
+    name: UserImporter
+    type: file
+
+deploy:
+  - provider: GitHub
+    tag: v$(APPVEYOR_BUILD_VERSION)
+    release: Example utilities $(APPVEYOR_BUILD_VERSION)
+    description: ''
+    artifact: UserImporter, PointZilla, ObservationValidator
+    auth_token: $(GITHUB_AUTH_TOKEN)
+    on:
+      is_not_pr: true
