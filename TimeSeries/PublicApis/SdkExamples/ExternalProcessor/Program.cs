@@ -239,7 +239,7 @@ namespace ExternalProcessor
 
         private TimeSeriesType GetTimeSeriesType(Guid uniqueId)
         {
-            return _client.ProvisioningClient
+            return _client.Provisioning
                 .Get(new GetTimeSeries {TimeSeriesUniqueId = uniqueId})
                 .TimeSeriesType;
         }
