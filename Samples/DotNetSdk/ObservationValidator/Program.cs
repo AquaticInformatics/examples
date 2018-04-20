@@ -119,7 +119,7 @@ namespace ObservationValidator
                 if (invalidObservation.LabResultDetails?.QualityFlag == flag)
                     continue;
 
-                client.Put(new PutSparseObservation
+                client.Put(new PutObservation
                 {
                     Id = invalidObservation.Id,
                     LabResultDetails = new LabResultDetails

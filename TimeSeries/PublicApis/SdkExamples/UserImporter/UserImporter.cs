@@ -56,7 +56,7 @@ namespace UserImporter
 
             using (var client = AquariusClient.CreateConnectedClient(_context.Server, _context.Username, _context.Password))
             {
-                Log.Info($"Connected to {(client.ProvisioningClient as JsonServiceClient)?.BaseUri} ({client.ServerVersion}) as user='{_context.Username}'.");
+                Log.Info($"Connected to {(client.Provisioning as JsonServiceClient)?.BaseUri} ({client.ServerVersion}) as user='{_context.Username}'.");
 
                 var aqUsers = GetAqUsers(client);
 

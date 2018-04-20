@@ -1,5 +1,7 @@
 # AQUARIUS Examples Repo
 
+[![Build status](https://ci.appveyor.com/api/projects/status/g3c5e2j6fmxgukxy/branch/master?svg=true)](https://ci.appveyor.com/project/SystemsAdministrator/examples/branch/master)
+
 The **AQUARIUS Examples** respository contains example projects demonstrating various integration techniques with the [AQUARIUS Platform](http://aquaticinformatics.com/products/) of environmental monitoring products.
 
 ![AQUARIUS Platform](images/aquatic-informatics.png)
