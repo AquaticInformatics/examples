@@ -1,6 +1,9 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
-using ServiceStack.Logging;
+using System.Xml;
+using log4net;
+using ServiceStack;
 using ServiceStack.Logging.Log4Net;
 
 namespace UserImporter
@@ -46,8 +49,32 @@ namespace UserImporter
 
         private static void ConfigureLogging()
         {
-            LogManager.LogFactory = new Log4NetFactory(configureLog4Net: true);
-            _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+            using (var stream = new MemoryStream(LoadEmbeddedResource("log4net.config")))
+            using (var reader = new StreamReader(stream))
+            {
+                var xml = new XmlDocument();
+                xml.LoadXml(reader.ReadToEnd());
+
+                log4net.Config.XmlConfigurator.Configure(xml.DocumentElement);
+
+                _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+                ServiceStack.Logging.LogManager.LogFactory = new Log4NetFactory();
+            }
+        }
+
+        private static byte[] LoadEmbeddedResource(string path)
+        {
+            // ReSharper disable once PossibleNullReferenceException
+            var resourceName = $"{MethodBase.GetCurrentMethod().DeclaringType.Namespace}.{path}";
+
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+            {
+                if (stream == null)
+                    throw new ExpectedException($"Can't load '{resourceName}' as embedded resource.");
+
+                return stream.ReadFully();
+            }
         }
     }
 }
