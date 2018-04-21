@@ -1,6 +1,6 @@
 ﻿# TimeSeriesChangeMonitor
 
-Download the latest release [from the releases page](../../../../../releases/latest).
+Download the latest release [from the releases page](../../../../../../releases/latest).
 
 The `TimeSeriesChangeMonitor.exe` console utility allows you easily monitor how quickly changes in your AQTS time-series become available for external consumption via Publish API.
 
