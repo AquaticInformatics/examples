@@ -40,6 +40,10 @@ artifacts:
     name: PointZilla
     type: file
 
+  - path: TimeSeries\PublicApis\SdkExamples\TimeSeriesChangeMonitor\bin\Release\TimeSeriesChangeMonitor.exe
+    name: TimeSeriesChangeMonitor
+    type: file
+
   - path: TimeSeries\PublicApis\SdkExamples\UserImporter\bin\Release\UserImporter.exe
     name: UserImporter
     type: file
@@ -49,7 +53,7 @@ deploy:
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: Example utilities $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: UserImporter, PointZilla, ObservationValidator
+    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, ObservationValidator
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true
