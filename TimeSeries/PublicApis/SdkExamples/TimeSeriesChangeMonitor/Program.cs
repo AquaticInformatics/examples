@@ -5,6 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
+using Aquarius.TimeSeries.Client;
+using Aquarius.TimeSeries.Client.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using log4net;
 using NodaTime.Text;
@@ -44,7 +46,7 @@ namespace TimeSeriesChangeMonitor
                 if (exception is ExpectedException)
                     logAction(exception.Message);
                 else if (exception is WebServiceException webServiceException)
-                    logAction($"API: {webServiceException.ErrorCode}: {webServiceException.ErrorMessage}");
+                    logAction($"API: ({webServiceException.StatusCode}) {webServiceException.ErrorCode}: {webServiceException.ErrorMessage}");
                 else
                     logAction($"{exception.Message}\n{exception.StackTrace}");
             }
@@ -187,16 +189,16 @@ namespace TimeSeriesChangeMonitor
                 new Option
                 {
                     Key = nameof(context.ChangesSinceTime),
-                    Setter = value => InstantPattern.ExtendedIsoPattern.Parse(value).GetValueOrThrow(),
+                    Setter = value => context.ChangesSinceTime = InstantPattern.ExtendedIsoPattern.Parse(value).GetValueOrThrow(),
                     Getter = () => string.Empty,
-                    Description = "The starting changes-since time. Defaults to 'right now'"
+                    Description = "The starting changes-since time in ISO 8601 format. Defaults to 'right now'"
                 },
                 new Option
                 {
                     Key = nameof(context.PollInterval),
-                    Setter = value => DurationPattern.RoundtripPattern.Parse(value).GetValueOrThrow(),
-                    Getter = () => context.PollInterval.ToString(),
-                    Description = "The polling interval"
+                    Setter = value => context.PollInterval = value.ToUpperInvariant().ParseDuration(),
+                    Getter = () => context.PollInterval.SerializeToString(),
+                    Description = "The polling interval in ISO 8601 Duration format."
                 },
                 new Option
                 {
@@ -204,6 +206,13 @@ namespace TimeSeriesChangeMonitor
                     Setter = value => context.MaximumChangeCount = int.Parse(value),
                     Getter = () => context.MaximumChangeCount.ToString(),
                     Description = "When greater than 0, exit after detecting this many changed time-series."
+                },
+                new Option
+                {
+                    Key = nameof(context.AllowQuickPolling),
+                    Setter = value => context.AllowQuickPolling = bool.Parse(value),
+                    Getter = () => context.AllowQuickPolling.ToString(),
+                    Description = "Allows very quick polling. Good for testing, bad for production."
                 },
             };
 
@@ -213,6 +222,20 @@ namespace TimeSeriesChangeMonitor
                       + $"\nusage: {GetProgramName()} [-option=value] [@optionsFile] [location] [timeSeriesIdentifierOrGuid] ..."
                       + $"\n"
                       + $"\nSupported -option=value settings (/option=value works too):\n\n  -{string.Join("\n  -", options.Select(o => o.UsageText()))}"
+                      + $"\n"
+                      + $"\nISO 8601 timestamps use a yyyy'-'mm'-'dd'T'HH':'mm':'ss'.'fffffffzzz format."
+                      + $"\n"
+                      + $"\n  The 7 fractional seconds digits are optional."
+                      + $"\n  The zzz timezone can be 'Z' for UTC, or +HH:MM, or -HH:MM"
+                      + $"\n"
+                      + $"\n  Eg: 2017-04-01T00:00:00Z represents April 1st, 2017 in UTC."
+                      + $"\n"
+                      + $"\nISO 8601 durations use a 'PT'[nnH][nnM][nnS] format."
+                      + $"\n"
+                      + $"\n  Only the required components are needed."
+                      + $"\n"
+                      + $"\n  Eg: PT5M represents 5 minutes."
+                      + $"\n      PT90S represents 90 seconds (1.5 minutes)"
                       + $"\n"
                       + $"\nUse the @optionsFile syntax to read more options from a file."
                       + $"\n"
