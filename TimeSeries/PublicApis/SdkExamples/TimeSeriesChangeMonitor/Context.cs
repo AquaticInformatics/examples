@@ -19,7 +19,8 @@ namespace TimeSeriesChangeMonitor
         public List<ExtendedAttributeFilter> ExtendedFilters { get; set; } = new List<ExtendedAttributeFilter>();
         public List<string> TimeSeries { get; set; } = new List<string>();
         public Instant ChangesSinceTime { get; set; } = Instant.FromDateTimeUtc(DateTime.UtcNow);
-        public Duration PollInterval { get; set; } = Duration.FromSeconds(10);
+        public Duration PollInterval { get; set; } = Duration.FromMinutes(5);
         public int MaximumChangeCount { get; set; }
+        public bool AllowQuickPolling { get; set; }
     }
 }

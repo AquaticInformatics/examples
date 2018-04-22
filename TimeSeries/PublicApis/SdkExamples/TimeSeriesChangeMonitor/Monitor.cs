@@ -81,9 +81,19 @@ namespace TimeSeriesChangeMonitor
 
         private readonly Dictionary<Guid,TimeSeriesDescription> _knownTimeSeries = new Dictionary<Guid, TimeSeriesDescription>();
 
+        private static readonly TimeSpan ShortestAllowedInterval = TimeSpan.FromMinutes(5);
+
         private void PollForChanges()
         {
             var pollInterval = Context.PollInterval.ToTimeSpan();
+
+            if (pollInterval < ShortestAllowedInterval)
+            {
+                if (!Context.AllowQuickPolling)
+                    throw new ExpectedException($"Polling more quickly than every {ShortestAllowedInterval.Humanize()} is not enabled.");
+
+                Log.Warn($"Polling more quickly than every {ShortestAllowedInterval.Humanize()} is not recommended for production systems.");
+            }
 
             var request = CreateFilterRequest();
             var filterSummary = GetFilterSummary(request);
@@ -237,10 +247,16 @@ namespace TimeSeriesChangeMonitor
 
             if (TimeSeries.Any())
             {
-                var firstLocation = TimeSeries.Values.First().LocationIdentifier;
+                var firstTimeSeries = TimeSeries.Values.First();
 
-                if (TimeSeries.Values.All(ts => ts.LocationIdentifier == firstLocation))
-                    locationIdentifier = firstLocation;
+                if (TimeSeries.Values.All(ts => ts.LocationIdentifier == firstTimeSeries.LocationIdentifier))
+                    locationIdentifier = firstTimeSeries.LocationIdentifier;
+
+                if (string.IsNullOrEmpty(Context.Parameter) && TimeSeries.Values.All(ts => ts.Parameter == firstTimeSeries.Parameter))
+                    Context.Parameter = firstTimeSeries.Parameter;
+
+                if (!Context.Publish.HasValue && TimeSeries.Values.All(ts => ts.Publish == firstTimeSeries.Publish))
+                    Context.Publish = firstTimeSeries.Publish;
             }
 
             if (!string.IsNullOrEmpty(locationIdentifier) && TimeSeries.Values.Any(ts => ts.LocationIdentifier != locationIdentifier))
