@@ -9,6 +9,7 @@ using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using Humanizer;
 using NodaTime;
+using ServiceStack;
 using ServiceStack.Logging;
 
 namespace TimeSeriesChangeMonitor
@@ -51,7 +52,7 @@ namespace TimeSeriesChangeMonitor
 
             var location = TimeSeriesIdentifierParser.ParseLocationIdentifier(timeSeriesIdentifier);
 
-            var response = Client.Publish.Get(new TimeSeriesDescriptionServiceRequest { LocationIdentifier = location });
+            var response = Client.Publish.Get(new TimeSeriesDescriptionServiceRequest {LocationIdentifier = location});
 
             var timeSeriesDescription = response.TimeSeriesDescriptions.FirstOrDefault(t => t.Identifier == timeSeriesIdentifier);
 
@@ -63,23 +64,64 @@ namespace TimeSeriesChangeMonitor
 
         private TimeSeriesDescription GetTimeSeriesDescription(Guid uniqueId)
         {
-            if (_knownTimeSeries.TryGetValue(uniqueId, out var timeSeriesDescription))
-                return timeSeriesDescription;
+            FetchAllUnknownSeriesDescriptions(new []{uniqueId});
 
-            timeSeriesDescription = Client.Publish
-                .Get(new TimeSeriesDescriptionListByUniqueIdServiceRequest
-                {
-                    TimeSeriesUniqueIds = new List<Guid> {uniqueId}
-                })
-                .TimeSeriesDescriptions
-                .Single();
-
-            _knownTimeSeries.Add(uniqueId, timeSeriesDescription);
-
-            return timeSeriesDescription;
+            return _knownTimeSeries[uniqueId];
         }
 
         private readonly Dictionary<Guid,TimeSeriesDescription> _knownTimeSeries = new Dictionary<Guid, TimeSeriesDescription>();
+
+        private void FetchAllUnknownSeriesDescriptions(IEnumerable<Guid> uniqueIds)
+        {
+            var unknownTimeSeriesUniqueIds = uniqueIds
+                .Where(id => !_knownTimeSeries.ContainsKey(id))
+                .ToList();
+
+            // A regular `GET /Publish/v2/GetTimeSeriesDescriptionListByUniqueId` request is limited by the IIS max query string length of 2048 bytes.
+            // That means about 61 unique IDs per request before IIS refuses the request.
+            // Instead, we use a ServiceStack override method that allows use to send the request parameters as a JSON payload.
+            // This allows us to request up to 400 time-series per request, the maximum allowed by the API.
+            using (var batchClient = CreatePublishClientWithPostMethodOverride())
+            {
+                while (unknownTimeSeriesUniqueIds.Any())
+                {
+                    const int batchSize = 400;
+
+                    var batchList = unknownTimeSeriesUniqueIds.Take(batchSize).ToList();
+                    unknownTimeSeriesUniqueIds = unknownTimeSeriesUniqueIds.Skip(batchSize).ToList();
+
+                    var request = new TimeSeriesDescriptionListByUniqueIdServiceRequest();
+
+                    // We need to resolve the URL without any unique IDs on the GET command line
+                    var requestUrl = RemoveQueryFromUrl(request.ToGetUrl());
+
+                    request.TimeSeriesUniqueIds = batchList;
+
+                    var batchResponse =
+                        batchClient.Send<TimeSeriesDescriptionListByUniqueIdServiceResponse>(HttpMethods.Post, requestUrl, request);
+
+                    foreach (var timeSeriesDescription in batchResponse.TimeSeriesDescriptions)
+                    {
+                        _knownTimeSeries.Add(timeSeriesDescription.UniqueId, timeSeriesDescription);
+                    }
+                }
+            }
+        }
+
+        private JsonServiceClient CreatePublishClientWithPostMethodOverride()
+        {
+            return Client.CloneAuthenticatedClientWithOverrideMethod(Client.Publish, HttpMethods.Get) as JsonServiceClient;
+        }
+
+        private static string RemoveQueryFromUrl(string url)
+        {
+            var queryIndex = url.IndexOf("?", StringComparison.InvariantCulture);
+
+            if (queryIndex < 0)
+                return url;
+
+            return url.Substring(0, queryIndex);
+        }
 
         private static readonly TimeSpan ShortestAllowedInterval = TimeSpan.FromMinutes(5);
 
@@ -130,12 +172,7 @@ namespace TimeSeriesChangeMonitor
                     continue;
                 }
 
-                var changedSeries = response.TimeSeriesUniqueIds;
-
-                if (TimeSeries.Any())
-                {
-                    changedSeries = changedSeries.Where(ts => TimeSeries.ContainsKey(ts.UniqueId)).ToList();
-                }
+                var changedSeries = GetChangedTimeSeries(response.TimeSeriesUniqueIds);
 
                 if (changedSeries.Any())
                 {
@@ -156,6 +193,13 @@ namespace TimeSeriesChangeMonitor
                 throw new ExpectedException($"Polling canceled by user after detecting {ChangeCount} changed time-series.");
 
             Log.Info($"Exiting after detecting {ChangeCount} changed time-series.");
+        }
+
+        private List<TimeSeriesUniqueIds> GetChangedTimeSeries(List<TimeSeriesUniqueIds> allChangedTimeSeries)
+        {
+            return !TimeSeries.Any()
+                ? allChangedTimeSeries
+                : allChangedTimeSeries.Where(ts => TimeSeries.ContainsKey(ts.UniqueId)).ToList();
         }
 
         private void MeasurePollResponseTime(long elapsedMilliseconds, TimeSeriesUniqueIdListServiceResponse response)
@@ -337,6 +381,8 @@ namespace TimeSeriesChangeMonitor
         private void ShowChangedSeries(List<TimeSeriesUniqueIds> changedSeries)
         {
             Log.Info($"Detected {changedSeries.Count} changed time-series");
+
+            FetchAllUnknownSeriesDescriptions(changedSeries.Select(ts => ts.UniqueId));
 
             foreach (var series in changedSeries)
             {
