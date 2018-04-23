@@ -6,6 +6,12 @@ configuration: Release
 shallow_clone: true
 skip_tags: true
 
+only_commits:
+  files:
+    - appveyor.yml
+    - Samples/DotNetSdk/
+    - TimeSeries/PublicApis/SdkExamples/
+
 environment:
   GITHUB_AUTH_TOKEN:
     secure: e24gj/T2VZ5R4XwbNUwj+eu4FbHEqWKUhuvNKXcp4dRPxj8lgW3AbWgSitK5kzek
