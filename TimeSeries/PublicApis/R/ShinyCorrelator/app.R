@@ -1,9 +1,5 @@
 
-
 library(shiny)
-
-
-rm(list = ls())   
 
 # Configuration values for this script
 config = list(
@@ -73,9 +69,9 @@ server <- function(input, output) {
 
 doServer <- function(input, output) {
 
-  require(jsonlite)
-  require(httr)
-  require(ggpubr)
+  library(jsonlite)
+  library(httr)
+  library(ggpubr)
 
   # Load supporting code
   source("./timeseries_client.R")
