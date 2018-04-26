@@ -1,6 +1,8 @@
 ﻿# PointZilla
 
 `PointZilla` is a console tool for quickly appending points to a time-series in an AQTS 201x system.
+
+Download the [latest PointZilla.exe release here](../../../../../../releases/latest)
  
 Points can be specified from:
 - Command line parameters (useful for appending a single point)
@@ -20,7 +22,7 @@ Like its namesake, Godzilla, `PointZilla` can be somewhat awesome, a little scar
 
 # Requirements
 
-- `PointZilla` requires the .NET 4.7 runtime to be installed.
+- `PointZilla` requires the .NET 4.7 runtime, which is pre-installed on all Windows 10 and Windows Server 2016 systems, and on nearly all up-to-date Windows 7 and Windows Server 2008 systems.
 - `PointZilla` is a stand-alone executable. No other dependencies or installation required.
 - An AQTS 2017.2+ system
 
@@ -156,7 +158,7 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation -sourcetimeseries=[ot
 
 The source time-series system can be any AQTS system as far back as AQUARIUS Time-Series 3.8.
 
-## Deleting all points
+## Deleting all points in a time-series
 
 The `DeleteAllPoints` command can be used to delete the entire record of point values from a time-series.
 
@@ -169,6 +171,21 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation deleteallpoints
 ```
 
 With great power ... yada yada yada. Please don't wipe out your production data with this command.
+
+## Deleting a range of points in a time-series
+
+You can delete a range of points in a basic or reflected time-series by:
+- specifying the `/NumberOfPeriods=0` option to generate no new points
+- specifying the `/TimeRange=startTime/endTime` option to define the exact time range to be replaced with no points at all
+- specifying either the `/Command=OverwriteAppend` option for basic time-series or `/Command=Reflected` for reflected time-series.
+
+```sh
+$ ./PointZilla.exe -server=myserver Stage.Label@Location -TimeRange=2018-04-25T00:00:00Z/2018-04-29T00:00:00Z -numberofperiods=0 overwriteappend
+17:02:23.301 INFO  - Generated 0 SineWave points.
+17:02:23.889 INFO  - Connected to myserver (2018.1.98.0)
+17:02:24.076 INFO  - Appending 0 points within TimeRange=2018-04-25T00:00:00Z/2018-04-29T00:00:00Z to Stage.Label@Location (ProcessorBasic) ...
+17:02:24.719 INFO  - Appended 0 points (deleting 1440 points) in 0.6 seconds.
+```
 
 ## Command line options
 
