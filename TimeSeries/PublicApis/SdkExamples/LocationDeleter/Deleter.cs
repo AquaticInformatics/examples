@@ -326,9 +326,9 @@ namespace LocationDeleter
                 "attachment".ToQuantity(InspectedAttachments));
 
             if (Context.DryRun)
-                Log.Info($"Dry run completed. {"location".ToQuantity(InspectedLocations)} would have been deleted, including {deletionSummary}");
+                Log.Info($"Dry run completed. {"location".ToQuantity(InspectedLocations)} would have been deleted, including {deletionSummary}.");
             else
-                Log.Info($"Deleted {deletedLocationCount} of {"location".ToQuantity(ResolvedLocations.Count)}, including {deletionSummary}");
+                Log.Info($"Deleted {deletedLocationCount} of {"location".ToQuantity(ResolvedLocations.Count)}, including {deletionSummary}.");
         }
 
         private static string TimeSeriesInventory(int timeSeriesCount, int derivedTimeSeriesCount)
@@ -626,7 +626,6 @@ namespace LocationDeleter
             var locationData = Client.Publish
                 .Get(new Publish3x.LocationDataServiceRequest {LocationIdentifier = location.Identifier});
 
-            InspectedLocations += 1;
             InspectedTimeSeries += timeSeries.Count;
             InspectedDerivedTimeSeries += derivedTimeSeriesCount;
             InspectedRatingModels += ratingModels.Count;
@@ -682,7 +681,6 @@ namespace LocationDeleter
             var attachments = locationData
                 .Attachments;
 
-            InspectedLocations += 1;
             InspectedTimeSeries += timeSeries.Count;
             InspectedDerivedTimeSeries += derivedTimeSeriesCount;
             InspectedThresholds += thresholds.Count;
