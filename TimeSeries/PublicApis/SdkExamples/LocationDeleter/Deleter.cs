@@ -393,18 +393,18 @@ namespace LocationDeleter
             string confirmationDescription,
             string confirmationResponse)
         {
-            if (Context.SkipConfirmation)
-            {
-                Log.Warn($"Auto-confirming {operationDescription}");
-                return true;
-            }
-
             var summary = summarizeAction();
 
             if (Context.DryRun)
             {
                 Log.Info($"DryRun: {summary}");
                 return false;
+            }
+
+            if (Context.SkipConfirmation)
+            {
+                Log.Warn($"Auto-confirming {operationDescription}");
+                return true;
             }
 
             Log.Warn(summary);
