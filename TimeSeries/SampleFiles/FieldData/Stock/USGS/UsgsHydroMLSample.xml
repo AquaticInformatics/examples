@@ -3,7 +3,7 @@
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xsi:schemaLocation="http://water.usgs.gov/XML/AQ http://water.usgs.gov/XML/AQ/schema/UsgsAquariusHydroML.xsd">
   <Site>
-    <SiteIdentifier organizationCode="TEST">00000001</SiteIdentifier>
+    <SiteIdentifier organizationCode="TEST">8802</SiteIdentifier>
     <Name>Test</Name>
     <SiteData>
       <SiteVisit>
@@ -65,7 +65,7 @@
             <DischargeMeasure>0.0227</DischargeMeasure>
             <DeploymentMethodCode Description="Wading">WADE</DeploymentMethodCode>
             <MeasurementMethodCode Description="Midsection">QMIDSECTION</MeasurementMethodCode>
-            <VelocityMethodCode Description="ADV">VADV</VelocityMethodCode>
+            <VelocityMethodCode Description="ADV">DefaultNone</VelocityMethodCode>
             <ChannelMaterialCode Description="bedrock-ledge-artificial">LDGE</ChannelMaterialCode>
             <ChannelStabilityCode Description="firm">FIRM</ChannelStabilityCode>
             <ChannelEvennessCode Description="even">EVEN</ChannelEvennessCode>
@@ -80,10 +80,10 @@
                 <SensorType>
                   <Parameter>
                     <USGSParameterCode>00055</USGSParameterCode>
-                    <Name>Stream velocity</Name>
+                    <Name>Water Velocity</Name>
                     <Units>ft/s</Units>
                   </Parameter>
-                  <MethodCode Description="ADV">VADV</MethodCode>
+                  <MethodCode Description="ADV">DefaultNone</MethodCode>
                   <ManufacturerName>Sontek</ManufacturerName>
                   <ModelNumber>Flowtracker ADV</ModelNumber>
                 </SensorType>
@@ -177,10 +177,10 @@
                 <SensorType>
                   <Parameter>
                     <USGSParameterCode>00065</USGSParameterCode>
-                    <Name>Gage height</Name>
+                    <Name>Stage</Name>
                     <Units>ft</Units>
                   </Parameter>
-                  <MethodCode>CSG</MethodCode>
+                  <MethodCode>DefaultNone</MethodCode>
                   <ManufacturerName>unspecified 00065</ManufacturerName>
                   <ModelNumber>unspecified CSG 1</ModelNumber>
                 </SensorType>
@@ -212,15 +212,63 @@
             <SerialNumber>M06891501</SerialNumber>
           </Equipment>
           <InspectionDateTime timeDatumCode="PST">2013-10-01T12:18:00</InspectionDateTime>
+		  
+           <DriftCheckWaterTemperature>
+            <Sensor>
+              <SensorType>
+                <Parameter>
+                  <USGSParameterCode>00010</USGSParameterCode>
+                  <Name>O2 (Dis)</Name>
+                  <Units>mg/l</Units>
+                </Parameter>
+                <MethodCode>DefaultNone</MethodCode>
+                <Units>C</Units>
+                <Name></Name>
+                <ManufacturerName>unspecified 00010</ManufacturerName>
+                <ModelNumber>unspecified THM01</ModelNumber>
+                <ChimpManufacturerName>
+                </ChimpManufacturerName>
+                <ChimpModelNumber>
+                </ChimpModelNumber>
+              </SensorType>
+              <SerialNumber>AAA</SerialNumber>
+              <ChimpSerialNumber>999</ChimpSerialNumber>
+            </Sensor>
+            <FieldSensor>
+              <SensorType>
+                <Parameter>
+                  <USGSParameterCode></USGSParameterCode>
+                  <Name>O2 (Dis)</Name>
+                  <Units>mg/l</Units>
+                </Parameter>
+                <MethodCode>DefaultNone</MethodCode>
+                <ManufacturerName>unspecified 00010</ManufacturerName>
+                <ModelNumber>unspecified THM01</ModelNumber>
+                <ChimpManufacturerName>
+                </ChimpManufacturerName>
+                <ChimpModelNumber>
+                </ChimpModelNumber>
+              </SensorType>
+              <SerialNumber>generic</SerialNumber>
+              <ChimpSerialNumber>unspecified</ChimpSerialNumber>
+            </FieldSensor>
+            <ReadingDateTime timeDatumCode="PST">2013-10-01T12:23:00</ReadingDateTime>
+            <WaterTemperatureMeasure>9.9</WaterTemperatureMeasure>
+            <WaterTemperatureMeterMeasure>10.0</WaterTemperatureMeterMeasure>
+            <TwoPointCheckDate>2013-10-01</TwoPointCheckDate>
+            <FivePointCheckDate>2013-10-01</FivePointCheckDate>
+            <Comment>O2 comment</Comment>
+          </DriftCheckWaterTemperature>
+
           <DriftCheckWaterTemperature>
             <Sensor>
               <SensorType>
                 <Parameter>
                   <USGSParameterCode>00010</USGSParameterCode>
-                  <Name>Temperature, water</Name>
+                  <Name>Water Temp</Name>
                   <Units>degC</Units>
                 </Parameter>
-                <MethodCode>THM01</MethodCode>
+                <MethodCode>DefaultNone</MethodCode>
                 <Units>C</Units>
                 <Name>Temp</Name>
                 <ManufacturerName>unspecified 00010</ManufacturerName>
@@ -237,10 +285,10 @@
               <SensorType>
                 <Parameter>
                   <USGSParameterCode>00010</USGSParameterCode>
-                  <Name>Temperature, water</Name>
+                  <Name>Water Temp</Name>
                   <Units>degC</Units>
                 </Parameter>
-                <MethodCode>THM01</MethodCode>
+                <MethodCode>DefaultNone</MethodCode>
                 <ManufacturerName>unspecified 00010</ManufacturerName>
                 <ModelNumber>unspecified THM01</ModelNumber>
                 <ChimpManufacturerName>
