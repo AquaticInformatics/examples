@@ -183,6 +183,13 @@ namespace LocationDeleter
 
             ++InspectedTimeSeries;
 
+            if (timeSeriesDescription.TimeSeriesType == "External")
+            {
+                // External time-series (via a GDP integration) can't be deleted from any available API
+                Log.Warn($"Can't delete {timeSeriesDescription.TimeSeriesType} UniqueId={timeSeriesDescription.UniqueId:N} '{timeSeriesDescription.Identifier}'");
+                return 0;
+            }
+
             if (!ConfirmAction(
                 $"deletion of '{timeSeriesDescription.Identifier}'",
                 $"delete {timeSeriesDescription.Identifier}",
