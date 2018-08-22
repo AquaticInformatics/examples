@@ -524,11 +524,15 @@ namespace SosExporter
                         timeSeries.Points.Last().Timestamp.DateTimeOffset,
                         TimeSpan.FromDays(daysToExtract));
 
-                    Log.Info($"Trimming '{timeSeriesDescription.Identifier}' points before {earliestDayToUpload:O} with Frequency={period}");
-
-                    timeSeries.Points = timeSeries.Points
+                    var remainingPoints = timeSeries.Points
                         .Where(p => p.Timestamp.DateTimeOffset >= earliestDayToUpload)
                         .ToList();
+
+                    var trimmedPointCount = timeSeries.NumPoints - remainingPoints.Count;
+
+                    Log.Info($"Trimming '{timeSeriesDescription.Identifier}' {trimmedPointCount} points before {earliestDayToUpload:O} with {remainingPoints.Count} points remaining with Frequency={period}");
+
+                    timeSeries.Points = remainingPoints;
                     timeSeries.NumPoints = timeSeries.Points.Count;
                 }
             }
