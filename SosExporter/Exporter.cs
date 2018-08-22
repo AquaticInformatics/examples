@@ -382,7 +382,10 @@ namespace SosExporter
                 }
             }
 
-            return timeSeriesDescriptions;
+            return timeSeriesDescriptions
+                .OrderBy(ts => ts.LocationIdentifier)
+                .ThenBy(ts => ts.Identifier)
+                .ToList();
         }
 
         private JsonServiceClient CreatePublishClientWithPostMethodOverride()
