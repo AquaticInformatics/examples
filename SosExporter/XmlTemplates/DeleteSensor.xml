@@ -1,0 +1,3 @@
+﻿<DeleteSensor xmlns="http://www.opengis.net/swes/2.0" service="SOS" version="2.0.0">
+  <procedure>{__procedureUniqueId__}</procedure>
+</DeleteSensor>
