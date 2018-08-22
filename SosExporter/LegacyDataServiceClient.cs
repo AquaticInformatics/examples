@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.ServiceModel;
 using Aquarius.Webclient;
 using CommunicationShared;
 using CommunicationShared.Dto;
@@ -55,14 +56,28 @@ namespace SosExporter
 
         public List<GlobalSetting> GetGlobalSettings(string settingGroup)
         {
-            return _aqServiceClient.GetGlobalSettingsForGroup(settingGroup, null);
+            try
+            {
+                return _aqServiceClient.GetGlobalSettingsForGroup(settingGroup, null);
+            }
+            catch (FaultException)
+            {
+                return new List<GlobalSetting>();
+            }
         }
 
         public GlobalSetting GetGlobalSetting(string settingGroup, string settingKey)
         {
-            var groupSettings = _aqServiceClient.GetGlobalSettingsForGroup(settingGroup, settingKey);
+            try
+            {
+                var groupSettings = _aqServiceClient.GetGlobalSettingsForGroup(settingGroup, settingKey);
 
-            return groupSettings.SingleOrDefault();
+                return groupSettings.SingleOrDefault();
+            }
+            catch (FaultException)
+            {
+                return null;
+            }
         }
 
         public void SaveGlobalSetting(GlobalSetting globalSetting)
