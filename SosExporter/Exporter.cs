@@ -35,9 +35,14 @@ namespace SosExporter
             {
                 Log.Info($"Connected to {Context.Config.AquariusServer} (v{Aquarius.ServerVersion}) as {Context.Config.AquariusUsername}");
 
+                if (Aquarius.ServerVersion.IsLessThan(MinimumVersion))
+                    throw new ExpectedException($"This utility requires AQTS v{MinimumVersion} or greater.");
+
                 RunOnce();
             }
         }
+
+        private static readonly AquariusServerVersion MinimumVersion = AquariusServerVersion.Create("17.2");
 
         private static string GetProgramVersion()
         {
