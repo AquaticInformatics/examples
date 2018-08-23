@@ -1,12 +1,12 @@
 ﻿# SOS Exporter
 
-`SosExporter.exe` is a .NET console utility which can monitor an AQTS 201x system for changes to time-series. When a time-series is changed, then changes will be exported to an OGC SOS server for consumption by LAWA.
+`SosExporter.exe` is a .NET console utility which can export changes from AQTS 201x time-series to an OGC SOS server as sensor observations (suitable for consumption by national aggregation systems like [LAWA](https://www.lawa.org.nz/)).
 
 - `SosExporter.exe` is a single EXE, with no external dependencies other than the .NET 4.7 runtime. It can be easily deployed from any Windows system.
 - Reasonable defaults are assumed. By default, all AQTS time-series with Publish=true will be exported.
-- All options can be configured from the command line or from configuration files.
+- All options can be configured from the command line and/or from configuration files.
 - The exporter works in "incremental" mode when possible, exporting only newly appended points as they appear.
-- When an incremental export is not possible, the entire time-series record is exported.
+- When an incremental export is not possible, the entire time-series record is exported, according to the `-MaximumPointDays` configuration.
 - Changes to the export configuration which break incremental exports will automatically be detected and a full resync will be performed. 
 - The `SosExporter.log` file will contain the output of the most recent export cycle.
 
@@ -23,18 +23,87 @@ No installation is required. `SosExporter.exe` is a single executable which can 
 
 ## Configuration
 
-The exporter is highly configurable. Any changes which affect the time-series being exported will force a full resync.
+The exporter is highly configurable via command line options and/or configuration files. Any changes which affect the time-series being exported will force a full resync.
 
+Command-line options use either the `-option=value` or `/Option=value` syntax. The "option" name is case-insensitive. This allows the exporter to be run from any popular command shell: CMD.EXE, Powershell, or bash.
+
+The recommended approach is to create a configuration file, a simple text file with one configuration option per line.
+
+You can run the exporter with the values from a configuration file by using the @filename syntax. Just add the filename as a command line option immediately preceeded by an at-sign.
+
+```cmd
+C:\> SosExporter @sosconfig.txt
+```
+
+Consider the following 15-line file named "sosconfig.txt":
+
+```
+# Set the server credentials
+-AquariusServer=myappserver
+-AquariusUsername=myaqtsuser
+-AquariusPassword=abc123
+-SosServer=http://mysosserver/sos-webapp
+-SosUsername=mysosuser
+-SosPassword=xyz456
+
+# Only export the time-series with an extended attribute named "SOS" with a value of "Export"
+# Since the defulat is -Publish=true, we need to disable that filter
+-Publish=
+-ExtendedFilters=SOS=Export
+
+# Only export approved points
+-Approvals=Approved
+```
+
+Note that:
+- Each line in the file is treated as a command line option. Both the `-option=value` and `/option=value` syntaxes are valid.
+- Blank lines and leading/trailing whitespace are ignored.
+- Comment lines begin with a # or // marker.
+
+You can also combine @filename and `-option=value` command line arguments any number of times, in any order.
+
+The following command will run everything from the config file, but in dry-run mode.
+
+```cmd
+C:\> SosExporter @sosconfig.txt /DryRun=True
+```
+
+## Full resync vs. incremental exports
+
+The first time the exporter is run, it will need to perform a full resync with the SOS server. This will involve:
+- Deleting all sensors and observations from the SOS server.
+- Re-creating a new sensor for every exported AQTS time-series.
+- Exporting the last `-MaximumPointDays` days worth of points from AQTS. The number of days exported depends upon the frequency of the time-series and is configurable.
+
+A full resync cycle can take many hours, depending on the number of time-series configured for export, and the number of points exported. We have observed the exporter taking about an hour to export 5000 time-series with a combined total of 1 million observed points. Your mileage may vary.
+
+Incremental exports are much, much faster, often within minutes or even seconds, since they can leverage the super-efficient "Changes Since" polling mechanism of the AQUARIUS Publish API. An incremental export cycle on the same 5000 time-series system with no changes will finish in under 5 seconds.
+
+The exporter works very hard to perform an incremental export whenever possible. When an incremental export is not possible, the exporter performs a slow full resync, and hopes that an incremental export will be possible on the next cycle (which should be true if no configuration changes are made).
+
+The following events will force a full resync:
+- Switching the AQTS database (this is a rare thing for production systems)
+- More than a day has elapsed since the last export cycle. The Publish API "Changes Since" mechanism requires that you poll the system more frequently than once a day, otherwise it says "Your changes since token has expired" and the only option is a full resync.
+- Specifying the `-ForceResync=true` command line option
+- Changing any of the configuration values which affect the time-series being monitored. These are documented in the `-help` screen as `Changes will trigger a full resync:`
+  - AQTS or SOS server credentials
+  - The `GET /Publish/v2/GetTimeSeriesUniqueIdList` settings (like `-Publish` or `-ExtendedFilters`)
+  - The inclusion/exclusion filters for time-series identifiers
+  - The inclusion/exclusion filters for time-series points based on approvals, grades, and/or qualifiers
+  - The `-MaximumPointDays` configuration, which sets the maximum retrieval time based on the time-series frequency.
+  
 ## Run the exporter on a schedule
 
 The SOS exporter utility will perform one export cycle and then exit. It can be run on a schedule from any standard scheduler like the Windows Task Scheduler.
 
+Many schedulers (including the Windows Task Scheduler) have a setting which says "kill the task if it takes too long to run". You will need to set this setting large enough to handle a full resync cycle without killing the export task, otherwise it will never be able complete the initial slow sync and start running in the much faster incremental export on subsequent cycles.
+
 ## Dry-run mode
 
-Adding the `DryRun=true` option will cause the exporter to perform a dry run, logging only the SOS export operations which would have been performed, but not making any changes.
+Adding the `/DryRun=true` option will cause the exporter to perform a dry run, logging only the SOS export operations which would have been performed, but not making any changes.
 This is useful for debugging configuration changes before deploying them to a production environment.
 
-## Supports advanced filtering of exported time-series and values
+## Advanced filtering of exported time-series and values
 
 ### Supports all /GetTimeSeriesUniqueIdList filtering options
 
@@ -87,6 +156,3 @@ Eg. Only export points with an "In Review" or greater approval and a "Monthly" q
 ```cmd
 SosExporter /Approvals=">=In Review" /Qualifiers=Monthly /Grades="<Poor" (other options ...)
 ```
-
-## Basic `/help` screen
-

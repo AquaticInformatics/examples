@@ -132,7 +132,7 @@ namespace SosExporter
                     Description = "SOS password"
                 },
 
-                new Option(), new Option{Description = "/Publish/v2/GetTimeDescriptionList settings. Changes will trigger a full resync:"}, 
+                new Option(), new Option{Description = "/Publish/v2/GetTimeSeriesUniqueIdList settings. Changes will trigger a full resync:"}, 
                 new Option
                 {
                     Key = nameof(context.Config.LocationIdentifier),
@@ -320,7 +320,7 @@ namespace SosExporter
                       + $"\nUse the @optionsFile syntax to read more options from a file."
                       + $"\n"
                       + $"\n  Each line in the file is treated as a command line option."
-                      + $"\n  Blank lines and leading/trailing whitespace is ignored."
+                      + $"\n  Blank lines and leading/trailing whitespace are ignored."
                       + $"\n  Comment lines begin with a # or // marker."
                 ;
 
