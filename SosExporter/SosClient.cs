@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using log4net;
 using ServiceStack;
@@ -230,7 +231,7 @@ namespace SosExporter
             const string pointTokenSeparator = ";";
             const string pointBlockSeparator = "@";
 
-            var observablePropertyFieldName = RemoveCommas($" {timeSeries.Parameter}_{timeSeries.Label}".Replace(" ", "_")); // TODO: Figure this mapping out
+            var observablePropertyFieldName = SanitizeIdentifier($" {timeSeries.Parameter}_{timeSeries.Label}".Replace(" ", "_")); // TODO: Figure this mapping out
 
             var substitutions = CreateSubstitutions(timeSeries)
                 .Concat(new Dictionary<string, string>
@@ -293,14 +294,14 @@ namespace SosExporter
             return new Dictionary<string, string>
             {
                 {ProcedureUniqueIdKey, timeSeriesIdentifier},
-                {"{__featureOfInterestId__}", RemoveCommas(timeSeries.LocationIdentifier)},
-                {"{__observablePropertyName__}", RemoveCommas($"{timeSeries.Parameter}_{timeSeries.Label}")},
+                {"{__featureOfInterestId__}", SanitizeIdentifier(timeSeries.LocationIdentifier)},
+                {"{__observablePropertyName__}", SanitizeIdentifier($"{timeSeries.Parameter}_{timeSeries.Label}")},
             };
         }
 
         private static string CreateProcedureUniqueId(TimeSeriesDataServiceResponse timeSeries)
         {
-            return RemoveCommas($"{timeSeries.Parameter}.{timeSeries.Label}@{timeSeries.LocationIdentifier}_{InterpolationTypeSuffix[timeSeries.InterpolationTypes.First().Type]}");
+            return SanitizeIdentifier($"{timeSeries.Parameter}.{timeSeries.Label}@{timeSeries.LocationIdentifier}_{InterpolationTypeSuffix[timeSeries.InterpolationTypes.First().Type]}");
         }
 
         // From ca/ai/gaia/ds/mappers/InterpolationTypeNameMapper.java
@@ -315,10 +316,12 @@ namespace SosExporter
                 {InterpolationType.SucceedingConstant.ToString(), "AverageSucc"},
             };
 
-        private static string RemoveCommas(string text)
+        private static string SanitizeIdentifier(string text)
         {
-            return text.Replace(",", string.Empty);
+            return InvalidIdentifierCharsRegex.Replace(text, "_");
         }
+
+        private static readonly Regex InvalidIdentifierCharsRegex = new Regex(@"[,()]");
 
         private static string TransformXmlTemplate(string path, Dictionary<string, string> substitutions)
         {
@@ -392,35 +395,5 @@ namespace SosExporter
                 return (T) xmlSerializer.Deserialize(reader);
             }
         }
-
-        /*
-
-        private const string OgcNamespace = "http://www.opengis.net/swes/2.0";
-
-        private string SerializeToXml<TFromDto>(TFromDto item) where TFromDto : new()
-        {
-            using (var writer = new Utf8StringWriter())
-            {
-                using (var xmlWriter = XmlWriter.Create(writer, new XmlWriterSettings { Indent = false, OmitXmlDeclaration = true }))
-                {
-                    var namespaces = new XmlSerializerNamespaces();
-                    namespaces.Add(string.Empty, OgcNamespace);
-
-                    var xmlSerializer = new System.Xml.Serialization.XmlSerializer(
-                        typeof(TFromDto),
-                        OgcNamespace);
-
-                    xmlSerializer.Serialize(xmlWriter, item, namespaces);
-                }
-
-                return writer.ToString();
-            }
-        }
-
-        public class Utf8StringWriter : StringWriter
-        {
-            public override Encoding Encoding => Encoding.UTF8;
-        }
-        */
     }
 }
