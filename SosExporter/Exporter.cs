@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
+using Humanizer;
 using log4net;
 using ServiceStack;
 using TimeSeriesDescription = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeSeriesDescription;
@@ -22,6 +23,8 @@ namespace SosExporter
         private ISosClient Sos { get; set; }
         private SyncStatus SyncStatus { get; set; }
         private TimeSeriesPointFilter TimeSeriesPointFilter { get; set; }
+        private long ExportedPointCount { get; set; }
+        private int ExportedTimeSeriesCount { get; set; }
 
         public void Run()
         {
@@ -34,7 +37,11 @@ namespace SosExporter
                 if (Aquarius.ServerVersion.IsLessThan(MinimumVersion))
                     throw new ExpectedException($"This utility requires AQTS v{MinimumVersion} or greater.");
 
+                var stopwatch = Stopwatch.StartNew();
+
                 RunOnce();
+
+                Log.Info($"Successfully exported {ExportedPointCount} points from {ExportedTimeSeriesCount} time-series in {stopwatch.Elapsed.Humanize()}");
             }
         }
 
@@ -463,6 +470,9 @@ namespace SosExporter
             var assignedOffering = existingSensor?.Identifier;
 
             var exportSummary = $"{timeSeries.NumPoints} points [{timeSeries.Points.FirstOrDefault()?.Timestamp.DateTimeOffset:O} to {timeSeries.Points.LastOrDefault()?.Timestamp.DateTimeOffset:O}] from '{timeSeriesDescription.Identifier}'";
+
+            ExportedTimeSeriesCount += 1;
+            ExportedPointCount += timeSeries.NumPoints ?? 0;
 
             if (Context.DryRun)
             {
