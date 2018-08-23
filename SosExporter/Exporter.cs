@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
-using CommunicationShared.Dto;
 using log4net;
 using ServiceStack;
 using TimeRange = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeRange;
@@ -23,7 +20,7 @@ namespace SosExporter
         public Context Context { get; set; }
 
         private IAquariusClient Aquarius { get; set; }
-        private ILegacyDataServiceClient LegacyClient { get; set; }
+        private SyncStatus SyncStatus { get; set; }
         private ISosClient Sos { get; set; }
 
         public void Run()
@@ -31,7 +28,6 @@ namespace SosExporter
             Log.Info($"{GetProgramVersion()} connecting to {Context.Config.AquariusServer} ...");
 
             using (Aquarius = AquariusClient.CreateConnectedClient(Context.Config.AquariusServer, Context.Config.AquariusUsername, Context.Config.AquariusPassword))
-            using (LegacyClient = LegacyDataServiceClient.Create(Context.Config.AquariusServer, Context.Config.AquariusUsername, Context.Config.AquariusPassword))
             {
                 Log.Info($"Connected to {Context.Config.AquariusServer} (v{Aquarius.ServerVersion}) as {Context.Config.AquariusUsername}");
 
@@ -60,6 +56,8 @@ namespace SosExporter
 
         private void RunOnce()
         {
+            SyncStatus = new SyncStatus {Context = Context};
+
             ValidateFilters();
 
             var request = CreateFilterRequest();
@@ -119,7 +117,7 @@ namespace SosExporter
                 ExportToSos(request, response, timeSeriesDescriptions);
             }
 
-            SaveConfiguration(nextChangesSinceToken);
+            SyncStatus.SaveConfiguration(nextChangesSinceToken);
         }
 
         private void ValidateFilters()
@@ -210,7 +208,7 @@ namespace SosExporter
 
             return new TimeSeriesUniqueIdListServiceRequest
             {
-                ChangesSinceToken = GetLastChangesSinceToken(),
+                ChangesSinceToken = SyncStatus.GetLastChangesSinceToken(),
                 LocationIdentifier = locationIdentifier,
                 ChangeEventType = Context.Config.ChangeEventType?.ToString(),
                 Publish = Context.Config.Publish,
@@ -220,7 +218,6 @@ namespace SosExporter
                 ExtendedFilters = Context.Config.ExtendedFilters.Any() ? Context.Config.ExtendedFilters : null,
             };
         }
-
 
         private string GetFilterSummary(TimeSeriesUniqueIdListServiceRequest request)
         {
@@ -277,82 +274,6 @@ namespace SosExporter
             return sb.ToString();
         }
 
-        private string ComputeConfigHash()
-        {
-            var configAsJson = Context.Config.ToJson();
-
-            using (var sha = new SHA256Managed())
-            {
-                var bytes = Encoding.UTF8.GetBytes(configAsJson);
-                var hash = sha.ComputeHash(bytes);
-
-                return BitConverter
-                    .ToString(hash)
-                    .Replace("-", string.Empty);
-            }
-        }
-
-        private const string LawaExporterGroup = "SosExporter";
-        private const string HashKeySuffix = ".Hash";
-        private const string ChangesSinceSuffix = ".ChangesSince";
-
-        private DateTime? GetLastChangesSinceToken()
-        {
-            var savedConfigHash = GetConfigurationGlobalSetting(HashKeySuffix)?.SettingValue;
-            var savedChangesSince = GetConfigurationGlobalSetting(ChangesSinceSuffix)?.SettingValue;
-
-            if (string.IsNullOrEmpty(savedConfigHash) || string.IsNullOrEmpty(savedChangesSince))
-                return null;
-
-            var currentConfigHash = ComputeConfigHash();
-
-            if (savedConfigHash != currentConfigHash)
-            {
-                Log.Warn($"Configuration change detected for '{Context.ConfigurationName}'. Performing full resync.");
-                return null;
-            }
-
-            Log.Info($"Restored previous export configuration from '{Context.ConfigurationName}' in {Context.Config.AquariusServer} global settings.");
-
-            var dateTime = DateTime.ParseExact(savedChangesSince, "O", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal);
-
-            return dateTime;
-        }
-
-        private GlobalSetting GetConfigurationGlobalSetting(string settingKey)
-        {
-            return LegacyClient.GetGlobalSetting(LawaExporterGroup, Context.ConfigurationName + settingKey);
-        }
-
-        private void SaveConfiguration(DateTime nextChangesSinceToken)
-        {
-            var configHashSetting = CreateConfigurationGlobalSetting(HashKeySuffix, ComputeConfigHash());
-            var changesSinceSetting = CreateConfigurationGlobalSetting(ChangesSinceSuffix, nextChangesSinceToken.ToString("O"));
-
-            var summary = $"configuration to '{Context.ConfigurationName}' Next{ChangesSinceSuffix}={changesSinceSetting.SettingValue} in {Context.Config.AquariusServer} global settings.";
-
-            if (Context.DryRun)
-            {
-                LogDryRun($"Would have saved {summary}");
-                return;
-            }
-
-            LegacyClient.SaveGlobalSetting(configHashSetting);
-            LegacyClient.SaveGlobalSetting(changesSinceSetting);
-
-            Log.Info($"Saved {summary}");
-        }
-
-        private GlobalSetting CreateConfigurationGlobalSetting(string settingKey, string settingValue)
-        {
-            return new GlobalSetting
-            {
-                LastModified = DateTime.UtcNow,
-                SettingGroup = LawaExporterGroup,
-                SettingKey = Context.ConfigurationName + settingKey,
-                SettingValue = settingValue
-            };
-        }
 
         private List<TimeSeriesDescription> FetchChangedTimeSeriesDescriptions(List<Guid> timeSeriesUniqueIdsToFetch)
         {
