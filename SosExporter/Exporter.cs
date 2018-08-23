@@ -8,7 +8,6 @@ using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using log4net;
 using ServiceStack;
-using TimeRange = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeRange;
 using TimeSeriesDescription = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeSeriesDescription;
 
 namespace SosExporter
@@ -20,8 +19,9 @@ namespace SosExporter
         public Context Context { get; set; }
 
         private IAquariusClient Aquarius { get; set; }
-        private SyncStatus SyncStatus { get; set; }
         private ISosClient Sos { get; set; }
+        private SyncStatus SyncStatus { get; set; }
+        private TimeSeriesPointFilter TimeSeriesPointFilter { get; set; }
 
         public void Run()
         {
@@ -57,6 +57,7 @@ namespace SosExporter
         private void RunOnce()
         {
             SyncStatus = new SyncStatus {Context = Context};
+            TimeSeriesPointFilter = new TimeSeriesPointFilter {Context = Context};
 
             ValidateFilters();
 
@@ -329,24 +330,14 @@ namespace SosExporter
             if (!Context.Config.TimeSeries.Any())
                 return timeSeriesDescriptions;
 
-            var includeFilters = Context.Config.TimeSeries.Where(filter => !filter.Exclude).ToList();
-            var excludeFilters = Context.Config.TimeSeries.Where(filter => filter.Exclude).ToList();
+            var timeSeriesFilter = new Filter<TimeSeriesFilter>(Context.Config.TimeSeries);
 
             var results = new List<TimeSeriesDescription>();
 
             foreach (var timeSeriesDescription in timeSeriesDescriptions)
             {
-                if (includeFilters.Any() && !includeFilters.Any(f => f.Regex.IsMatch(timeSeriesDescription.Identifier)))
-                {
-                    Log.Debug($"Time-series '{timeSeriesDescription.Identifier}' does not match any include filters.");
+                if (timeSeriesFilter.IsFiltered(f => f.Regex.IsMatch(timeSeriesDescription.Identifier)))
                     continue;
-                }
-
-                if (excludeFilters.Any(f => f.Regex.IsMatch(timeSeriesDescription.Identifier)))
-                {
-                    Log.Debug($"Time-series '{timeSeriesDescription.Identifier}' is explicitly excluded.");
-                    continue;
-                }
 
                 results.Add(timeSeriesDescription);
             }
@@ -466,7 +457,7 @@ namespace SosExporter
                 }
             }
 
-            FilterTimeSeriesPoints(timeSeries);
+            TimeSeriesPointFilter.FilterTimeSeriesPoints(timeSeries);
 
             var createSensor = existingSensor == null || deleteExistingSensor || clearExportedData;
             var assignedOffering = existingSensor?.Identifier;
@@ -550,80 +541,6 @@ namespace SosExporter
 
             // Otherwise fall back to the "I don't know" setting
             return ComputationPeriod.Unknown;
-        }
-
-        private void FilterTimeSeriesPoints(TimeSeriesDataServiceResponse timeSeries)
-        {
-            if (!Context.Config.Approvals.Any() && !Context.Config.Grades.Any() && !Context.Config.Qualifiers.Any())
-                return;
-
-            var filteredPoints = new List<TimeSeriesPoint>();
-
-            var includeApprovalFilters = Context.Config.Approvals.Where(filter => !filter.Exclude).ToList();
-            var excludeApprovalFilters = Context.Config.Approvals.Where(filter => filter.Exclude).ToList();
-            var includeGradeFilters = Context.Config.Grades.Where(filter => !filter.Exclude).ToList();
-            var excludeGradeFilters = Context.Config.Grades.Where(filter => filter.Exclude).ToList();
-            var includeQualifierFilters = Context.Config.Qualifiers.Where(filter => !filter.Exclude).ToList();
-            var excludeQualifierFilters = Context.Config.Qualifiers.Where(filter => filter.Exclude).ToList();
-
-            foreach (var point in timeSeries.Points)
-            {
-                var approval = timeSeries.Approvals.Single(a => IsPointWithinTimeRange(point, a));
-                var grade = timeSeries.Grades.Single(g => IsPointWithinTimeRange(point, g));
-                var qualifiers = timeSeries.Qualifiers.Where(q => IsPointWithinTimeRange(point, q)).ToList();
-
-                if (includeApprovalFilters.Any() && !includeApprovalFilters.Any(f => IsApprovalFiltered(approval, f))) continue;
-                if (excludeApprovalFilters.Any(f => IsApprovalFiltered(approval, f))) continue;
-                if (includeGradeFilters.Any() && !includeGradeFilters.Any(f => IsGradeFiltered(grade, f))) continue;
-                if (excludeGradeFilters.Any(f => IsGradeFiltered(grade, f))) continue;
-                if (includeQualifierFilters.Any() && !includeQualifierFilters.Any(f => qualifiers.Any(q => IsQualifierFiltered(q, f)))) continue;
-                if (excludeQualifierFilters.Any(f => qualifiers.Any(q => IsQualifierFiltered(q, f)))) continue;
-
-                filteredPoints.Add(point);
-            }
-
-            timeSeries.NumPoints = filteredPoints.Count;
-            timeSeries.Points = filteredPoints;
-        }
-
-        private static bool IsPointWithinTimeRange(TimeSeriesPoint point, TimeRange timeRange)
-        {
-            return timeRange.StartTime <= point.Timestamp.DateTimeOffset && point.Timestamp.DateTimeOffset < timeRange.EndTime;
-        }
-
-        private static bool IsApprovalFiltered(Approval approval, ApprovalFilter filter)
-        {
-            switch (filter.ComparisonType)
-            {
-                case ComparisonType.LessThan: return approval.ApprovalLevel < filter.ApprovalLevel;
-                case ComparisonType.LessThanEqual: return approval.ApprovalLevel <= filter.ApprovalLevel;
-                case ComparisonType.Equal: return approval.ApprovalLevel == filter.ApprovalLevel;
-                case ComparisonType.GreaterThanEqual: return approval.ApprovalLevel >= filter.ApprovalLevel;
-                case ComparisonType.GreaterThan: return approval.ApprovalLevel > filter.ApprovalLevel;
-            }
-
-            throw new ArgumentException($"Unknown ComparisonType={filter.ComparisonType}", nameof(filter));
-        }
-
-        private static bool IsGradeFiltered(Grade grade, GradeFilter filter)
-        {
-            var gradeCode = int.Parse(grade.GradeCode);
-
-            switch (filter.ComparisonType)
-            {
-                case ComparisonType.LessThan: return gradeCode < filter.GradeCode;
-                case ComparisonType.LessThanEqual: return gradeCode <= filter.GradeCode;
-                case ComparisonType.Equal: return gradeCode == filter.GradeCode;
-                case ComparisonType.GreaterThanEqual: return gradeCode >= filter.GradeCode;
-                case ComparisonType.GreaterThan: return gradeCode > filter.GradeCode;
-            }
-
-            throw new ArgumentException($"Unknown ComparisonType={filter.ComparisonType}", nameof(filter));
-        }
-
-        private static bool IsQualifierFiltered(Qualifier qualifier, QualifierFilter filter)
-        {
-            return qualifier.Identifier == filter.Text;
         }
     }
 }

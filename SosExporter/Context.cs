@@ -44,13 +44,18 @@ namespace SosExporter
         };
     }
 
-    public class TimeSeriesFilter
+    public interface IFilter
+    {
+        bool Exclude { get; set; }
+    }
+
+    public class TimeSeriesFilter : IFilter
     {
         public bool Exclude { get; set; }
         public Regex Regex { get; set; }
     }
 
-    public class ApprovalFilter
+    public class ApprovalFilter : IFilter
     {
         public bool Exclude { get; set; }
         public string Text { get; set; }
@@ -58,7 +63,7 @@ namespace SosExporter
         public ComparisonType ComparisonType { get; set; }
     }
 
-    public class GradeFilter
+    public class GradeFilter : IFilter
     {
         public bool Exclude { get; set; }
         public string Text { get; set; }
@@ -66,7 +71,7 @@ namespace SosExporter
         public ComparisonType ComparisonType { get; set; }
     }
 
-    public class QualifierFilter
+    public class QualifierFilter : IFilter
     {
         public bool Exclude { get; set; }
         public string Text { get; set; }
