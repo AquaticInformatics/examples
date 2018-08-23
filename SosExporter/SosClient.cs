@@ -30,6 +30,8 @@ namespace SosExporter
             return client;
         }
 
+        public int MaximumPointsPerObservation { get; set; }
+
         private string HostUrl { get; }
         private string Username { get; }
         private string Password { get; }
@@ -252,10 +254,9 @@ namespace SosExporter
 
             for (var insertedPoints = 0; insertedPoints < timeSeries.Points.Count; )
             {
-                const int chunkSize = 1000;
                 var points = timeSeries.Points
                     .Skip(insertedPoints)
-                    .Take(chunkSize)
+                    .Take(MaximumPointsPerObservation)
                     .ToList();
 
                 substitutions["{__phenomenonStartTime__}"] = $"{points.First().Timestamp.DateTimeOffset:O}";

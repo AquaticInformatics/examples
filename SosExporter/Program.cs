@@ -296,11 +296,11 @@ namespace SosExporter
                 },
                 new Option
                 {
-                    Key = nameof(context.Timeout),
-                    Setter = value => context.Timeout = TimeSpan.Parse(value),
-                    Getter = () => context.Timeout.ToString(),
-                    Description = "The timeout (in hh:mm:ss format) for each API operation."
-                },
+                    Key = nameof(context.MaximumPointsPerObservation),
+                    Setter = value => context.MaximumPointsPerObservation = int.Parse(value),
+                    Getter = () => context.MaximumPointsPerObservation.ToString(),
+                    Description = "The maximum number of points per SOS observation"
+                }
             };
 
             var usageMessage

@@ -94,6 +94,6 @@ namespace SosExporter
         public bool ForceResync { get; set; }
         public bool NeverResync { get; set; }
         public DateTimeOffset? ChangesSince { get; set; }
-        public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(5);
+        public int MaximumPointsPerObservation { get; set; } = 1000;
     }
 }
