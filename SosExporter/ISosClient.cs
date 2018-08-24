@@ -6,6 +6,8 @@ namespace SosExporter
 {
     public interface ISosClient : IDisposable
     {
+        int MaximumPointsPerObservation { get; set; }
+
         void Connect();
         void Disconnect();
         void ClearDatasource();

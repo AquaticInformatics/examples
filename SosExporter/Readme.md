@@ -47,7 +47,7 @@ Consider the following 15-line file named "sosconfig.txt":
 -SosPassword=xyz456
 
 # Only export the time-series with an extended attribute named "SOS" with a value of "Export"
-# Since the defulat is -Publish=true, we need to disable that filter
+# Since the default is -Publish=true, we need to disable that filter
 -Publish=
 -ExtendedFilters=SOS=Export
 
@@ -155,4 +155,73 @@ Eg. Only export points with an "In Review" or greater approval and a "Monthly" q
 
 ```cmd
 SosExporter /Approvals=">=In Review" /Qualifiers=Monthly /Grades="<Poor" (other options ...)
+```
+## Showing the `/help` screen
+
+The `/help` or `-h` options will show the basic usage help screen.
+
+```cmd
+C:\> SosExporter -help
+
+Export time-series changes in AQTS time-series to an OGC SOS server.
+
+usage: SosExporter [-option=value] [@optionsFile] ...
+
+Supported -option=value settings (/option=value works too):
+
+  ============================ Export configuration settings. Changes will trigger a full resync:
+  -AquariusServer              AQTS server name
+  -AquariusUsername            AQTS username [default: admin]
+  -AquariusPassword            AQTS password [default: admin]
+  -SosServer                   SOS server name
+  -SosUsername                 SOS username
+  -SosPassword                 SOS password
+
+  ============================ /Publish/v2/GetTimeSeriesUniqueIdList settings. Changes will trigger a full resync:
+  -LocationIdentifier          Optional location filter.
+  -Publish                     Optional publish filter. [default: True]
+  -ChangeEventType             Optional change event type filter. One of Data, Attribute
+  -Parameter                   Optional parameter filter.
+  -ComputationIdentifier       Optional computation filter.
+  -ComputationPeriodIdentifier Optional computation period filter.
+  -ExtendedFilters             Extended attribute filter in Name=Value format. Can be set multiple times.
+
+  ============================ Aggressive time-series filtering. Changes will trigger a full resync:
+  -TimeSeries                  Time-series identifier regular expression filter. Can be specified multiple times.
+  -Approvals                   Filter points by approval level or name. Can be specified multiple times.
+  -Grades                      Filter points by grade code or name. Can be specified multiple times.
+  -Qualifiers                  Filter points by qualifier. Can be specified multiple times.
+
+  ============================ Maximum time range of points to upload: Changes will trigger a full resync:
+  -MaximumPointDays            Days since the last point to upload, in Frequency=Value format. [default:
+    Unknown  = 90
+    Annual   = All
+    Monthly  = All
+    Weekly   = 3653
+    Daily    = 3653
+    Hourly   = 365
+    Points   = 30
+    Minutes  = 30
+  ]
+
+  ============================ Other options: (Changing these values won't trigger a full resync)
+  -ConfigurationName           The name of the export configuration, to be saved in the AQTS global settings. [default: SosConfig]
+  -DryRun                      When true, don't export to SOS. Only log the changes that would have been performed. [default: False]
+  -ForceResync                 When true, force a full resync of all time-series. [default: False]
+  -NeverResync                 When true, avoid full time-series resync, even when the algorithm recommends it. [default: False]
+  -ChangesSince                The starting changes-since time in ISO 8601 format. Defaults to the saved AQTS global setting value.
+  -MaximumPointsPerObservation The maximum number of points per SOS observation [default: 1000]
+
+ISO 8601 timestamps use a yyyy'-'mm'-'dd'T'HH':'mm':'ss'.'fffffffzzz format.
+
+  The 7 fractional seconds digits are optional.
+  The zzz timezone can be 'Z' for UTC, or +HH:MM, or -HH:MM
+
+  Eg: 2017-04-01T00:00:00Z represents April 1st, 2017 in UTC.
+
+Use the @optionsFile syntax to read more options from a file.
+
+  Each line in the file is treated as a command line option.
+  Blank lines and leading/trailing whitespace are ignored.
+  Comment lines begin with a # or // marker.
 ```

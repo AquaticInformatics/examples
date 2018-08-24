@@ -357,6 +357,8 @@ namespace SosExporter
             TimeSeriesUniqueIdListServiceResponse response,
             List<TimeSeriesDescription> timeSeriesDescriptions)
         {
+            Sos.MaximumPointsPerObservation = Context.MaximumPointsPerObservation;
+
             var filteredTimeSeriesDescriptions = FilterTimeSeriesDescriptions(timeSeriesDescriptions);
 
             Log.Info($"Exporting {filteredTimeSeriesDescriptions.Count} time-series ...");
@@ -415,7 +417,7 @@ namespace SosExporter
 
             if (existingSensor == null || deleteExistingSensor || clearExportedData)
             {
-                // We need to fetch more points than just the latest changed points
+                // We may need to fetch more points than just the latest changed points
                 var daysToExtract = Context.Config.MaximumPointDays[period];
 
                 var originalQueryFrom = dataRequest.QueryFrom;
@@ -432,7 +434,7 @@ namespace SosExporter
                         TimeSpan.FromDays(daysToExtract));
                 }
 
-                if (originalQueryFrom != dataRequest.QueryFrom)
+                if (originalQueryFrom != null && originalQueryFrom != dataRequest.QueryFrom)
                 {
                     Log.Info($"Fetching more than changed points from '{timeSeriesDescription.Identifier}' with QueryFrom={dataRequest.QueryFrom:O} ...");
 
@@ -469,7 +471,7 @@ namespace SosExporter
             var createSensor = existingSensor == null || deleteExistingSensor || clearExportedData;
             var assignedOffering = existingSensor?.Identifier;
 
-            var exportSummary = $"{timeSeries.NumPoints} points [{timeSeries.Points.FirstOrDefault()?.Timestamp.DateTimeOffset:O} to {timeSeries.Points.LastOrDefault()?.Timestamp.DateTimeOffset:O}] from '{timeSeriesDescription.Identifier}'";
+            var exportSummary = $"{timeSeries.NumPoints} points [{timeSeries.Points.FirstOrDefault()?.Timestamp.DateTimeOffset:O} to {timeSeries.Points.LastOrDefault()?.Timestamp.DateTimeOffset:O}] from '{timeSeriesDescription.Identifier}' with Frequency={period}";
 
             ExportedTimeSeriesCount += 1;
             ExportedPointCount += timeSeries.NumPoints ?? 0;
