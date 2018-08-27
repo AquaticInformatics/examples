@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using Aquarius.TimeSeries.Client;
 using CommunicationShared.Dto;
 using log4net;
 using ServiceStack;
@@ -12,6 +13,28 @@ namespace SosExporter
     public class SyncStatus
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+        private string HostUrl { get; }
+
+        public SyncStatus(IAquariusClient aquariusClient)
+        {
+            HostUrl = CreateHostUrl(aquariusClient);
+        }
+
+        private static string CreateHostUrl(IAquariusClient aquariusClient)
+        {
+            var publishUri = (aquariusClient.Publish as JsonServiceClient)?.BaseUri;
+
+            if (string.IsNullOrEmpty(publishUri))
+                return null;
+
+            var uriBuilder = new UriBuilder(publishUri)
+            {
+                Path = "/AQUARIUS/AquariusDataService.svc"
+            };
+
+            return uriBuilder.ToString();
+        }
 
         public Context Context { get; set; }
 
@@ -47,7 +70,10 @@ namespace SosExporter
 
         private ILegacyDataServiceClient CreateConnectedClient()
         {
-            return LegacyDataServiceClient.Create(Context.Config.AquariusServer, Context.Config.AquariusUsername, Context.Config.AquariusPassword);
+            return LegacyDataServiceClient.Create(
+                HostUrl ?? Context.Config.AquariusServer,
+                Context.Config.AquariusUsername,
+                Context.Config.AquariusPassword);
         }
 
         public void SaveConfiguration(DateTime nextChangesSinceToken)

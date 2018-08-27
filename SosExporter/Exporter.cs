@@ -63,7 +63,7 @@ namespace SosExporter
 
         private void RunOnce()
         {
-            SyncStatus = new SyncStatus {Context = Context};
+            SyncStatus = new SyncStatus(Aquarius) {Context = Context};
             TimeSeriesPointFilter = new TimeSeriesPointFilter {Context = Context};
 
             ValidateFilters();
