@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -300,6 +301,13 @@ namespace SosExporter
                     Setter = value => context.MaximumPointsPerObservation = int.Parse(value),
                     Getter = () => context.MaximumPointsPerObservation.ToString(),
                     Description = "The maximum number of points per SOS observation"
+                },
+                new Option
+                {
+                    Key = nameof(context.Timeout),
+                    Setter = value => context.Timeout = TimeSpan.Parse(value, CultureInfo.InvariantCulture),
+                    Getter = () => context.Timeout.ToString("g"),
+                    Description = "The timeout used for all web requests, in hh:mm:ss format."
                 }
             };
 

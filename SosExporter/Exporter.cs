@@ -30,7 +30,7 @@ namespace SosExporter
         {
             Log.Info($"{GetProgramVersion()} connecting to {Context.Config.AquariusServer} ...");
 
-            using (Aquarius = AquariusClient.CreateConnectedClient(Context.Config.AquariusServer, Context.Config.AquariusUsername, Context.Config.AquariusPassword))
+            using (Aquarius = CreateConnectedAquariusClient())
             {
                 Log.Info($"Connected to {Context.Config.AquariusServer} (v{Aquarius.ServerVersion}) as {Context.Config.AquariusUsername}");
 
@@ -54,6 +54,27 @@ namespace SosExporter
 
             // ReSharper disable once PossibleNullReferenceException
             return $"{MethodBase.GetCurrentMethod().DeclaringType.Namespace} v{fileVersionInfo.FileVersion}";
+        }
+
+        private IAquariusClient CreateConnectedAquariusClient()
+        {
+            var client = AquariusClient.CreateConnectedClient(
+                Context.Config.AquariusServer,
+                Context.Config.AquariusUsername,
+                Context.Config.AquariusPassword);
+
+            foreach (var serviceClient in new[]{client.Publish, client.Provisioning, client.Acquisition})
+            {
+                var jsonClient = serviceClient as JsonServiceClient;
+
+                if (jsonClient == null)
+                    continue;
+
+                jsonClient.Timeout = Context.Timeout;
+                jsonClient.ReadWriteTimeout = Context.Timeout;
+            }
+
+            return client;
         }
 
         private void LogDryRun(string message)
@@ -118,7 +139,7 @@ namespace SosExporter
 
             Log.Info($"Connecting to {Context.Config.SosServer} ...");
 
-            using (Sos = SosClient.CreateConnectedClient(Context.Config.SosServer, Context.Config.SosUsername, Context.Config.SosPassword))
+            using (Sos = SosClient.CreateConnectedClient(Context))
             {
                 Log.Info($"Connected to {Context.Config.SosServer} as {Context.Config.SosUsername}");
 
@@ -357,8 +378,6 @@ namespace SosExporter
             TimeSeriesUniqueIdListServiceResponse response,
             List<TimeSeriesDescription> timeSeriesDescriptions)
         {
-            Sos.MaximumPointsPerObservation = Context.MaximumPointsPerObservation;
-
             var filteredTimeSeriesDescriptions = FilterTimeSeriesDescriptions(timeSeriesDescriptions);
 
             Log.Info($"Exporting {filteredTimeSeriesDescriptions.Count} time-series ...");

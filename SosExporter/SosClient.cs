@@ -21,16 +21,21 @@ namespace SosExporter
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        public static ISosClient CreateConnectedClient(string hostUrl, string username, string password)
+        public static ISosClient CreateConnectedClient(Context context)
         {
-            var client = new SosClient(hostUrl, username, password);
+            var client = new SosClient(context.Config.SosServer, context.Config.SosUsername, context.Config.SosPassword)
+            {
+                MaximumPointsPerObservation = context.MaximumPointsPerObservation,
+                TimeoutMilliseconds = Convert.ToInt32(context.Timeout.TotalMilliseconds)
+            };
 
             client.Connect();
 
             return client;
         }
 
-        public int MaximumPointsPerObservation { get; set; }
+        private int MaximumPointsPerObservation { get; set; }
+        private int TimeoutMilliseconds { get; set; }
 
         private string HostUrl { get; }
         private string Username { get; }
@@ -91,7 +96,11 @@ namespace SosExporter
             JsonClient = null;
         }
 
-        private Action<HttpWebRequest> UseJsonClientCookies => req => req.CookieContainer = JsonClient.CookieContainer;
+        private Action<HttpWebRequest> UseJsonClientCookies => req =>
+        {
+            req.Timeout = TimeoutMilliseconds;
+            req.CookieContainer = JsonClient.CookieContainer;
+        };
 
         private void GetCapabilities()
         {
