@@ -428,66 +428,45 @@ namespace SosExporter
                 ApplyRounding = true,
             };
 
-            var timeSeries = Aquarius.Publish.Get(dataRequest);
+            var timeSeries = FetchRecentSignal(timeSeriesDescription, dataRequest, ref period);
+            var daysToExtract = Context.Config.MaximumPointDays[period];
 
             var existingSensor = Sos.FindExistingSensor(timeSeries);
 
-            var deleteExistingSensor = !clearExportedData && existingSensor?.PhenomenonTime.Last() >= detectedChange.FirstPointChanged;
+            var deleteExistingSensor = clearExportedData && existingSensor != null;
 
-            if (existingSensor == null || deleteExistingSensor || clearExportedData)
+            if (existingSensor?.PhenomenonTime.Last() >= detectedChange.FirstPointChanged)
             {
-                // We may need to fetch more points than just the latest changed points
-                var daysToExtract = Context.Config.MaximumPointDays[period];
+                // A point has changed before the last known observation, so we'll need to throw out the entire sensor
+                deleteExistingSensor = true;
 
-                var originalQueryFrom = dataRequest.QueryFrom;
+                // We'll also need to fetch more data again
+                dataRequest.QueryFrom = null;
+                timeSeries = FetchRecentSignal(timeSeriesDescription, dataRequest, ref period);
+                daysToExtract = Context.Config.MaximumPointDays[period];
+            }
 
-                if (daysToExtract <= 0 || period == ComputationPeriod.Unknown)
-                {
-                    // Fetch the whole signal
-                    dataRequest.QueryFrom = null;
-                }
-                else
-                {
-                    dataRequest.QueryFrom = SubtractTimeSpan(
-                        detectedChange.FirstPointChanged ?? DateTimeOffset.UtcNow,
-                        TimeSpan.FromDays(daysToExtract));
-                }
+            if (daysToExtract > 0 && timeSeries.Points.Any())
+            {
+                var earliestDayToUpload = SubtractTimeSpan(
+                    timeSeries.Points.Last().Timestamp.DateTimeOffset,
+                    TimeSpan.FromDays(daysToExtract));
 
-                if (originalQueryFrom != null && originalQueryFrom != dataRequest.QueryFrom)
-                {
-                    Log.Info($"Fetching more than changed points from '{timeSeriesDescription.Identifier}' with QueryFrom={dataRequest.QueryFrom:O} ...");
+                var remainingPoints = timeSeries.Points
+                    .Where(p => p.Timestamp.DateTimeOffset >= earliestDayToUpload)
+                    .ToList();
 
-                    timeSeries = Aquarius.Publish.Get(dataRequest);
-                }
+                var trimmedPointCount = timeSeries.NumPoints - remainingPoints.Count;
 
-                if (period == ComputationPeriod.Unknown)
-                {
-                    period = ComputationPeriodEstimator.InferPeriodFromRecentPoints(timeSeries);
-                    daysToExtract = Context.Config.MaximumPointDays[period];
-                }
+                Log.Info($"Trimming '{timeSeriesDescription.Identifier}' {trimmedPointCount} points before {earliestDayToUpload:O} with {remainingPoints.Count} points remaining with Frequency={period}");
 
-                if (daysToExtract > 0 && timeSeries.Points.Any())
-                {
-                    var earliestDayToUpload = SubtractTimeSpan(
-                        timeSeries.Points.Last().Timestamp.DateTimeOffset,
-                        TimeSpan.FromDays(daysToExtract));
-
-                    var remainingPoints = timeSeries.Points
-                        .Where(p => p.Timestamp.DateTimeOffset >= earliestDayToUpload)
-                        .ToList();
-
-                    var trimmedPointCount = timeSeries.NumPoints - remainingPoints.Count;
-
-                    Log.Info($"Trimming '{timeSeriesDescription.Identifier}' {trimmedPointCount} points before {earliestDayToUpload:O} with {remainingPoints.Count} points remaining with Frequency={period}");
-
-                    timeSeries.Points = remainingPoints;
-                    timeSeries.NumPoints = timeSeries.Points.Count;
-                }
+                timeSeries.Points = remainingPoints;
+                timeSeries.NumPoints = timeSeries.Points.Count;
             }
 
             TimeSeriesPointFilter.FilterTimeSeriesPoints(timeSeries);
 
-            var createSensor = existingSensor == null || deleteExistingSensor || clearExportedData;
+            var createSensor = existingSensor == null || deleteExistingSensor;
             var assignedOffering = existingSensor?.Identifier;
 
             var exportSummary = $"{timeSeries.NumPoints} points [{timeSeries.Points.FirstOrDefault()?.Timestamp.DateTimeOffset:O} to {timeSeries.Points.LastOrDefault()?.Timestamp.DateTimeOffset:O}] from '{timeSeriesDescription.Identifier}' with Frequency={period}";
@@ -573,5 +552,134 @@ namespace SosExporter
             // Otherwise fall back to the "I don't know" setting
             return ComputationPeriod.Unknown;
         }
+
+        private TimeSeriesDataServiceResponse FetchRecentSignal(
+            TimeSeriesDescription timeSeriesDescription,
+            TimeSeriesDataCorrectedServiceRequest dataRequest,
+            ref ComputationPeriod period)
+        {
+            var maximumDaysToExport = Context.Config.MaximumPointDays[period];
+            TimeSpan retrievalDuration;
+
+            if (dataRequest.QueryFrom != null)
+            {
+                // We've been told exactly how far back in time to pull the AQTS signal.
+                // But for derived time-series, this starting point can often be "the beginning of time", which can be much too early
+                retrievalDuration = DateTimeOffset.UtcNow.Subtract(dataRequest.QueryFrom.Value);
+
+                if (maximumDaysToExport > 0 && retrievalDuration < TimeSpan.FromDays(maximumDaysToExport))
+                {
+                    // We know the frequency period of the time-series, and we know that we haven't exceeded the export configuration limit for that frequency.
+                    // So we can confidently know that this is the only points-retrieval request needed from AQTS.
+                    // This is the code path we want to hit for best incremental sync performance.
+                    return Aquarius.Publish.Get(dataRequest);
+                }
+            }
+
+            // If we find ourselves here, we will need to do a least one fetch of data to see if we have enough to satisfy the export request.
+            var utcNow = DateTime.UtcNow.Date;
+            var startOfToday = new DateTimeOffset(utcNow.Year, utcNow.Month, utcNow.Day, 0, 0, 0,
+                timeSeriesDescription.UtcOffsetIsoDuration.ToTimeSpan());
+
+            var queryStartPoint = dataRequest.QueryFrom ?? startOfToday.Subtract(TimeSpan.FromDays(90));
+            dataRequest.QueryFrom = queryStartPoint;
+
+            TimeSeriesDataServiceResponse timeSeries;
+
+            if (period == ComputationPeriod.Unknown)
+            {
+                // We don't know the time-series period, so we'll need to load the most recent data until we can make a stronger inference about the frequency
+                timeSeries = FetchRecentSignal(
+                    timeSeriesDescription,
+                    dataRequest,
+                    ts => ts.NumPoints >= ComputationPeriodEstimator.MinimumPointCount,
+                    "to determine signal frequency");
+
+                period = ComputationPeriodEstimator.InferPeriodFromRecentPoints(timeSeries);
+                maximumDaysToExport = Context.Config.MaximumPointDays[period];
+
+                if (dataRequest.QueryFrom == null)
+                {
+                    // We've already asked for all the data
+                    return timeSeries;
+                }
+
+                if (maximumDaysToExport > 0 && GetRetrievedDuration(timeSeries, dataRequest) >= TimeSpan.FromDays(maximumDaysToExport))
+                {
+                    // We have enough known points to satisfy the export request
+                    return timeSeries;
+                }
+            }
+
+            // We've seen enough of the most recent points to know the time-series period,
+            // but we still don't know how much data to fetch.
+            // Stop when we've retrieved at least this much data
+            retrievalDuration = maximumDaysToExport > 0
+                ? TimeSpan.FromDays(maximumDaysToExport)
+                : TimeSpan.MaxValue;
+
+            timeSeries = FetchRecentSignal(
+                timeSeriesDescription,
+                dataRequest,
+                ts =>
+                {
+                    var duration = GetRetrievedDuration(ts, dataRequest);
+
+                    return duration >= retrievalDuration;
+                },
+                $"with Frequency={period}");
+
+            return timeSeries;
+        }
+
+        private static TimeSpan GetRetrievedDuration(
+            TimeSeriesDataServiceResponse timeSeries,
+            TimeSeriesDataCorrectedServiceRequest dataRequest)
+        {
+            return dataRequest.QueryFrom.HasValue
+                ? timeSeries.NumPoints <= 0
+                    ? TimeSpan.MinValue
+                    : timeSeries.Points.Last().Timestamp.DateTimeOffset
+                        .Subtract(dataRequest.QueryFrom.Value)
+                : TimeSpan.MaxValue;
+        }
+
+        private TimeSeriesDataServiceResponse FetchRecentSignal(
+            TimeSeriesDescription timeSeriesDescription,
+            TimeSeriesDataCorrectedServiceRequest dataRequest,
+            Func<TimeSeriesDataServiceResponse,bool> isDataFetchComplete,
+            string progressMessage)
+        {
+            TimeSeriesDataServiceResponse timeSeries = null;
+
+            foreach (var timeSpan in PeriodsToFetch)
+            {
+                if (timeSpan == TimeSpan.MaxValue)
+                {
+                    dataRequest.QueryFrom = null;
+                }
+
+                Log.Info($"Fetching more than changed points from '{timeSeriesDescription.Identifier}' with QueryFrom={dataRequest.QueryFrom:O} {progressMessage} ...");
+
+                timeSeries = Aquarius.Publish.Get(dataRequest);
+
+                if (timeSpan == TimeSpan.MaxValue || isDataFetchComplete(timeSeries) )
+                    break;
+
+                dataRequest.QueryFrom -= timeSpan;
+            }
+
+            if (timeSeries == null)
+                throw new Exception($"Logic error: Can't fetch time-series data of '{timeSeriesDescription.Identifier}' {progressMessage}");
+
+            return timeSeries;
+        }
+
+        private static readonly TimeSpan[] PeriodsToFetch =
+            Enumerable.Repeat(TimeSpan.FromDays(90), 3)
+                .Concat(Enumerable.Repeat(TimeSpan.FromDays(365), 4))
+                .Concat(Enumerable.Repeat(TimeSpan.FromDays(5 * 365), 4))
+                .Concat(new[] {TimeSpan.MaxValue})
+                .ToArray();
     }
 }
