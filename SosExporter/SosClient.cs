@@ -251,7 +251,7 @@ namespace SosExporter
                     {"{__featureOfInterestName__}", location.LocationName},
                     {"{__featureOfInterestLatitude__}", $"{location.Latitude}"},
                     {"{__featureOfInterestLongitude__}", $"{location.Longitude}"},
-                    {"{__observablePropertyUnit__}", timeSeries.Unit},
+                    {"{__observablePropertyUnit__}", SanitizeUnitSymbol(timeSeries.Unit)},
                     {"{__observablePropertyFieldName__}", observablePropertyFieldName},
                     {"{__resultTime__}", $"{FixedResultTime:O}"},
                     {"{__pointTokenSeparator__}", pointTokenSeparator},
@@ -328,10 +328,20 @@ namespace SosExporter
 
         private static string SanitizeIdentifier(string text)
         {
-            return InvalidIdentifierCharsRegex.Replace(text, "_");
+            return InvalidIdentifierCharsRegex.Replace(text, InvalidCharReplacement);
         }
 
-        private static readonly Regex InvalidIdentifierCharsRegex = new Regex(@"[,()]");
+        private static string SanitizeUnitSymbol(string text)
+        {
+            return InvalidUnitCharRegex.Replace(text, InvalidCharReplacement);
+        }
+
+        // http://schemas.opengis.net/sweCommon/2.0/basic_types.xsd
+        // Defines many of the basic types and naming restrictions
+        private static readonly Regex InvalidUnitCharRegex = new Regex(@"[: \t\n\r]+");
+        private const string InvalidCharReplacement = "_";
+
+        private static readonly Regex InvalidIdentifierCharsRegex = new Regex(@"[:,()\t\r\n]+"); // TODO: Should this include a space? braces? other punct?
 
         private static string TransformXmlTemplate(string path, Dictionary<string, string> substitutions)
         {
