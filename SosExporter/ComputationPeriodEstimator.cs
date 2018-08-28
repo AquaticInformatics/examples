@@ -7,12 +7,12 @@ namespace SosExporter
 {
     public class ComputationPeriodEstimator
     {
+        public const int MinimumPointCount = 100;
+
         public static ComputationPeriod InferPeriodFromRecentPoints(TimeSeriesDataServiceResponse timeSeries)
         {
-            const int pointCount = 100;
-
             var recentPoints = timeSeries.Points
-                .Skip(timeSeries.Points.Count - pointCount)
+                .Skip(timeSeries.Points.Count - MinimumPointCount)
                 .ToList();
 
             if (recentPoints.Count < 2)
