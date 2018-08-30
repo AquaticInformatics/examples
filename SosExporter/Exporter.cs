@@ -632,7 +632,7 @@ namespace SosExporter
                 // But for derived time-series, this starting point can often be "the beginning of time", which can be much too early
                 retrievalDuration = DateTimeOffset.UtcNow.Subtract(dataRequest.QueryFrom.Value);
 
-                if (maximumDaysToExport > 0 && retrievalDuration < TimeSpan.FromDays(maximumDaysToExport))
+                if (period != ComputationPeriod.Unknown && maximumDaysToExport > 0 && retrievalDuration < TimeSpan.FromDays(maximumDaysToExport))
                 {
                     // We know the frequency period of the time-series, and we know that we haven't exceeded the export configuration limit for that frequency.
                     // So we can confidently know that this is the only points-retrieval request needed from AQTS.
@@ -686,12 +686,7 @@ namespace SosExporter
             timeSeries = FetchRecentSignal(
                 timeSeriesDescription,
                 dataRequest,
-                ts =>
-                {
-                    var duration = GetRetrievedDuration(ts, dataRequest);
-
-                    return duration >= retrievalDuration;
-                },
+                ts => GetRetrievedDuration(ts, dataRequest) >= retrievalDuration,
                 $"with Frequency={period}");
 
             return timeSeries;
@@ -717,6 +712,11 @@ namespace SosExporter
         {
             TimeSeriesDataServiceResponse timeSeries = null;
 
+            if (timeSeriesDescription.RawEndTime < dataRequest.QueryFrom)
+            {
+                dataRequest.QueryFrom = timeSeriesDescription.RawEndTime;
+            }
+
             foreach (var timeSpan in PeriodsToFetch)
             {
                 if (timeSpan == TimeSpan.MaxValue)
@@ -728,7 +728,7 @@ namespace SosExporter
 
                 timeSeries = Aquarius.Publish.Get(dataRequest);
 
-                if (timeSpan == TimeSpan.MaxValue || isDataFetchComplete(timeSeries) )
+                if (timeSpan == TimeSpan.MaxValue || timeSeriesDescription.RawStartTime > dataRequest.QueryFrom || isDataFetchComplete(timeSeries) )
                     break;
 
                 dataRequest.QueryFrom -= timeSpan;
