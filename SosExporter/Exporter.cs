@@ -41,7 +41,7 @@ namespace SosExporter
 
                 RunOnce();
 
-                Log.Info($"Successfully exported {ExportedPointCount} points from {ExportedTimeSeriesCount} time-series in {stopwatch.Elapsed.Humanize()}");
+                Log.Info($"Successfully exported {ExportedPointCount} points from {ExportedTimeSeriesCount} time-series in {stopwatch.Elapsed.Humanize(2)}");
             }
         }
 
@@ -65,9 +65,7 @@ namespace SosExporter
 
             foreach (var serviceClient in new[]{client.Publish, client.Provisioning, client.Acquisition})
             {
-                var jsonClient = serviceClient as JsonServiceClient;
-
-                if (jsonClient == null)
+                if (!(serviceClient is JsonServiceClient jsonClient))
                     continue;
 
                 jsonClient.Timeout = Context.Timeout;
@@ -129,13 +127,9 @@ namespace SosExporter
                 .UtcDateTime;
 
             var nextChangesSinceToken = response.NextToken ?? bootstrapToken;
+            request.ChangesSinceToken = nextChangesSinceToken;
 
-            Log.Info($"Fetching descriptions of {response.TimeSeriesUniqueIds.Count} changed time-series ...");
-
-            var timeSeriesDescriptions = FetchChangedTimeSeriesDescriptions(
-                response.TimeSeriesUniqueIds
-                    .Select(ts => ts.UniqueId)
-                    .ToList());
+            var timeSeriesDescriptions = FetchChangedTimeSeriesDescriptions(response);
 
             Log.Info($"Connecting to {Context.Config.SosServer} ...");
 
@@ -146,7 +140,7 @@ namespace SosExporter
                 ExportToSos(request, response, timeSeriesDescriptions);
             }
 
-            SyncStatus.SaveConfiguration(nextChangesSinceToken);
+            SyncStatus.SaveConfiguration(request.ChangesSinceToken.Value);
         }
 
         private void ValidateFilters()
@@ -303,9 +297,14 @@ namespace SosExporter
             return sb.ToString();
         }
 
-
-        private List<TimeSeriesDescription> FetchChangedTimeSeriesDescriptions(List<Guid> timeSeriesUniqueIdsToFetch)
+        private List<TimeSeriesDescription> FetchChangedTimeSeriesDescriptions(TimeSeriesUniqueIdListServiceResponse response)
         {
+            var timeSeriesUniqueIdsToFetch = response.TimeSeriesUniqueIds
+                .Select(ts => ts.UniqueId)
+                .ToList();
+
+            Log.Info($"Fetching descriptions of {timeSeriesUniqueIdsToFetch.Count} changed time-series ...");
+
             var timeSeriesDescriptions = new List<TimeSeriesDescription>();
 
             using (var batchClient = CreatePublishClientWithPostMethodOverride())
@@ -379,6 +378,7 @@ namespace SosExporter
             List<TimeSeriesDescription> timeSeriesDescriptions)
         {
             var filteredTimeSeriesDescriptions = FilterTimeSeriesDescriptions(timeSeriesDescriptions);
+            var changedTimeSeries = response.TimeSeriesUniqueIds;
 
             Log.Info($"Exporting {filteredTimeSeriesDescriptions.Count} time-series ...");
 
@@ -389,12 +389,77 @@ namespace SosExporter
                 ClearExportedData();
             }
 
-            foreach (var timeSeriesDescription in filteredTimeSeriesDescriptions)
+            var stopwatch = Stopwatch.StartNew();
+
+            for (var i = 0; i < filteredTimeSeriesDescriptions.Count; ++i)
             {
+                var timeSeriesDescription = filteredTimeSeriesDescriptions[i];
+
                 ExportTimeSeries(
                     clearExportedData,
-                    response.TimeSeriesUniqueIds.Single(t => t.UniqueId == timeSeriesDescription.UniqueId),
+                    changedTimeSeries.Single(t => t.UniqueId == timeSeriesDescription.UniqueId),
                     timeSeriesDescription);
+
+                if (stopwatch.Elapsed <= Context.MaximumExportDuration)
+                    continue;
+
+                Log.Info($"Maximum export duration has elapsed. Checking {GetFilterSummary(request)} ...");
+
+                stopwatch.Restart();
+                response = Aquarius.Publish.Get(request);
+
+                if (response.TokenExpired ?? !response.NextToken.HasValue)
+                    throw new ExpectedException($"Logic-error: A secondary changes-since response should always have an updated token.");
+
+                request.ChangesSinceToken = response.NextToken;
+
+                var newTimeSeriesDescriptions = FilterTimeSeriesDescriptions(FetchChangedTimeSeriesDescriptions(response));
+
+                if (!newTimeSeriesDescriptions.Any())
+                    continue;
+
+                Log.Info($"Merging {newTimeSeriesDescriptions.Count} changed time-series into the export queue ...");
+
+                filteredTimeSeriesDescriptions.AddRange(newTimeSeriesDescriptions);
+
+                foreach (var newTimeSeriesDescription in newTimeSeriesDescriptions)
+                {
+                    var change = response.TimeSeriesUniqueIds.Single(t => t.UniqueId == newTimeSeriesDescription.UniqueId);
+
+                    var existing = changedTimeSeries.SingleOrDefault(t => t.UniqueId == change.UniqueId);
+
+                    if (existing == null)
+                    {
+                        changedTimeSeries.Add(change);
+                        continue;
+                    }
+
+                    MergeChangedTimeSeries(existing, change);
+                }
+            }
+        }
+
+        private static void MergeChangedTimeSeries(TimeSeriesUniqueIds existing, TimeSeriesUniqueIds change)
+        {
+            if (existing.HasAttributeChange.HasValue && change.HasAttributeChange.HasValue)
+            {
+                existing.HasAttributeChange = existing.HasAttributeChange.Value || change.HasAttributeChange.Value;
+            }
+            else if (change.HasAttributeChange.HasValue)
+            {
+                existing.HasAttributeChange = change.HasAttributeChange;
+            }
+
+            if (existing.FirstPointChanged.HasValue && change.FirstPointChanged.HasValue)
+            {
+                if (change.FirstPointChanged < existing.FirstPointChanged)
+                {
+                    existing.FirstPointChanged = change.FirstPointChanged;
+                }
+            }
+            else if (change.FirstPointChanged.HasValue)
+            {
+                existing.FirstPointChanged = change.FirstPointChanged;
             }
         }
 

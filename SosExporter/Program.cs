@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
+using Humanizer;
 using log4net;
 using ServiceStack;
 using ServiceStack.Logging.Log4Net;
@@ -304,9 +305,16 @@ namespace SosExporter
                 },
                 new Option
                 {
+                    Key = nameof(context.MaximumExportDuration),
+                    Setter = value => context.MaximumExportDuration = TimeSpan.Parse(value, CultureInfo.InvariantCulture),
+                    Getter = () => context.MaximumExportDuration.Humanize(2),
+                    Description = "The maximum duration before polling AQTS for more changes, in hh:mm:ss format."
+                },
+                new Option
+                {
                     Key = nameof(context.Timeout),
                     Setter = value => context.Timeout = TimeSpan.Parse(value, CultureInfo.InvariantCulture),
-                    Getter = () => context.Timeout.ToString("g"),
+                    Getter = () => context.Timeout.Humanize(2),
                     Description = "The timeout used for all web requests, in hh:mm:ss format."
                 }
             };
