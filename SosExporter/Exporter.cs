@@ -10,6 +10,7 @@ using Humanizer;
 using log4net;
 using ServiceStack;
 using TimeSeriesDescription = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeSeriesDescription;
+using TimeSeriesChangeEvent = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeSeriesUniqueIds;
 
 namespace SosExporter
 {
@@ -127,7 +128,6 @@ namespace SosExporter
                 .UtcDateTime;
 
             var nextChangesSinceToken = response.NextToken ?? bootstrapToken;
-            request.ChangesSinceToken = nextChangesSinceToken;
 
             var timeSeriesDescriptions = FetchChangedTimeSeriesDescriptions(response);
 
@@ -137,7 +137,10 @@ namespace SosExporter
             {
                 Log.Info($"Connected to {Context.Config.SosServer} as {Context.Config.SosUsername}");
 
-                ExportToSos(request, response, timeSeriesDescriptions);
+                var clearExportedData = !request.ChangesSinceToken.HasValue;
+                request.ChangesSinceToken = nextChangesSinceToken;
+
+                ExportToSos(request, response, timeSeriesDescriptions, clearExportedData);
             }
 
             SyncStatus.SaveConfiguration(request.ChangesSinceToken.Value);
@@ -375,14 +378,13 @@ namespace SosExporter
         private void ExportToSos(
             TimeSeriesUniqueIdListServiceRequest request,
             TimeSeriesUniqueIdListServiceResponse response,
-            List<TimeSeriesDescription> timeSeriesDescriptions)
+            List<TimeSeriesDescription> timeSeriesDescriptions,
+            bool clearExportedData)
         {
             var filteredTimeSeriesDescriptions = FilterTimeSeriesDescriptions(timeSeriesDescriptions);
-            var changedTimeSeries = response.TimeSeriesUniqueIds;
+            var changeEvents = response.TimeSeriesUniqueIds;
 
             Log.Info($"Exporting {filteredTimeSeriesDescriptions.Count} time-series ...");
-
-            var clearExportedData = !request.ChangesSinceToken.HasValue;
 
             if (clearExportedData)
             {
@@ -397,7 +399,7 @@ namespace SosExporter
 
                 ExportTimeSeries(
                     clearExportedData,
-                    changedTimeSeries.Single(t => t.UniqueId == timeSeriesDescription.UniqueId),
+                    changeEvents.Single(t => t.UniqueId == timeSeriesDescription.UniqueId),
                     timeSeriesDescription);
 
                 if (stopwatch.Elapsed <= Context.MaximumExportDuration)
@@ -406,60 +408,66 @@ namespace SosExporter
                 Log.Info($"Maximum export duration has elapsed. Checking {GetFilterSummary(request)} ...");
 
                 stopwatch.Restart();
-                response = Aquarius.Publish.Get(request);
 
-                if (response.TokenExpired ?? !response.NextToken.HasValue)
-                    throw new ExpectedException($"Logic-error: A secondary changes-since response should always have an updated token.");
-
-                request.ChangesSinceToken = response.NextToken;
-
-                var newTimeSeriesDescriptions = FilterTimeSeriesDescriptions(FetchChangedTimeSeriesDescriptions(response));
-
-                if (!newTimeSeriesDescriptions.Any())
-                    continue;
-
-                Log.Info($"Merging {newTimeSeriesDescriptions.Count} changed time-series into the export queue ...");
-
-                filteredTimeSeriesDescriptions.AddRange(newTimeSeriesDescriptions);
-
-                foreach (var newTimeSeriesDescription in newTimeSeriesDescriptions)
-                {
-                    var change = response.TimeSeriesUniqueIds.Single(t => t.UniqueId == newTimeSeriesDescription.UniqueId);
-
-                    var existing = changedTimeSeries.SingleOrDefault(t => t.UniqueId == change.UniqueId);
-
-                    if (existing == null)
-                    {
-                        changedTimeSeries.Add(change);
-                        continue;
-                    }
-
-                    MergeChangedTimeSeries(existing, change);
-                }
+                FetchNewChanges(request, filteredTimeSeriesDescriptions, changeEvents);
             }
         }
 
-        private static void MergeChangedTimeSeries(TimeSeriesUniqueIds existing, TimeSeriesUniqueIds change)
+        private void FetchNewChanges(TimeSeriesUniqueIdListServiceRequest request, List<TimeSeriesDescription> timeSeriesToExport, List<TimeSeriesChangeEvent> timeSeriesChangeEvents)
         {
-            if (existing.HasAttributeChange.HasValue && change.HasAttributeChange.HasValue)
+            var response = Aquarius.Publish.Get(request);
+
+            if (response.TokenExpired ?? !response.NextToken.HasValue)
+                throw new ExpectedException($"Logic-error: A secondary changes-since response should always have an updated token.");
+
+            request.ChangesSinceToken = response.NextToken;
+
+            var newTimeSeriesDescriptions = FilterTimeSeriesDescriptions(FetchChangedTimeSeriesDescriptions(response));
+
+            if (!newTimeSeriesDescriptions.Any())
+                return;
+
+            Log.Info($"Merging {newTimeSeriesDescriptions.Count} changed time-series into the export queue ...");
+
+            timeSeriesToExport.AddRange(newTimeSeriesDescriptions);
+
+            foreach (var newTimeSeriesDescription in newTimeSeriesDescriptions)
             {
-                existing.HasAttributeChange = existing.HasAttributeChange.Value || change.HasAttributeChange.Value;
+                var newEvent = response.TimeSeriesUniqueIds.Single(e => e.UniqueId == newTimeSeriesDescription.UniqueId);
+
+                var existingEvent = timeSeriesChangeEvents.SingleOrDefault(e => e.UniqueId == newEvent.UniqueId);
+
+                if (existingEvent == null)
+                {
+                    timeSeriesChangeEvents.Add(newEvent);
+                    continue;
+                }
+
+                MergeTimeSeriesChangeEvent(existingEvent, newEvent);
             }
-            else if (change.HasAttributeChange.HasValue)
+        }
+
+        private static void MergeTimeSeriesChangeEvent(TimeSeriesChangeEvent existingEvent, TimeSeriesChangeEvent newEvent)
+        {
+            if (existingEvent.HasAttributeChange.HasValue && newEvent.HasAttributeChange.HasValue)
             {
-                existing.HasAttributeChange = change.HasAttributeChange;
+                existingEvent.HasAttributeChange = existingEvent.HasAttributeChange.Value || newEvent.HasAttributeChange.Value;
+            }
+            else if (newEvent.HasAttributeChange.HasValue)
+            {
+                existingEvent.HasAttributeChange = newEvent.HasAttributeChange;
             }
 
-            if (existing.FirstPointChanged.HasValue && change.FirstPointChanged.HasValue)
+            if (existingEvent.FirstPointChanged.HasValue && newEvent.FirstPointChanged.HasValue)
             {
-                if (change.FirstPointChanged < existing.FirstPointChanged)
+                if (newEvent.FirstPointChanged < existingEvent.FirstPointChanged)
                 {
-                    existing.FirstPointChanged = change.FirstPointChanged;
+                    existingEvent.FirstPointChanged = newEvent.FirstPointChanged;
                 }
             }
-            else if (change.FirstPointChanged.HasValue)
+            else if (newEvent.FirstPointChanged.HasValue)
             {
-                existing.FirstPointChanged = change.FirstPointChanged;
+                existingEvent.FirstPointChanged = newEvent.FirstPointChanged;
             }
         }
 
@@ -477,7 +485,7 @@ namespace SosExporter
 
         private void ExportTimeSeries(
             bool clearExportedData,
-            TimeSeriesUniqueIds detectedChange,
+            TimeSeriesChangeEvent detectedChange,
             TimeSeriesDescription timeSeriesDescription)
         {
             Log.Info($"Fetching changes from '{timeSeriesDescription.Identifier}' FirstPointChanged={detectedChange.FirstPointChanged:O} HasAttributeChanged={detectedChange.HasAttributeChange} ...");
