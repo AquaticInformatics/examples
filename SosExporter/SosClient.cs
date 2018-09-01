@@ -147,6 +147,8 @@ namespace SosExporter
                 Log.Info("Clearing the SOS database ...");
                 JsonClient.Post(new ClearDatasourceRequest());
             }
+
+            GetCapabilities();
         }
 
         public void DeleteDeletedObservations()
@@ -197,9 +199,11 @@ namespace SosExporter
         {
             var xml = TransformXmlTemplate(@"XmlTemplates\DeleteSensor.xml", timeSeries);
 
+            var procedureUniqueId = CreateProcedureUniqueId(timeSeries);
+
             try
             {
-                Log.Info($"Deleting sensor for '{CreateProcedureUniqueId(timeSeries)}' ...");
+                Log.Info($"Deleting sensor for '{procedureUniqueId}' ...");
                 PostPox(xml);
             }
             catch (WebServiceException exception)
@@ -214,12 +218,25 @@ namespace SosExporter
 
                 throw;
             }
+
+            var existingSensor = FindExistingSensor(procedureUniqueId);
+
+            if (existingSensor != null)
+            {
+                // Keep the sensor cache up to date
+                Capabilities.Contents.Remove(existingSensor);
+            }
         }
 
         public SensorInfo FindExistingSensor(TimeSeriesDataServiceResponse timeSeries)
         {
             var procedureUniqueId = CreateProcedureUniqueId(timeSeries);
 
+            return FindExistingSensor(procedureUniqueId);
+        }
+
+        private SensorInfo FindExistingSensor(string procedureUniqueId)
+        {
             return Capabilities.Contents.FirstOrDefault(c => c.Procedure.TrueForAll(s => s == procedureUniqueId));
         }
 
@@ -230,7 +247,17 @@ namespace SosExporter
             Log.Info($"Inserting sensor for '{CreateProcedureUniqueId(timeSeries)}' ...");
             var responseXml = PostPox(xml);
 
-            return FromXml<InsertSensorResponse>(responseXml);
+            var insertedSensor = FromXml<InsertSensorResponse>(responseXml);
+
+            // Insert a SensorInfo to the capabilities cache, so that any future calls to FindExistingSensor will find something
+            Capabilities.Contents.Add(new SensorInfo
+            {
+                Procedure = new List<string>{insertedSensor.AssignedProcedure},
+                Identifier = insertedSensor.AssignedOffering,
+                PhenomenonTime = new List<DateTimeOffset>()
+            });
+
+            return insertedSensor;
         }
 
         public void InsertObservation(string assignedOffering, LocationDataServiceResponse location, LocationDescription locationDescription, TimeSeriesDataServiceResponse timeSeries, TimeSeriesDescription timeSeriesDescription)
@@ -261,6 +288,8 @@ namespace SosExporter
 
             var procedureUniqueId = substitutions[ProcedureUniqueIdKey];
 
+            var existingSensor = FindExistingSensor(procedureUniqueId);
+
             for (var insertedPoints = 0; insertedPoints < timeSeries.Points.Count; )
             {
                 var points = timeSeries.Points
@@ -272,6 +301,11 @@ namespace SosExporter
                 substitutions["{__phenomenonEndTime__}"] = $"{points.Last().Timestamp.DateTimeOffset:O}";
                 substitutions["{__pointCount__}"] = $"{points.Count}";
                 substitutions["{__pointValues__}"] = string.Join(pointBlockSeparator, points.Select(p => $"{p.Timestamp.DateTimeOffset:O}{pointTokenSeparator}{p.Value.Display}"));
+
+                existingSensor.PhenomenonTime = existingSensor.PhenomenonTime
+                    .Concat(new[] {points.Last().Timestamp.DateTimeOffset})
+                    .OrderBy(x => x)
+                    .ToList();
 
                 insertedPoints += points.Count;
 
