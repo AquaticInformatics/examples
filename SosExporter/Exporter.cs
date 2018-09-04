@@ -497,7 +497,7 @@ namespace SosExporter
             var dataRequest = new TimeSeriesDataCorrectedServiceRequest
             {
                 TimeSeriesUniqueId = timeSeriesDescription.UniqueId,
-                QueryFrom = detectedChange.FirstPointChanged,
+                QueryFrom = GetInitialQueryFrom(detectedChange),
                 ApplyRounding = true,
             };
 
@@ -575,6 +575,18 @@ namespace SosExporter
             }
 
             Sos.InsertObservation(assignedOffering, locationInfo.LocationData, locationInfo.LocationDescription, timeSeries, timeSeriesDescription);
+        }
+
+        private static DateTimeOffset? GetInitialQueryFrom(TimeSeriesChangeEvent detectedChange)
+        {
+            // When a derived time-series is reported as changed, the first point changed is always the beginning of time.
+            // Rather than always pull the whole signal (which can be expensive with rounded values), only to trim most points before exporting,
+            // just treat a re-derived series event like an initial sync, so we'll "walk backwards" from the current time.
+            //
+            // If and when partial-re-derivation is implemented, this condition will no longer be triggered.
+            return detectedChange.FirstPointChanged == DateTimeOffset.MinValue
+                ? null
+                : detectedChange.FirstPointChanged;
         }
 
         private (LocationDescription LocationDescription, LocationDataServiceResponse LocationData) GetLocationInfo(string locationIdentifier)
