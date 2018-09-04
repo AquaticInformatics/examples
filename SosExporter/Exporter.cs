@@ -131,17 +131,12 @@ namespace SosExporter
 
             var timeSeriesDescriptions = FetchChangedTimeSeriesDescriptions(response);
 
-            Log.Info($"Connecting to {Context.Config.SosServer} ...");
+            Log.Info($"Connecting to {Context.Config.SosServer} as {Context.Config.SosUsername} ...");
 
-            using (Sos = SosClient.CreateConnectedClient(Context))
-            {
-                Log.Info($"Connected to {Context.Config.SosServer} as {Context.Config.SosUsername}");
+            var clearExportedData = !request.ChangesSinceToken.HasValue;
+            request.ChangesSinceToken = nextChangesSinceToken;
 
-                var clearExportedData = !request.ChangesSinceToken.HasValue;
-                request.ChangesSinceToken = nextChangesSinceToken;
-
-                ExportToSos(request, response, timeSeriesDescriptions, clearExportedData);
-            }
+            ExportToSos(request, response, timeSeriesDescriptions, clearExportedData);
 
             SyncStatus.SaveConfiguration(request.ChangesSinceToken.Value);
         }
@@ -397,10 +392,14 @@ namespace SosExporter
             {
                 var timeSeriesDescription = filteredTimeSeriesDescriptions[i];
 
-                ExportTimeSeries(
-                    clearExportedData,
-                    changeEvents.Single(t => t.UniqueId == timeSeriesDescription.UniqueId),
-                    timeSeriesDescription);
+                using (Sos = SosClient.CreateConnectedClient(Context))
+                {
+                    // Create a separate SOS client connection to ensure that the transactions are committed after each export
+                    ExportTimeSeries(
+                        clearExportedData,
+                        changeEvents.Single(t => t.UniqueId == timeSeriesDescription.UniqueId),
+                        timeSeriesDescription);
+                }
 
                 if (stopwatch.Elapsed <= Context.MaximumExportDuration)
                     continue;
@@ -479,8 +478,12 @@ namespace SosExporter
                 return;
             }
 
-            Sos.ClearDatasource();
-            Sos.DeleteDeletedObservations();
+            using (var sosClient = SosClient.CreateConnectedClient(Context))
+            {
+                // Create a separate SOS client connection to ensure that the transactions are committed when the client disconnects
+                sosClient.ClearDatasource();
+                sosClient.DeleteDeletedObservations();
+            }
         }
 
         private void ExportTimeSeries(
