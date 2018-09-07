@@ -5,10 +5,10 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
-using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using log4net;
 using NodaTime;
@@ -77,7 +77,11 @@ namespace SharpShooterReportsRunner
 
             var reportSlot = CreateReportSlot(reportManager);
 
+            Log.Info("Launching SharpShooter Reports Designer ...");
+
             reportSlot.DesignTemplate();
+
+            Log.Info("SharpShooter Reports Designer has exited.");
         }
 
         private InlineReportSlot CreateReportSlot(ReportManager reportManager)
@@ -91,6 +95,8 @@ namespace SharpShooterReportsRunner
 
         private string LoadReportTemplate()
         {
+            Log.Info($"Loading report template '{_context.TemplatePath}' ...");
+
             var template = File.ReadAllText(_context.TemplatePath)
                 .Replace(
                     FormatAssemblyQualifiedName("ReportApp"),
@@ -219,6 +225,7 @@ namespace SharpShooterReportsRunner
 
         private DataSet CreateExternalDataSet(ExternalDataSet externalDataSet)
         {
+            Log.Info($"Loading external data set '{externalDataSet.Path}' ...");
             var dataSet = new DataSet();
             dataSet.ReadXml(externalDataSet.Path);
 
@@ -242,14 +249,32 @@ namespace SharpShooterReportsRunner
 
             var dataSet = new DataSet(dataSetName);
 
-            var correctedData = _client.Publish.Get(new TimeSeriesDataCorrectedServiceRequest
+            var request = new TimeSeriesDataCorrectedServiceRequest
             {
                 TimeSeriesUniqueId = timeSeriesDescription.UniqueId,
                 QueryFrom = ParseDateTime(timeSeriesDescription, timeSeries.QueryFrom),
                 QueryTo = ParseDateTime(timeSeriesDescription, timeSeries.QueryTo),
                 Unit = timeSeries.OutputUnitId,
                 IncludeGapMarkers = true
-            });
+            };
+
+            var summary = new StringBuilder();
+            summary.Append($"Loading time-series '{timeSeriesDescription.Identifier}'");
+
+            if (request.QueryFrom.HasValue)
+                summary.Append($" with QueryFrom={request.QueryFrom:O}");
+
+            if (request.QueryTo.HasValue)
+                summary.Append($" with QueryTo={request.QueryTo:O}");
+
+            if (!string.IsNullOrEmpty(request.Unit))
+                summary.Append($" with output unit '{request.Unit}'");
+
+            Log.Info(summary.ToString());
+
+            var correctedData = _client.Publish.Get(request);
+
+            Log.Info($"Creating {dataSetName} dataset ...");
 
             AddLocation(dataSet, timeSeriesDescription.LocationIdentifier);
 
@@ -340,7 +365,7 @@ namespace SharpShooterReportsRunner
             var interpolationTypeText = correctedData.InterpolationTypes.First().Type;
             var interpolationType = (int)Enum.Parse(typeof(InterpolationType), interpolationTypeText, true);
 
-            var timeSeriesInfo = _client.Provisioning.Get(new GetTimeSeries {TimeSeriesUniqueId = timeSeriesDescription.UniqueId});
+            var locationData = GetLocationData(timeSeriesDescription.LocationIdentifier);
 
             var maxGapIntervalDays = 0.0;
             var maxGapIntervalMinutes = correctedData.GapTolerances.Max(gt => gt.ToleranceInMinutes);
@@ -371,7 +396,7 @@ namespace SharpShooterReportsRunner
                 ("FirstInterpolationCode", typeof(int), interpolationType),
                 ("FirstInterpolationCodeName", typeof(string), $"{interpolationType} - {interpolationTypeText}"),
                 ("AncestorName1", typeof(string), "Location"),
-                ("AncestorLabel1", typeof(string), timeSeriesInfo.LocationName),
+                ("AncestorLabel1", typeof(string), locationData.LocationName),
             });
         }
 
@@ -524,8 +549,17 @@ namespace SharpShooterReportsRunner
 
         private LocationDataServiceResponse GetLocationData(string locationIdentifier)
         {
-            return _client.Publish.Get(new LocationDataServiceRequest { LocationIdentifier = locationIdentifier });
+            if (_locationCache.TryGetValue(locationIdentifier, out var locationData))
+                return locationData;
+
+            locationData = _client.Publish.Get(new LocationDataServiceRequest {LocationIdentifier = locationIdentifier});
+
+            _locationCache.Add(locationIdentifier, locationData);
+
+            return locationData;
         }
+
+        private readonly Dictionary<string,LocationDataServiceResponse> _locationCache = new Dictionary<string, LocationDataServiceResponse>();
 
         private static readonly Regex IdentifierRegex = new Regex(@"^(?<parameter>[^.]+)\.(?<label>[^@]+)@(?<location>.*)$");
 
@@ -579,19 +613,24 @@ namespace SharpShooterReportsRunner
 
             Log.Info($"Rendering report ...");
 
+            var errorCount = 0;
+
             reportSlot.ExceptionMode = ExceptionMode.Fail;
             reportSlot.RenderCompleted += (sender, args) =>
             {
                 if (sender is InlineReportSlot)
                 {
-                    Log.Info($"Render complete.");
+                    if (errorCount > 0)
+                        Log.Warn($"Render complete with {errorCount} errors.");
+                    else
+                        Log.Info($"Render complete.");
                 }
             };
             reportSlot.RenderCanceled += (sender, args) =>
             {
                 if (sender is InlineReportSlot)
                 {
-                    Log.Info($"Render cancelled.");
+                    Log.Info($"Render canceled.");
                 }
             };
             reportSlot.RenderingError += (sender, args) =>
@@ -599,6 +638,7 @@ namespace SharpShooterReportsRunner
                 if (sender is InlineReportSlot)
                 {
                     Log.Error($"Render error detected", args.Exception);
+                    ++errorCount;
 
                     args.Handled = true;
                 }
