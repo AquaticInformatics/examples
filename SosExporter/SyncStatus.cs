@@ -41,6 +41,20 @@ namespace SosExporter
         private const string SosExporterGroup = "SosExporter";
         private const string HashKeySuffix = ".Hash";
         private const string ChangesSinceSuffix = ".ChangesSince";
+        private const string CleanupEventGroup = "TimeSeriesEventLog";
+        private const string CleanupEventHoursKey = "CleanupEventsOlderThan";
+
+        public TimeSpan GetMaximumChangeEventDuration()
+        {
+            using (var client = CreateConnectedClient())
+            {
+                var cleanupEventsHours = client.GetGlobalSetting(CleanupEventGroup, CleanupEventHoursKey)?.SettingValue;
+
+                return int.TryParse(cleanupEventsHours, out var hours)
+                    ? TimeSpan.FromHours(hours)
+                    : TimeSpan.FromDays(1);
+            }
+        }
 
         public DateTime? GetLastChangesSinceToken()
         {

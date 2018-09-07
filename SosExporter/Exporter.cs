@@ -26,6 +26,7 @@ namespace SosExporter
         private TimeSeriesPointFilter TimeSeriesPointFilter { get; set; }
         private long ExportedPointCount { get; set; }
         private int ExportedTimeSeriesCount { get; set; }
+        private TimeSpan MaximumExportDuration { get; set; }
 
         public void Run()
         {
@@ -87,6 +88,10 @@ namespace SosExporter
             TimeSeriesPointFilter = new TimeSeriesPointFilter {Context = Context};
 
             ValidateFilters();
+
+            MaximumExportDuration = Context.MaximumExportDuration
+                                    ?? SyncStatus.GetMaximumChangeEventDuration()
+                                        .Subtract(TimeSpan.FromHours(1));
 
             var request = CreateFilterRequest();
 
@@ -401,7 +406,7 @@ namespace SosExporter
                         timeSeriesDescription);
                 }
 
-                if (stopwatch.Elapsed <= Context.MaximumExportDuration)
+                if (stopwatch.Elapsed <= MaximumExportDuration)
                     continue;
 
                 Log.Info($"Maximum export duration has elapsed. Checking {GetFilterSummary(request)} ...");

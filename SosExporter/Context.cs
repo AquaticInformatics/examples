@@ -96,6 +96,6 @@ namespace SosExporter
         public DateTimeOffset? ChangesSince { get; set; }
         public int MaximumPointsPerObservation { get; set; } = 1000;
         public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(5);
-        public TimeSpan MaximumExportDuration { get; set; } = TimeSpan.FromHours(1);
+        public TimeSpan? MaximumExportDuration { get; set; }
     }
 }
