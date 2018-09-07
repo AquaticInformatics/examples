@@ -207,6 +207,13 @@ namespace SosExporter
                 },
                 new Option
                 {
+                    Key = "TimeSeriesDescription",
+                    Setter = value => context.Config.TimeSeriesDescriptions.Add(ParseTimeSeriesFilter(value)),
+                    Getter = () => string.Empty,
+                    Description = "Time-series description regular expression filter. Can be specified multiple times."
+                },
+                new Option
+                {
                     Key = nameof(context.Config.Approvals),
                     Setter = value => context.Config.Approvals.Add(ParseApprovalFilter(value)),
                     Getter = () => string.Empty,
@@ -307,8 +314,8 @@ namespace SosExporter
                 {
                     Key = nameof(context.MaximumExportDuration),
                     Setter = value => context.MaximumExportDuration = TimeSpan.Parse(value, CultureInfo.InvariantCulture),
-                    Getter = () => context.MaximumExportDuration.Humanize(2),
-                    Description = "The maximum duration before polling AQTS for more changes, in hh:mm:ss format."
+                    Getter = () => context.MaximumExportDuration?.Humanize(2),
+                    Description = "The maximum duration before polling AQTS for more changes, in hh:mm:ss format. Defaults to the AQTS global setting."
                 },
                 new Option
                 {

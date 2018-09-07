@@ -357,16 +357,41 @@ namespace SosExporter
 
         private List<TimeSeriesDescription> FilterTimeSeriesDescriptions(List<TimeSeriesDescription> timeSeriesDescriptions)
         {
-            if (!Context.Config.TimeSeries.Any())
+            return FilterTimeSeriesDescriptionsByDescription(
+                FilterTimeSeriesDescriptionsByIdentifier(timeSeriesDescriptions));
+        }
+
+        private List<TimeSeriesDescription> FilterTimeSeriesDescriptionsByIdentifier(List<TimeSeriesDescription> timeSeriesDescriptions)
+        {
+            return FilterTimeSeriesDescriptionsByText(
+                timeSeriesDescriptions,
+                Context.Config.TimeSeries,
+                ts => ts.Identifier);
+        }
+
+        private List<TimeSeriesDescription> FilterTimeSeriesDescriptionsByDescription(List<TimeSeriesDescription> timeSeriesDescriptions)
+        {
+            return FilterTimeSeriesDescriptionsByText(
+                timeSeriesDescriptions,
+                Context.Config.TimeSeriesDescriptions,
+                ts => ts.Description);
+        }
+
+        private static List<TimeSeriesDescription> FilterTimeSeriesDescriptionsByText(
+            List<TimeSeriesDescription> timeSeriesDescriptions,
+            List<TimeSeriesFilter> filters,
+            Func<TimeSeriesDescription, string> textSelector)
+        {
+            if (!filters.Any())
                 return timeSeriesDescriptions;
 
-            var timeSeriesFilter = new Filter<TimeSeriesFilter>(Context.Config.TimeSeries);
+            var timeSeriesFilter = new Filter<TimeSeriesFilter>(filters);
 
             var results = new List<TimeSeriesDescription>();
 
             foreach (var timeSeriesDescription in timeSeriesDescriptions)
             {
-                if (timeSeriesFilter.IsFiltered(f => f.Regex.IsMatch(timeSeriesDescription.Identifier)))
+                if (timeSeriesFilter.IsFiltered(f => f.Regex.IsMatch(textSelector(timeSeriesDescription))))
                     continue;
 
                 results.Add(timeSeriesDescription);

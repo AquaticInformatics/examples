@@ -131,14 +131,26 @@ See the Publish API Reference Guide for more details on how these request parame
 
 ### Filter time-series by regular expression
 
-Use the `/TimeSeries=regex` option to specify .NET regular expressions to filter the time-series identifiers of changed time-series.
+You can specify [.NET regular expressions](http://regexstorm.net/tester?p=%40LOC%5Cd%2B&i=Stage.Logger%40LOC5%0aStage.Logger%40LOCATION%0aBattery%20Voltage.Logger@somelocation%0aStage.Telemetry%40LOC77) to filter the list of exported time-series by patterns in the time-series identifier or the time-series description.
 
-- More than one `/TimeSeries=regex` filter option can be specified on the command line or in a configuration file.
-- Each `/TimeSeries=regex` filter operates as either an **inclusion** or **exclusion** filter.
+Use the `/TimeSeries=regex` option to filter the changed time-series by identifier.
+
+Use the `/TimeSeriesDescription=regex` option to filter the changed time-series by description.
+
+The `regex` regular expression just needs to match a portion of the text property being filtered. So `/TimeSeries=@L` will match all time-series in a location starting with a captial "L".
+
+- More than one `/TimeSeries=regex` or `/TimeSeriesDescription=regex` filter option can be specified on the command line or in a configuration file.
+- Each filter operates as either an **inclusion** or **exclusion** filter.
 - A filter is assumed to be an **inclusion** filter, unless the `regex` value begins with a minus-sign.
 - If no **inclusion** filters are specified, all time-series will be included by default.
 
 This pattern of inclusion and exclusion filtering can be used to precisely control which time-series are exported.
+
+Eg. Export all the time-series in locations starting with "NQ" or "WA", but exclude any time-series with a description ending with "offline"
+
+```cmd
+SosExporter /TimeSeries=@NQ /TimeSeries=@WA /TimeSeriesDescription="-offline$" (other options ...)
+```
 
 ### Filter individual points by approval level, grade code, or qualifiers
 
@@ -188,6 +200,7 @@ Supported -option=value settings (/option=value works too):
 
   ============================ Aggressive time-series filtering. Changes will trigger a full resync:
   -TimeSeries                  Time-series identifier regular expression filter. Can be specified multiple times.
+  -TimeSeriesDescription       Time-series description regular expression filter. Can be specified multiple times.
   -Approvals                   Filter points by approval level or name. Can be specified multiple times.
   -Grades                      Filter points by grade code or name. Can be specified multiple times.
   -Qualifiers                  Filter points by qualifier. Can be specified multiple times.
@@ -211,7 +224,7 @@ Supported -option=value settings (/option=value works too):
   -NeverResync                 When true, avoid full time-series resync, even when the algorithm recommends it. [default: False]
   -ChangesSince                The starting changes-since time in ISO 8601 format. Defaults to the saved AQTS global setting value.
   -MaximumPointsPerObservation The maximum number of points per SOS observation [default: 1000]
-  -MaximumExportDuration       The maximum duration before polling AQTS for more changes, in hh:mm:ss format.
+  -MaximumExportDuration       The maximum duration before polling AQTS for more changes, in hh:mm:ss format.  Defaults to the AQTS global setting.
   -Timeout                     The timeout used for all web requests, in hh:mm:ss format. [default: 5 minutes]
 
 ISO 8601 timestamps use a yyyy'-'mm'-'dd'T'HH':'mm':'ss'.'fffffffzzz format.

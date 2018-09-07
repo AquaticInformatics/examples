@@ -26,6 +26,7 @@ namespace SosExporter
 
         // Extra aggressive filtering options
         public List<TimeSeriesFilter> TimeSeries { get; } = new List<TimeSeriesFilter>();
+        public List<TimeSeriesFilter> TimeSeriesDescriptions { get; } = new List<TimeSeriesFilter>();
         public List<ApprovalFilter> Approvals { get; } = new List<ApprovalFilter>();
         public List<GradeFilter> Grades { get; } = new List<GradeFilter>();
         public List<QualifierFilter> Qualifiers { get; } = new List<QualifierFilter>();
