@@ -215,6 +215,7 @@ Supported -option=value settings (/option=value works too):
     Hourly   = 365
     Points   = 30
     Minutes  = 30
+    QuarterHourly = 30
   ]
 
   ============================ Other options: (Changing these values won't trigger a full resync)

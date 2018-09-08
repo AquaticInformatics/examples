@@ -58,6 +58,7 @@ namespace SosExporter
             new List<(ComputationPeriod Period, TimeSpan TimeSpan)>
             {
                 (ComputationPeriod.Minutes, TimeSpan.FromMinutes(1)),
+                (ComputationPeriod.QuarterHourly, TimeSpan.FromMinutes(15)),
                 (ComputationPeriod.Hourly, TimeSpan.FromHours(1)),
                 (ComputationPeriod.Daily, TimeSpan.FromDays(1)),
                 (ComputationPeriod.Weekly, TimeSpan.FromDays(7)),

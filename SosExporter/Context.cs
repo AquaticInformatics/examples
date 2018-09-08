@@ -42,6 +42,7 @@ namespace SosExporter
             {ComputationPeriod.Points, 30},
             //{ComputationPeriod.WaterYear, -1}, // These are treated like Annual
             {ComputationPeriod.Minutes, 30},
+            {ComputationPeriod.QuarterHourly, 30},
         };
     }
 
