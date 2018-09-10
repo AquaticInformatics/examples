@@ -228,11 +228,16 @@ namespace SosExporter
             }
         }
 
-        public SensorInfo FindExistingSensor(TimeSeriesDataServiceResponse timeSeries)
+        public SensorInfo FindExistingSensor(TimeSeriesDescription timeSeriesDescription)
         {
-            var procedureUniqueId = CreateProcedureUniqueId(timeSeries);
+            var procedureUniqueIdWithoutInterpolationType = CreateProcedureUniqueIdWithoutInterpolationType(timeSeriesDescription);
 
-            return FindExistingSensor(procedureUniqueId);
+            return FindExistingSensorWithPrefix(procedureUniqueIdWithoutInterpolationType);
+        }
+
+        private SensorInfo FindExistingSensorWithPrefix(string procedureUniqueIdStart)
+        {
+            return Capabilities.Contents.FirstOrDefault(c => c.Procedure.TrueForAll(s => s.StartsWith(procedureUniqueIdStart)));
         }
 
         private SensorInfo FindExistingSensor(string procedureUniqueId)
@@ -345,7 +350,21 @@ namespace SosExporter
 
         private static string CreateProcedureUniqueId(TimeSeriesDataServiceResponse timeSeries)
         {
-            return SanitizeIdentifier($"{timeSeries.Parameter}.{timeSeries.Label}@{timeSeries.LocationIdentifier}_{InterpolationTypeSuffix[timeSeries.InterpolationTypes.First().Type]}");
+            return SanitizeIdentifier($"{ComposeProcedureUniqueId(timeSeries.Parameter, timeSeries.Label, timeSeries.LocationIdentifier)}{InterpolationTypeSuffix[timeSeries.InterpolationTypes.First().Type]}");
+        }
+
+        private static string CreateProcedureUniqueIdWithoutInterpolationType(TimeSeriesDescription timeSeriesDescription)
+        {
+            return SanitizeIdentifier(
+                ComposeProcedureUniqueId(
+                    timeSeriesDescription.Parameter,
+                    timeSeriesDescription.Label,
+                    timeSeriesDescription.LocationIdentifier));
+        }
+
+        private static string ComposeProcedureUniqueId(string parameter, string label, string locationIdentifier)
+        {
+            return $"{parameter}.{label}@{locationIdentifier}_";
         }
 
         // From ca/ai/gaia/ds/mappers/InterpolationTypeNameMapper.java

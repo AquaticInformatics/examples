@@ -12,7 +12,7 @@ namespace SosExporter
         void DeleteDeletedObservations();
         void EnableTransactionalOperations();
         void DisableTransactionalOperations();
-        SensorInfo FindExistingSensor(TimeSeriesDataServiceResponse timeSeries);
+        SensorInfo FindExistingSensor(TimeSeriesDescription timeSeriesDescription);
         void DeleteSensor(TimeSeriesDataServiceResponse timeSeries);
         InsertSensorResponse InsertSensor(TimeSeriesDataServiceResponse timeSeries);
         void InsertObservation(string assignedOffering, LocationDataServiceResponse location, LocationDescription locationDescription, TimeSeriesDataServiceResponse timeSeries, TimeSeriesDescription timeSeriesDescription);
