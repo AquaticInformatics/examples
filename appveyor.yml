@@ -58,12 +58,16 @@ artifacts:
     name: UserImporter
     type: file
 
+  - path: TimeSeries\PublicApis\SdkExamples\SosExporter\bin\Release\SosExporter.exe
+    name: SosExporter
+    type: file
+
 deploy:
   - provider: GitHub
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: Example utilities $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator
+    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, SosExporter
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true
