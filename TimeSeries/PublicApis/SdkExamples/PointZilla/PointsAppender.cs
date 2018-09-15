@@ -30,9 +30,20 @@ namespace PointZilla
                 .OrderBy(p => p.Time)
                 .ToList();
 
+            Log.Info($"Connecting to {Context.Server} ...");
+
             using (var client = AquariusClient.CreateConnectedClient(Context.Server, Context.Username, Context.Password))
             {
                 Log.Info($"Connected to {Context.Server} ({client.ServerVersion})");
+
+                if (Context.CreateMode != CreateMode.Never)
+                {
+                    new TimeSeriesCreator
+                    {
+                        Context = Context,
+                        Client = client
+                    }.CreateMissingTimeSeries(Context.TimeSeries);
+                }
 
                 var timeSeries = client.GetTimeSeriesInfo(Context.TimeSeries);
 
