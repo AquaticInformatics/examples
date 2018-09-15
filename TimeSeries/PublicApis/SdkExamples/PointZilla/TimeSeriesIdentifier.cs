@@ -8,6 +8,9 @@ namespace PointZilla
         public string Username { get; set; }
         public string Password { get; set; }
         public string Identifier { get; set; }
+        public string Parameter { get; set; }
+        public string Label { get; set; }
+        public string LocationIdentifier { get; set; }
 
         public static bool TryParse(string text, out TimeSeriesIdentifier timeSeriesIdentifier)
         {

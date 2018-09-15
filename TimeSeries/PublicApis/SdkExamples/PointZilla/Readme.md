@@ -86,7 +86,15 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation 12.5
 
 `PointZilla` can also read times, values, grade codes, and qualifiers from a CSV file.
 
-All the CSV parsing options are configurable, but will default to values which match the CSV files exported from AQTS Springboard.
+All the CSV parsing options are configurable, but will default to values which match the CSV files exported from AQTS Springboard from 201x systems.
+
+The `-csvFormat=` option supports two prefconfigured formats:
+
+- `-csvFormat=NG` is equivalent to `-csvTimeField=1 -csvValueField=3 -csvGradeField=5 -csvQualifiersField=6 -csvSkipRows=0 -csvComment="#"`
+- `-csvFormat=3X` is equivalent to `-csvTimeField=1 -csvValueField=2 -csvGradeField=3 -csvQualifiersField=0 -csvSkipRows=2 -csvTimeFormat="MM/dd/yyyy HH:mm:ss"`
+
+
+
 
 ```sh
 $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/Stage.Historical@A001002.EntireRecord.csv
@@ -100,7 +108,7 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/Stage.Histo
 Parsing CSV files exported from AQTS 3.X systems requires a different CSV parsing configuration.
 
 ```sh
-$ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/ExportedFrom3x.csv -csvTimeField=1 -csvValueField=2 -csvGradeField=3 -csvQualifiersField=0 -csvSkipRows=2 -csvTimeFormat="MM/dd/yyyy HH:mm:ss"
+$ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/ExportedFrom3x.csv -csvFormat=3x
 
 13:45:49.400 INFO  - Loaded 250 points from 'Downloads/ExportedFrom3x.csv'.
 13:45:49.745 INFO  - Connected to myserver (2017.4.79.0)
@@ -113,6 +121,15 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/ExportedFro
 When `/CsvRealign=true` is set, all the imported CSV rows will be realigned to the `/StartTime` option.
 
 This option can be a useful technique to "stitch together" a simulated signal with special shapes at specific times.
+
+## Creating missing time-series or locations (Use with caution!)
+
+By default (the `/CreateMode=Never` option), trying to append points to a non-existent time-series will quickly return an error.
+
+The `/CreateMode=Basic` and `/CreateMode=Reflected` options can be used to quickly create a missing time-series if necessary.
+When time-series creation is enabled, a location will also be created if needed.
+
+This mode is useful for testing, but is not recommended for production systems, since the default configurations chosen by PointZilla are likely not correct.
 
 ## Appending grades and qualifiers
 

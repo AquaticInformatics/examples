@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Aquarius.TimeSeries.Client.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using NodaTime;
 
@@ -20,6 +21,10 @@ namespace PointZilla
         public int? GradeCode { get; set; }
         public List<string> Qualifiers { get; set; } = new List<string>();
 
+        public CreateMode CreateMode { get; set; } = CreateMode.Never;
+        public Duration GapTolerance { get; set; } = DurationExtensions.MaxGapDuration;
+        public Offset? UtcOffset { get; set; }
+
         public TimeSeriesIdentifier SourceTimeSeries { get; set; }
         public Instant? SourceQueryFrom { get; set; }
         public Instant? SourceQueryTo { get; set; }
@@ -38,15 +43,14 @@ namespace PointZilla
 
         public List<string> CsvFiles { get; set; } = new List<string>();
 
-        // Use defaults which match AQTS Export-from-Springboard CSV format
-        public int CsvTimeField { get; set; } = 1;
-        public int CsvValueField { get; set; } = 3;
-        public int CsvGradeField { get; set; } = 5;
-        public int CsvQualifiersField { get; set; } = 6;
-        public string CsvComment { get; set; } = "#";
+        public int CsvTimeField { get; set; }
+        public int CsvValueField { get; set; }
+        public int CsvGradeField { get; set; }
+        public int CsvQualifiersField { get; set; }
+        public string CsvComment { get; set; }
         public int CsvSkipRows { get; set; }
         public string CsvTimeFormat { get; set; }
-        public bool CsvIgnoreInvalidRows { get; set; } = true;
+        public bool CsvIgnoreInvalidRows { get; set; }
         public bool CsvRealign { get; set; }
     }
 }

@@ -29,6 +29,9 @@ namespace PointZilla
                 Username = match.Groups["username"].Value,
                 Password = match.Groups["password"].Value,
                 Identifier = match.Groups["identifier"].Value,
+                Parameter = match.Groups["parameter"].Value,
+                Label = match.Groups["label"].Value,
+                LocationIdentifier = match.Groups["location"].Value
             };
         }
     }
