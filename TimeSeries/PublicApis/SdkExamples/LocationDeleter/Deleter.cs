@@ -59,6 +59,8 @@ namespace LocationDeleter
             return $"{MethodBase.GetCurrentMethod().DeclaringType.Namespace} v{fileVersionInfo.FileVersion}";
         }
 
+        private int LockedVisitCount { get; set; }
+
         private void DeleteSpecifiedFieldVisits()
         {
             if (!IsFieldVisitDeletionEnabled())
@@ -91,6 +93,8 @@ namespace LocationDeleter
 
             Log.Info($"Inspecting {locationQuantity} for field visits {string.Join(" and ", timeRange)} ...");
 
+            LockedVisitCount = 0;
+
             var deletedVisitCount = 0;
 
             foreach (var locationInfo in ResolvedLocations)
@@ -98,10 +102,17 @@ namespace LocationDeleter
                 deletedVisitCount += DeleteVisitsAtLocation(locationInfo);
             }
 
+            var lockedVisitSummary = string.Empty;
+
+            if (LockedVisitCount > 0)
+            {
+                lockedVisitSummary = $", skipping {"locked field visit".ToQuantity(LockedVisitCount)}";
+            }
+
             if (Context.DryRun)
-                Log.Info($"Dry run completed. {"field visit".ToQuantity(InspectedFieldVisits)} would have been deleted from {locationQuantity}.");
+                Log.Info($"Dry run completed. {"field visit".ToQuantity(InspectedFieldVisits)} would have been deleted from {locationQuantity}{lockedVisitSummary}.");
             else
-                Log.Info($"Deleted {"field visit".ToQuantity(deletedVisitCount)} from {locationQuantity}.");
+                Log.Info($"Deleted {"field visit".ToQuantity(deletedVisitCount)} from {locationQuantity}{lockedVisitSummary}.");
         }
 
         private bool IsFieldVisitDeletionEnabled()
@@ -114,11 +125,28 @@ namespace LocationDeleter
             var siteVisitLocation = GetSiteVisitLocation(locationInfo);
 
             var visits = _siteVisit.Get(new GetLocationVisits
+                {
+                    Id = siteVisitLocation.Id,
+                    StartTime = Context.VisitsAfter?.UtcDateTime,
+                    EndTime = Context.VisitsBefore?.UtcDateTime
+                })
+                .OrderBy(v => v.StartDate)
+                .ToList();
+
+            var lockedVisits = visits
+                .Where(v => v.IsLocked)
+                .ToList();
+
+            if (lockedVisits.Any())
             {
-                Id = siteVisitLocation.Id,
-                StartTime = Context.VisitsAfter?.UtcDateTime,
-                EndTime = Context.VisitsBefore?.UtcDateTime
-            });
+                Log.Warn($"Skipping deletion of {"locked field visit".ToQuantity(lockedVisits.Count)} in location '{locationInfo.Identifier}'.");
+
+                LockedVisitCount += lockedVisits.Count;
+
+                visits = visits
+                    .Where(v => !v.IsLocked)
+                    .ToList();
+            }
 
             if (!visits.Any())
             {
@@ -153,6 +181,8 @@ namespace LocationDeleter
             return visits.Count;
         }
 
+        private int LockedTimeSeriesCount { get; set; }
+
         private void DeleteSpecifiedTimeSeries()
         {
             if (!Context.TimeSeriesToDelete.Any())
@@ -161,6 +191,8 @@ namespace LocationDeleter
             if (Is3X())
                 throw new ExpectedException($"Time-series deletion is not supported for AQTS {Client.ServerVersion}");
 
+            LockedTimeSeriesCount = 0;
+
             var deletedTimeSeriesCount = 0;
 
             foreach (var timeSeriesIdentifier in Context.TimeSeriesToDelete)
@@ -168,10 +200,17 @@ namespace LocationDeleter
                 deletedTimeSeriesCount += DeleteTimeSeries(timeSeriesIdentifier);
             }
 
+            var lockedTimeSeriesSummary = string.Empty;
+
+            if (LockedTimeSeriesCount > 0)
+            {
+                lockedTimeSeriesSummary = $", skipping {LockedTimeSeriesCount} locked time-series";
+            }
+
             if (Context.DryRun)
-                Log.Info($"Dry run complete. {InspectedTimeSeries} time-series would have been deleted.");
+                Log.Info($"Dry run complete. {InspectedTimeSeries} time-series would have been deleted{lockedTimeSeriesSummary}.");
             else
-                Log.Info($"Deleted {deletedTimeSeriesCount} of {Context.TimeSeriesToDelete.Count} time-series.");
+                Log.Info($"Deleted {deletedTimeSeriesCount} of {Context.TimeSeriesToDelete.Count} time-series{lockedTimeSeriesSummary}.");
         }
 
         private int DeleteTimeSeries(string timeSeriesIdentifierOrGuid)
@@ -201,10 +240,27 @@ namespace LocationDeleter
             }
 
             Log.Info($"Deleting '{timeSeriesDescription.Identifier}' ...");
-            DeleteTimeSeries(timeSeriesDescription);
-            Log.Info($"Deleted '{timeSeriesDescription.Identifier}' successfully.");
 
-            return 1;
+            try
+            {
+                DeleteTimeSeries(timeSeriesDescription);
+                Log.Info($"Deleted '{timeSeriesDescription.Identifier}' successfully.");
+
+                return 1;
+            }
+            catch (WebServiceException exception)
+            {
+                if (exception.ErrorCode == "DeleteLockedTimeSeriesException")
+                {
+                    Log.Warn($"Time-series '{timeSeriesDescription.Identifier}' has locked data and cannot be deleted.");
+
+                    ++LockedTimeSeriesCount;
+
+                    return 0;
+                }
+
+                throw;
+            }
         }
 
         private void DeleteTimeSeries(TimeSeriesDescription timeSeriesDescription)

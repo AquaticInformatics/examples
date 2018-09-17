@@ -58,6 +58,7 @@ namespace LocationDeleter.PrivateApis
             public long Id { get; set; }
             public DateTime StartDate { get; set; }
             public DateTime? EndDate { get; set; }
+            public bool IsLocked { get; set; }
         }
 
         [Route("/visits/{Id}", HttpMethods.Delete)]
