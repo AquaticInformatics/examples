@@ -59,6 +59,8 @@ namespace LocationDeleter
             return $"{MethodBase.GetCurrentMethod().DeclaringType.Namespace} v{fileVersionInfo.FileVersion}";
         }
 
+        private int LockedVisitCount { get; set; }
+
         private void DeleteSpecifiedFieldVisits()
         {
             if (!IsFieldVisitDeletionEnabled())
@@ -91,6 +93,8 @@ namespace LocationDeleter
 
             Log.Info($"Inspecting {locationQuantity} for field visits {string.Join(" and ", timeRange)} ...");
 
+            LockedVisitCount = 0;
+
             var deletedVisitCount = 0;
 
             foreach (var locationInfo in ResolvedLocations)
@@ -98,10 +102,17 @@ namespace LocationDeleter
                 deletedVisitCount += DeleteVisitsAtLocation(locationInfo);
             }
 
+            var lockedVisitSummary = string.Empty;
+
+            if (LockedVisitCount > 0)
+            {
+                lockedVisitSummary = $", skipping {"locked field visit".ToQuantity(LockedVisitCount)}";
+            }
+
             if (Context.DryRun)
-                Log.Info($"Dry run completed. {"field visit".ToQuantity(InspectedFieldVisits)} would have been deleted from {locationQuantity}.");
+                Log.Info($"Dry run completed. {"field visit".ToQuantity(InspectedFieldVisits)} would have been deleted from {locationQuantity}{lockedVisitSummary}.");
             else
-                Log.Info($"Deleted {"field visit".ToQuantity(deletedVisitCount)} from {locationQuantity}.");
+                Log.Info($"Deleted {"field visit".ToQuantity(deletedVisitCount)} from {locationQuantity}{lockedVisitSummary}.");
         }
 
         private bool IsFieldVisitDeletionEnabled()
@@ -114,11 +125,28 @@ namespace LocationDeleter
             var siteVisitLocation = GetSiteVisitLocation(locationInfo);
 
             var visits = _siteVisit.Get(new GetLocationVisits
+                {
+                    Id = siteVisitLocation.Id,
+                    StartTime = Context.VisitsAfter?.UtcDateTime,
+                    EndTime = Context.VisitsBefore?.UtcDateTime
+                })
+                .OrderBy(v => v.StartDate)
+                .ToList();
+
+            var lockedVisits = visits
+                .Where(v => v.IsLocked)
+                .ToList();
+
+            if (lockedVisits.Any())
             {
-                Id = siteVisitLocation.Id,
-                StartTime = Context.VisitsAfter?.UtcDateTime,
-                EndTime = Context.VisitsBefore?.UtcDateTime
-            });
+                Log.Warn($"Skipping deletion of {"locked field visit".ToQuantity(lockedVisits.Count)} in location '{locationInfo.Identifier}'.");
+
+                LockedVisitCount += lockedVisits.Count;
+
+                visits = visits
+                    .Where(v => !v.IsLocked)
+                    .ToList();
+            }
 
             if (!visits.Any())
             {
