@@ -56,6 +56,7 @@ namespace SharpShooterReportsRunner
                 new Option {Key = nameof(Context.OutputPath), Setter = value => Context.OutputPath = value, Getter = () => Context.OutputPath, Description = "Path to the generated report output. Only PDF output is supported."},
                 new Option {Key = nameof(Context.LaunchReportDesigner), Setter = value => Context.LaunchReportDesigner = bool.Parse(value), Getter = () => Context.LaunchReportDesigner.ToString(), Description = "When true, launch the SharpShooter Report Designer."},
                 new Option {Key = "TimeSeries", Setter = value => Context.TimeSeries.Add(ParseTimeSeries(value)), Getter = () => string.Empty, Description = "Load the specified time-series as a dataset."},
+                new Option {Key = "RatingModel", Setter = value => Context.RatingModels.Add(ParseRatingModel(value)), Getter = () => string.Empty, Description = "Load the specified rating-model as a dataset."},
                 new Option {Key = "ExternalDataSet", Setter = value => Context.ExternalDataSets.Add(ParseExternalDataSet(value)), Getter = () => string.Empty, Description = "Load the external DataSet XML file."},
                 new Option {Key = nameof(Context.UploadedReportLocation), Setter = value => Context.UploadedReportLocation = value, Getter = () => Context.UploadedReportLocation, Description = "Upload the generated report to this AQTS location identifier."},
                 new Option {Key = nameof(Context.UploadedReportTitle), Setter = value => Context.UploadedReportTitle = value, Getter = () => Context.UploadedReportTitle, Description = "Upload the generated report with this title. Defaults to the -OutputPath value."},
@@ -77,6 +78,16 @@ namespace SharpShooterReportsRunner
                 + $"\n     ,To=date              - Retrieve data until this date. [default; End of record]"
                 + $"\n     ,Unit=outputUnit      - Convert the values to the unit. [default: The default unit of the time-series]"
                 + $"\n     ,GroupBy=option       - Groups data by {string.Join("|", Enum.GetNames(typeof(GroupBy)))} [default: Year]"
+                + $"\n"
+                + $"\n  Dates specified as yyyy-MM-ddThh:mm:ss.fff. Only the year component is required."
+                + $"\n"
+                + $"\nRetrieving rating model info from AQTS: (more than one -RatingModel=value option can be specified)"
+                + $"\n"
+                + $"\n  -RatingModel=identifierOrUniqueId[,From=date][,To=date][,Unit=outputUnit][,GroupBy=option]"
+                + $"\n"
+                + $"\n     =identifierOrUniqueId - Use either the uniqueId or the <InputParameter>-<OutputParameter>.<label>@<location> syntax."
+                + $"\n     ,From=date            - Retrieve data from this date. [default: Beginning of record]"
+                + $"\n     ,To=date              - Retrieve data until this date. [default; End of record]"
                 + $"\n"
                 + $"\n  Dates specified as yyyy-MM-ddThh:mm:ss.fff. Only the year component is required."
                 + $"\n"
@@ -218,6 +229,19 @@ namespace SharpShooterReportsRunner
                 QueryFrom = GetValueOrDefault(values, "From"),
                 QueryTo = GetValueOrDefault(values, "To"),
                 GroupBy = (GroupBy)Enum.Parse(typeof(GroupBy), groupByText, true),
+            };
+        }
+
+        private static RatingModel ParseRatingModel(string value)
+        {
+            var values = ParseDictionary(value);
+
+            return new RatingModel
+            {
+                Identifier = values[string.Empty],
+                QueryFrom = GetValueOrDefault(values, "From"),
+                QueryTo = GetValueOrDefault(values, "To"),
+                StepSize = GetValueOrDefault(values, "StepSize"),
             };
         }
 

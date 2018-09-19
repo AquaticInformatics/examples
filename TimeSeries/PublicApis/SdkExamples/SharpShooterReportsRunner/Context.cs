@@ -14,6 +14,7 @@ namespace SharpShooterReportsRunner
         public string UploadedReportLocation { get; set; }
         public string UploadedReportTitle { get; set; }
         public List<TimeSeries> TimeSeries { get; set; } = new List<TimeSeries>();
+        public List<RatingModel> RatingModels { get; set; } = new List<RatingModel>();
         public List<ExternalDataSet> ExternalDataSets { get; set; } = new List<ExternalDataSet>();
         public Dictionary<string,string> ReportParameters { get; set; } = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
         public Dictionary<string, string> ParameterOverrides { get; set; } = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);

@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
+using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using log4net;
 using NodaTime;
@@ -16,6 +17,7 @@ using NodaTime.Text;
 using PerpetuumSoft.Reporting.Components;
 using PerpetuumSoft.Reporting.Export.Pdf;
 using PerpetuumSoft.Reporting.Rendering;
+using ServiceStack;
 using InterpolationType = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.InterpolationType;
 
 namespace SharpShooterReportsRunner
@@ -114,11 +116,12 @@ namespace SharpShooterReportsRunner
         {
             var reportManager = new ReportManager();
 
-            Log.Info($"Loading data for {_context.TimeSeries.Count + _context.ExternalDataSets.Count} time-series ...");
+            Log.Info($"Loading data for {_context.TimeSeries.Count + _context.ExternalDataSets.Count + _context.RatingModels.Count} data-sets ...");
 
             AddDataSets(reportManager, CreateCompatibilityDataSet(), CreateCommonDataSet());
             AddDataSets(reportManager, CreateExternalDataSets().ToArray());
             AddDataSets(reportManager, CreateAllTimeSeriesDataSets().ToArray());
+            AddDataSets(reportManager, CreateAllRatingModelDataSets().ToArray());
 
             MergeParameterOverrides(reportManager);
 
@@ -276,7 +279,9 @@ namespace SharpShooterReportsRunner
 
             Log.Info($"Creating {dataSetName} dataset ...");
 
-            AddLocation(dataSet, timeSeriesDescription.LocationIdentifier);
+            var locationData = GetLocationData(timeSeriesDescription.LocationIdentifier);
+
+            AddLocation(dataSet, locationData);
 
             AddMetadata(dataSet, timeSeriesDescription, correctedData);
 
@@ -285,7 +290,304 @@ namespace SharpShooterReportsRunner
             return dataSet;
         }
 
+        private IEnumerable<DataSet> CreateAllRatingModelDataSets()
+        {
+            return _context.RatingModels.Select((ratingModel, i) => CreateRatingModelDataSet(ratingModel, $"RatingCurve{i + 1}"));
+        }
+
+        private DataSet CreateRatingModelDataSet(RatingModel ratingModel, string dataSetName)
+        {
+            // Get the location, so we can know the UtcOffset
+
+            var locationIdentifier = ParseLocationIdentifier(ratingModel.Identifier);
+
+            var ratingModelDescriptions = _client.Publish.Get(new RatingModelDescriptionListServiceRequest {LocationIdentifier = locationIdentifier})
+                .RatingModelDescriptions;
+
+            var ratingModelDescription = ratingModelDescriptions
+                .FirstOrDefault(r => r.Identifier == ratingModel.Identifier);
+
+            if (ratingModelDescription == null)
+                throw new ExpectedException($"Can't find rating model '{ratingModel.Identifier}'.");
+
+            var locationData = GetLocationData(locationIdentifier);
+
+            var request = new RatingCurveListServiceRequest
+            {
+                RatingModelIdentifier = ratingModelDescription.Identifier,
+                QueryFrom = ParseDateTime(locationData, ratingModel.QueryFrom),
+                QueryTo = ParseDateTime(locationData, ratingModel.QueryTo),
+            };
+
+            var stepSize = double.TryParse(ratingModel.StepSize, NumberStyles.Any, CultureInfo.InvariantCulture, out var incrementSize)
+                ? incrementSize
+                : 0.01;
+
+            var stepPrecision = (int)Math.Round(Math.Log(stepSize) / Math.Log(0.1));
+
+            var summary = new StringBuilder();
+            summary.Append($"Loading rating model '{request.RatingModelIdentifier}'");
+
+            if (request.QueryFrom.HasValue)
+                summary.Append($" with QueryFrom={request.QueryFrom:O}");
+
+            if (request.QueryTo.HasValue)
+                summary.Append($" with QueryTo={request.QueryTo:O}");
+
+            summary.Append($" with StepSize={stepSize}");
+
+            Log.Info(summary.ToString());
+
+            var curveEffectiveTime = request.QueryFrom ?? DateTimeOffset.UtcNow;
+
+            var ratingCurves = _client.Publish.Get(request);
+
+            var dataSet = new DataSet(dataSetName);
+
+            AddLocation(dataSet, locationData);
+
+            AddMetadata(dataSet, locationData, ratingModelDescription);
+
+            var expandedRatingCurve = _client.Publish.Get(new EffectiveRatingCurveServiceRequest
+            {
+                RatingModelIdentifier = ratingModelDescription.Identifier,
+                StepSize = stepSize,
+                EffectiveTime = request.QueryFrom
+            }).ExpandedRatingCurve;
+
+            var expandedPointsTable = CreateTable(dataSet, "ExpandedPoints", new List<(string ColumnName, Type ColumnType)>
+            {
+                ("Stage", typeof(double)),
+                ("Discharge", typeof(double)),
+                ("ShiftStage", typeof(double)),
+                ("ShiftDischarge", typeof(double)),
+            });
+
+            var maxCount = Math.Max(expandedRatingCurve.AdjustedRatingTable.Count, expandedRatingCurve.BaseRatingTable.Count);
+
+            for (var i = 0; i < maxCount; ++i)
+            {
+                var row = new object[expandedPointsTable.Columns.Count];
+
+                var adjustedRatingPoint = i < expandedRatingCurve.AdjustedRatingTable.Count
+                    ? expandedRatingCurve.AdjustedRatingTable[i]
+                    : null;
+
+                var baseRatingPointPoint = i < expandedRatingCurve.BaseRatingTable.Count
+                    ? expandedRatingCurve.BaseRatingTable[i]
+                    : null;
+
+                row[0] = baseRatingPointPoint?.InputValue;
+                row[1] = baseRatingPointPoint?.OutputValue;
+                row[2] = adjustedRatingPoint?.InputValue;
+                row[3] = adjustedRatingPoint?.OutputValue;
+
+                expandedPointsTable.Rows.Add(row);
+            }
+
+            var equationPointsTable = CreateTable(dataSet, "EquationPoints", new List<(string ColumnName, Type ColumnType)>
+            {
+                ("Stage", typeof(double)),
+                ("Discharge", typeof(double)),
+            });
+
+            // ExpandedMetadata - single row
+            CreateSingleRowTable(dataSet, "ExpandedMetadata", new List<(string ColumnName, Type ColumnType, object DefaultValue)>
+            {
+                ("DateTime", typeof(DateTimeOffset), curveEffectiveTime),
+                ("InputParameterName", typeof(string), ratingModelDescription.InputParameter),
+                ("OutputParameterName", typeof(string), ratingModelDescription.OutputParameter),
+                ("Precision", typeof(int), stepPrecision),
+                ("StartDate", typeof(DateTimeOffset), expandedRatingCurve.PeriodsOfApplicability.First().StartTime),
+                ("EndDate", typeof(DateTimeOffset), expandedRatingCurve.PeriodsOfApplicability.Last().EndTime),
+            });
+
+            // RatingMeasurementsMetadata - single row
+            CreateSingleRowTable(dataSet, "RatingMeasurementsMetadata", new List<(string ColumnName, Type ColumnType, object DefaultValue)>
+            {
+                ("Label", typeof(string), ratingModelDescription.Label),
+                ("Description", typeof(string), ratingModelDescription.Description),
+                ("Comment", typeof(string), ratingModelDescription.Comment),
+                ("IndepVariableParameterName", typeof(string), ratingModelDescription.InputParameter),
+                ("IndepVariableUnits", typeof(string), ratingModelDescription.InputUnit),
+                ("DepVariableParameterName", typeof(string), ratingModelDescription.OutputParameter),
+                ("DepVariableUnits", typeof(string), ratingModelDescription.OutputUnit),
+                ("TimeZone", typeof(string), $"UTC{OffsetPattern.GeneralInvariantPattern.Format(Offset.FromTicks(TimeSpan.FromHours(locationData.UtcOffset).Ticks))}"),
+                ("AncestorName1", typeof(string), "Location"),
+                ("AncestorLabel1", typeof(string), locationData.LocationName),
+            });
+
+            var fieldVisitDescriptions = _client.Publish.Get(new FieldVisitDescriptionListServiceRequest
+                {
+                    LocationIdentifier = locationIdentifier,
+                    QueryFrom = expandedRatingCurve.PeriodsOfApplicability.First().StartTime,
+                    QueryTo = expandedRatingCurve.PeriodsOfApplicability.Last().EndTime
+                })
+                .FieldVisitDescriptions;
+
+            var curveStartTime = expandedRatingCurve.PeriodsOfApplicability.First().StartTime;
+            var curveEndTime = expandedRatingCurve.PeriodsOfApplicability.Last().EndTime;
+
+            var allParameters = _client.Provisioning.Get(new GetParameters()).Results;
+
+            var stageParameter = allParameters.Single(p => p.ParameterId == "HG");
+            var dischargeParameter = allParameters.Single(p => p.ParameterId == "QR");
+
+            var isStageDischargeRating = ratingModelDescription.InputParameter == stageParameter.Identifier
+                                         && ratingModelDescription.OutputParameter == dischargeParameter.Identifier;
+
+            var visitRequest = new FieldVisitDataByLocationServiceRequest
+            {
+                LocationIdentifier = locationIdentifier,
+            };
+
+            if (isStageDischargeRating)
+            {
+                visitRequest.Activities = new[]
+                    {
+                        ActivityType.DischargeSummary,
+                        ActivityType.DischargePointVelocity,
+                        ActivityType.DischargeAdcp
+                    }
+                    .ToList();
+            }
+            else
+            {
+                visitRequest.Activities = new[] {ActivityType.Reading}.ToList();
+                visitRequest.Parameters = new[] {ratingModelDescription.InputParameter, ratingModelDescription.OutputParameter}.ToList();
+            }
+
+            var fieldVisits = _client.Publish.Get(visitRequest)
+                .FieldVisitData;
+
+            fieldVisits = fieldVisits
+                .Where(v => v.StartTime >= curveStartTime && v.EndTime < curveEndTime)
+                .ToList();
+
+            // RatingMeasurements - many rows
+            var ratingMeasurementsTable = CreateTable(dataSet, "RatingMeasurements", new List<(string ColumnName, Type ColumnType)>
+            {
+                ("Area", typeof(double)),
+                ("Condition", typeof(string)),
+                ("DepVariableValue", typeof(double)),
+                ("DepVariableDescription", typeof(string)),
+                ("IndepVariableValue", typeof(double)),
+                ("IndepVariableDescription", typeof(string)),
+                ("EffectiveDepth", typeof(double)),
+                ("MeanVelocity", typeof(double)),
+                ("MeasuredBy", typeof(string)),
+                ("MeasurementEpoch", typeof(double)),
+                ("MeasurementTime", typeof(double)),
+                ("MeasurementTimestamp", typeof(DateTimeOffset)),
+                ("Method", typeof(string)),
+                ("Quality", typeof(string)),
+                ("StageChange", typeof(double)),
+                ("Verticals", typeof(double)),
+                ("Width", typeof(double)),
+            });
+
+            foreach (var visit in fieldVisits)
+            {
+                var discharges = visit
+                    .DischargeActivities
+                    .Where(d => d.DischargeSummary.Publish)
+                    .ToList();
+
+                // TODO: For non-HG/QR ratings, infer the rating measurements from the routine readings.
+
+                foreach (var discharge in discharges)
+                {
+                    var row = new object[ratingMeasurementsTable.Columns.Count];
+
+                    var condition = visit.ControlConditionActivity?.ControlCondition.ToString();
+                    double? area = null;
+                    double? width = null;
+                    double? velocity = null;
+                    double? verticals = null;
+                    double? depth = null;
+                    var method = discharge.DischargeSummary.DischargeMethod;
+                    var stageChange = discharge.DischargeSummary.DifferenceDuringVisit.Numeric;
+                    string quality = null;
+                    var measuredBy = discharge.DischargeSummary.Party;
+
+                    foreach (var pointVelocityDischarge in discharge.PointVelocityDischargeActivities)
+                    {
+                        area = pointVelocityDischarge.Area.Numeric;
+                        width = pointVelocityDischarge.Width.Numeric;
+                        velocity = pointVelocityDischarge.VelocityAverage.Numeric;
+                        verticals = pointVelocityDischarge.Verticals.Count;
+                    }
+
+                    foreach (var adcpDischarge in discharge.AdcpDischargeActivities)
+                    {
+                        area = adcpDischarge.Area.Numeric;
+                        width = adcpDischarge.Width.Numeric;
+                        velocity = adcpDischarge.VelocityAverage.Numeric;
+                    }
+
+                    row[0] = area;
+                    row[1] = condition;
+                    row[2] = discharge.DischargeSummary.Discharge.Numeric;
+                    row[3] = null;
+                    row[4] = discharge.DischargeSummary.MeanGageHeight.Numeric;
+                    row[5] = null;
+                    row[6] = depth;
+                    row[7] = velocity;
+                    row[8] = measuredBy;
+                    row[9] = 0;
+                    row[10] = discharge.DischargeSummary.MeasurementTime.UtcDateTime.ToOADate();
+                    row[11] = discharge.DischargeSummary.MeasurementTime;
+                    row[12] = method;
+                    row[13] = quality;
+                    row[14] = stageChange;
+                    row[15] = verticals;
+                    row[16] = width;
+
+                    ratingMeasurementsTable.Rows.Add(row);
+                }
+            }
+
+            // Tables - many rows (one per curve): ID, name, numPeriods, numPoints
+
+            // TableDates - many rows (one per curve): ID, StartDate, EndDate
+
+            // TableValues - many rows: ID, inputValue, outputValue
+
+            // CurveMetadata - single row
+
+
+
+            return dataSet;
+        }
+
+        private void AddMetadata(DataSet dataSet, LocationDataServiceResponse locationData, RatingModelDescription ratingModelDescription)
+        {
+            CreateSingleRowTable(dataSet, "MetaData", new List<(string ColumnName, Type ColumnType, object DefaultValue)>
+            {
+                ("Label", typeof(string), ratingModelDescription.Label),
+                ("Description", typeof(string), ratingModelDescription.Description),
+                ("Comment", typeof(string), ratingModelDescription.Comment),
+                ("InputParameterName", typeof(string), ratingModelDescription.InputParameter),
+                ("InputUnits", typeof(string), ratingModelDescription.InputUnit),
+                ("OutputParameterName", typeof(string), ratingModelDescription.OutputParameter),
+                ("OutputUnits", typeof(string), ratingModelDescription.OutputUnit),
+                ("TimeZone", typeof(string), $"UTC{OffsetPattern.GeneralInvariantPattern.Format(Offset.FromTicks(TimeSpan.FromHours(locationData.UtcOffset).Ticks))}"),
+                ("AncestorName1", typeof(string), "Location"),
+                ("AncestorLabel1", typeof(string), locationData.LocationName),
+            });
+        }
+
         private static DateTimeOffset? ParseDateTime(TimeSeriesDescription timeSeriesDescription, string timeText)
+        {
+            return ParseDateTime(timeText, () => timeSeriesDescription.UtcOffsetIsoDuration.ToTimeSpan());
+        }
+
+        private static DateTimeOffset? ParseDateTime(LocationDataServiceResponse location, string timeText)
+        {
+            return ParseDateTime(timeText, () => TimeSpan.FromHours(location.UtcOffset));
+        }
+
+        private static DateTimeOffset? ParseDateTime(string timeText, Func<TimeSpan> utcOffsetFunc)
         {
             if (string.IsNullOrWhiteSpace(timeText))
                 return null;
@@ -294,8 +596,11 @@ namespace SharpShooterReportsRunner
 
             // TODO: Support water year
             var dateTime = DateTime.ParseExact(timeText, SupportedDateFormats, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal);
+            var utcOffset = utcOffsetFunc();
 
-            return new DateTimeOffset(dateTime, timeSeriesDescription.UtcOffsetIsoDuration.ToTimeSpan());
+            var dateTimeOffset = new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), utcOffset);
+
+            return dateTimeOffset;
         }
 
         private static readonly string[] SupportedDateFormats =
@@ -308,10 +613,8 @@ namespace SharpShooterReportsRunner
             "yyyy-MM-ddThh:mm:ss.fff",
         };
 
-        private void AddLocation(DataSet dataSet, string locationIdentifier)
+        private void AddLocation(DataSet dataSet, LocationDataServiceResponse location)
         {
-            var location = GetLocationData(locationIdentifier);
-
             CreateSingleRowTable(dataSet, "Location", new List<(string ColumnName, Type ColumnType, object RowValue)>
             {
                 ("Indentifier", typeof(string), location.Identifier), // Yay spelling!
@@ -340,6 +643,8 @@ namespace SharpShooterReportsRunner
                     extendedAttribute.Value,
                 }).ToArray());
 
+            CreateSingleRowTable(dataSet, "Location_Extension", location.ExtendedAttributes.Select(ConvertExtendedAttribute).ToList());
+
             CreateTable(dataSet, "Location_Remarks", new List<(string ColumnName, Type ColumnType)>
                 {
                     ("Identifier", typeof(string)),
@@ -359,6 +664,40 @@ namespace SharpShooterReportsRunner
                     locationRemark.Remark,
                 }).ToArray());
         }
+
+        private static (string ColumnName, Type ColumnType, object RowValue) ConvertExtendedAttribute(ExtendedAttribute attribute)
+        {
+            if (!KnownTypes.TryGetValue(attribute.Type, out var type))
+            {
+                type = attribute.Value.GetType();
+            }
+
+            return (attribute.Name, type, attribute.Value);
+        }
+
+        private static readonly Dictionary<string, Type> KnownTypes = new[]
+            {
+                typeof(bool),
+                typeof(string),
+                typeof(int),
+                typeof(long),
+                typeof(short),
+                typeof(double),
+                typeof(float),
+                typeof(Boolean),
+                typeof(DateTime),
+                typeof(Decimal),
+                typeof(Double),
+                typeof(Single),
+                typeof(Int64),
+                typeof(UInt64),
+                typeof(Int32),
+                typeof(UInt32),
+                typeof(Int16),
+                typeof(UInt16),
+            }
+            .Distinct()
+            .ToDictionary(t => t.Name, t => t, StringComparer.InvariantCultureIgnoreCase);
 
         private void AddMetadata(DataSet dataSet, TimeSeriesDescription timeSeriesDescription, TimeSeriesDataServiceResponse correctedData)
         {
