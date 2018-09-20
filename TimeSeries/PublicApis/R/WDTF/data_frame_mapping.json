@@ -1,0 +1,153 @@
+{
+
+
+	"paramsInfo": [{
+			"gmlIds": "TS-WaterCourseDischarge",
+			"features": "WaterCourseDischarge_m3s",
+			"units": "m3/s",
+			"interpols": "InstVal",
+			"aqParamCode": "Discharge",
+			"_row": "QR"
+		}, {
+			"gmlIds": "TS-WaterCourseLevel",
+			"features": "WaterCourseLevel_m",
+			"units": "m",
+			"interpols": "InstVal",
+			"aqParamCode": "Stage",
+			"_row": "HG"
+		}, {
+			"gmlIds": "TS-ElectricalConductivityAt25C",
+			"features": "ElectricalConductivityAt25C_uScm",
+			"units": "uS/cm",
+			"interpols": "InstVal",
+			"aqParamCode": "Water Conductivity - Field 25DegC",
+			"_row": "WC_field25C"
+		}, {
+			"gmlIds": "TS-Rainfall",
+			"features": "Rainfall_mm",
+			"units": "mm",
+			"interpols": "InstTot",
+			"aqParamCode": "Precip",
+			"_row": "PP"
+		}, {
+			"gmlIds": "TS-WaterTemperature",
+			"features": "WaterTemperature_DegC",
+			"units": "Cel",
+			"interpols": "InstVal",
+			"aqParamCode": "Water Temp",
+			"_row": "TW"
+		},
+		{
+			"gmlIds": "TS-GroundWaterLevel",
+			"features": "GroundWaterLevel_m",
+			"units": "m",
+			"interpols": "InstVal",
+			"aqParamCode": "GW Level",
+			"_row": "GWL"
+		},
+		{
+			"gmlIds": "TS-PressureLevel",
+			"features": "Pressure Station Lvl",
+			"units": "hPa",
+			"interpols": "InstVal",
+			"aqParamCode": "Atmos Pres",
+			"_row": "PA"
+		},
+		{
+			"gmlIds": "TS-WaterpH",
+			"features": "WaterpH_pH",
+			"units": "[pH]",
+			"interpols": "InstVal",
+			"aqParamCode": "pH",
+			"_row": "PH"
+		},
+		{
+			"gmlIds": "TS-StorageLevel",
+			"features": "StorageLevel_m",
+			"units": "m",
+			"interpols": "InstVal",
+			"aqParamCode": "Reservoir Level - AHD",
+			"_row": "ResLevel_AHD"
+		},
+		{
+			"gmlIds": "TS-ElectricalConductivityFieldUncompensated",
+			"features": "ElectricalConductivityFieldUncompensated",
+			"units": "uS/cm",
+			"interpols": "InstVal",
+			"aqParamCode": "Conductivity - Uncompensated",
+			"_row": "WC_uncomp"
+		},
+		{
+			"gmlIds": "TS-Turbidity",
+			"features": "Turbidity_NTU",
+			"units": "[NTU]",
+			"interpols": "InstVal",
+			"aqParamCode": "Turbidity",
+			"_row": "WT"
+		}
+	],
+
+
+
+
+	"datum": [{
+			"urn": "Surface",
+			"_row": "Surface"
+		}, {
+			"urn": "GaugeDatum",
+			"_row": "GaugeDatum"
+		}, {
+			"urn": "5111",
+			"_row": "AHD"
+		}, {
+			"urn": "5112",
+			"_row": "AHDTasmania"
+		}, {
+			"urn": "Bed",
+			"_row": "Bed"
+		},
+		{
+			"urn": "NaturalSurfaceLevel",
+			"_row": "NaturalSurfaceLevel"
+		},
+		{
+			"urn": "TopOfCasing",
+			"_row": "TopOfCasing"
+		},
+		{
+			"urn": "LocalReferencePoint",
+			"_row": "LocalReferencePoint"
+		}
+	],
+
+
+
+
+
+	"qualityGrade": [{
+			"quality": "quality-F",
+			"_row": "regul0"
+		}, {
+			"quality": "quality-F",
+			"_row": "11"
+		}, {
+			"quality": "quality-E",
+			"_row": "21"
+		}, {
+			"quality": "quality-D",
+			"_row": "31"
+		}, {
+			"quality": "quality-C",
+			"_row": "41"
+		},
+		{
+			"quality": "quality-B",
+			"_row": "51"
+		},
+		{
+			"quality": "quality-A",
+			"_row": "61"
+		}
+	]
+
+}

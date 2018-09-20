@@ -1,0 +1,63 @@
+{
+
+	"config": {
+		"server": {
+			"aqServer": ["aiapp4"],
+			"aqUsername": ["admin"],
+			"aqPassword": ["admin"]
+		},
+
+		"ftpServer": {
+			"ftpServer": ["ftp://server116.web-hosting.com"],
+			"ftpUsername": ["dewnrtest@onfuriousclick.com"],
+			"ftpPassword": ["b.cN4Id~E66p"]
+		},
+
+		"timeRangeSpecifications": {
+		  "incrementalMode": [false],
+			"eventPeriodStartDay": ["2010-07-30 11:30:00"],
+			"eventPeriodEndDay": ["2017-08-14 08:00:00"],
+			"timeEnd": [""],
+			"utcOffset": ["+10:00"]
+		},
+
+		"ftpPath": {
+			"useFtp": [true],
+			"scriptPath": ["C:/Users/rafael.banchs/Downloads/WDTF_Donald_Docs/scripts/rafa testing/DPIPWE.20180816.wdtfExport_v4"],
+			"localTemPath": ["C:/Users/rafael.banchs/Desktop/test"]
+		}
+	},
+
+
+
+
+  
+  "siteInfo": {
+  	  "2219-1": {
+  			"siteID": ["2219-1"],
+  			"params": ["HG","QR"],
+  			"dataProvider": ["w00072"],
+  			"dataOwner": ["w00072"],
+  			"tslabels": ["1","1"],
+  			"regulationProperty": ["Reg200806.s3.1a","Reg200806.s3.1b"],
+  			"securityConstraints": ["Unclassified"],
+  			"status": ["combined"],
+  			"datum": ["GaugeDatum","GaugeDatum"]
+  		},
+  		"3395-1": {
+  			"siteID": ["3395-1"],
+  			"params": ["HG","QR"],
+  			"dataProvider": ["w00072"],
+  			"dataOwner": ["w00072"],
+  			"tslabels": ["1","1"],
+  			"regulationProperty": ["Reg200806.s3.1a","Reg200806.s3.1b"],
+  			"securityConstraints": ["Unclassified"],
+  			"status": ["combined"],
+  			"datum": ["GaugeDatum","GaugeDatum"]
+  		}
+  	}
+
+
+
+
+	}
