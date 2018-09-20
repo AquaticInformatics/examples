@@ -40,8 +40,8 @@
     <Reference Include="AQService.Common">
       <HintPath>InternalLibraries\AQService.Common.dll</HintPath>
     </Reference>
-    <Reference Include="Aquarius.Client, Version=18.6.4.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Aquarius.SDK.18.6.4\lib\net45\Aquarius.Client.dll</HintPath>
+    <Reference Include="Aquarius.Client, Version=18.7.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Aquarius.SDK.18.7.1\lib\net45\Aquarius.Client.dll</HintPath>
     </Reference>
     <Reference Include="Aquarius.Client.Legacy, Version=18.6.4.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Aquarius.SDK.Legacy.18.6.4\lib\net45\Aquarius.Client.Legacy.dll</HintPath>
