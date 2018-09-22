@@ -1,0 +1,1 @@
+These internal libraries are provided as-is, with no external support from AquaticInformatics.

@@ -1,0 +1,78 @@
+<?xml version='1.0'?>
+<nameMap>
+  <tag name='_aqshared_' longName='' shortName=''>
+    <attr name='AQDataID'      longName='Database Key (private)'       shortName='DBKey'/>
+    <attr name='AQLastModified'      longName='Last Modified Time'     shortName='Mod. Time'/>
+    <attr name='AQLastModifiedBy'    longName='Last Modified By'       shortName='Mod. User'/>
+    <attr name='label'         longName='Label'          shortName='Lbl.'     isUserEditable='true'/>
+    <attr name='description'   longName='Description'    shortName='Desc.'    isUserEditable='true'/>
+    <attr name='comment'       longName='Comment'        shortName='Cmmnt.'   isUserEditable='true'/>
+    <attr name='startTime'     longName='Start Time'     shortName='Strt. Tm.'/>
+    <attr name='startEpoch'    longName='Start Epoch'    shortName='Strt. Ep.'/>
+    <attr name='endTime'       longName='End Time'       shortName='End Tm.'/>
+    <attr name='endEpoch'      longName='End Epoch'      shortName='End Ep.'/>
+    <attr name="units"		 longName="Units"          shortName="Units"    isUserEditable='true'/>
+    <attr name='min'           longName='Minimum Value'  shortName='Min.'/>
+    <attr name='max'           longName='Maximum Value'  shortName='Max.'/>
+    <attr name='mean'          longName='Mean Value'     shortName='Mean'/>
+    <attr name='totalSamples'  longName='Total Samples'  shortName='Tot. Smpls'/>
+    <attr name="totalGaps"     longName="Total Gaps"     shortName="Tot. Gaps"/>
+    <attr name="samplingRate"  longName="Sampling Rate"  shortName="Smpl. Rate"/>
+    <attr name='name'          longName='Name'           shortName='Name'     isUserEditable='true'/>
+    <attr name='inputs'        longName='Inputs'         shortName='In.'/>
+    <attr name='outputs'       longName='Outputs'        shortName='Out.'/>
+    <attr name='modelType'     longName='Model Type'     shortName='Type'/>
+    <attr name='trainingError' longName='Training Error' shortName='Training Err.'/>
+    <attr name='testError'     longName='Test Error'     shortName='Test Err.'/>
+    <attr name='timezoneBias'           longName='Time Zone'  shortName='TZ.'/>
+    <attr name='startValue'  longName='Start Value'  shortName='Strt Val.'/>
+    <attr name='endValue'  longName='End Value'  shortName='End Val.'/>
+    <attr name='parameterType'     longName='Parameter'     shortName='Param.'/>
+    <attr name='maxGapInterval'     longName='Gap Processing Tolerance, minutes'     shortName='MGI'/>
+  </tag>
+  <tag name='AQAtom_TimeSeries'           longName='Time Series'          shortName='TS'/>
+  <tag name='AQAtom_DiscreteSamples'      longName='Discrete Samples'     shortName='Dis. Samples'/>
+  <tag name='AQAtom_Model'                longName='Aquarius Model'       shortName='Model'/>
+  <tag name='AQAtom_HYDROML'              longName='HYDROML'              shortName='HYDROML'>
+    <attr name='inputParameterType'   longName='Input Parameter'   shortName='Input Param' />
+    <attr name='inputUnits'           longName='Input Units'       shortName='Input Units' />
+    <attr name='outputParameterType'  longName='Output Parameter'  shortName='Output Param' />
+    <attr name='outputUnits'          longName='Output Units'      shortName='Output Units' />
+  </tag>
+  <tag name='AQAtom_RatingMeasurements'   longName='Rating Measurements'  shortName='Rat. Meas.'>
+    <attr name='indepVariableParameterType'  longName='Independent Parameter'  shortName='Indep Param' />
+    <attr name='depVariableParameterType'    longName='Dependent Parameter'    shortName='Dep Param' />
+    <attr name='indepVariableUnits'          longName='Independent Units'      shortName='Indep Units' />
+    <attr name='depVariableUnits'            longName='Dependent Units'        shortName='Dep Units' />
+    <attr name='widthUnits'            	     longName='Width Units'            shortName='Width Units' />
+    <attr name='areaUnits'                   longName='Area Units'             shortName='Area Units' />
+    <attr name='meanVelocityUnits'           longName='Mean Velocity Units'    shortName='Mean Vel Units' />
+    <attr name='effectiveDepthUnits'         longName='Effective Depth Units'  shortName='Eff Depth Units' />
+    <attr name='stageChangeUnits'            longName='Stage Change Units'     shortName='Stg Chg Units' />
+  </tag>
+  <tag name='AQAtom_SectionMeasurements'  longName='Section Measurements' shortName='Sect. Meas.'/>
+  <tag name='AQAtom_RatingPointList'      longName='Rating Point List'    shortName='Rat. Pts.'>
+    <attr name='ratingNumber' longName='Rating Number'  shortName='Rat. Num.' />
+    <attr name='createUser'   longName='Created By'     shortName='Creator' />
+    <attr name='createDate'   longName='Creation Date'  shortName='Create Dt.' />
+    <attr name='modifyUser'   longName='Modified By'    shortName='Modifier' />
+    <attr name='modifyDate'   longName='Modified Date'  shortName='Mod. Dt.' />
+    <attr name='independantValueParameterType'  longName='Independent Parameter'  shortName='Indep Param' />
+    <attr name='dependantValueParameterType'    longName='Dependent Parameter'    shortName='Dep Param' />
+    <attr name='independantValueUnits'          longName='Independent Units'      shortName='Indep Units' />
+    <attr name='dependantValueUnits'            longName='Dependent Units'        shortName='Dep Units' />
+  </tag>
+  <tag name='AQAtom_RatingCurve'    longName='Rating Curve'     shortName='Rat. Curve'/>
+  <tag name='AQAtom_File'           longName='File Attachment'  shortName='Attch.'>
+    <attr name='fileName'       longName='File Name'/>
+    <attr name='src'            longName='Src URI'/>
+  </tag>
+  <tag name='AQAtom_NumericMatrix'  longName='Numeric Matrix'   shortName='Num. Mat.'>
+    <attr name='dimX'   longName='X-Dimensions'  shortName='DimX' />
+    <attr name='dimY'   longName='Y-Dimensions'  shortName='DimY' />
+  </tag>
+  <tag name='AQAtom_NumericVector'    longName='Numeric Vector' shortName='Num. Vec.'/>
+  <tag name='AQAtom_Number' longName='Number' shortName='Num.'>
+    <attr name='value'  longName='Value'  shortName='Val.' />
+  </tag>
+</nameMap>
