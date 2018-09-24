@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -34,6 +33,7 @@ namespace SharpShooterReportsRunner
         private List<FieldVisitReading> FieldVisitReadings { get; set; }
         private string CsvMetaHeader { get; set; }
         private string CsvMetadata { get; set; }
+        public LocationDataServiceResponse LocationData { get; set; }
 
         public void Load(RatingModelDescription ratingModelDescription)
         {
@@ -306,8 +306,8 @@ namespace SharpShooterReportsRunner
                 result.TableDates.Add(new TableDate
                 {
                     TableNumber = tableNumber2[i],
-                    StartDate = ParseTime(startDate[i]),
-                    EndDate = string.IsNullOrEmpty(endDate[i]) ? DateTimeOffset.MaxValue : ParseTime(endDate[i])
+                    StartDate = DateTimeParser.Parse(LocationData, startDate[i]),
+                    EndDate = string.IsNullOrEmpty(endDate[i]) ? DateTimeOffset.MaxValue : DateTimeParser.Parse(LocationData, endDate[i])
                 });
             }
 
@@ -326,14 +326,6 @@ namespace SharpShooterReportsRunner
             }
 
             return result;
-        }
-
-        private static DateTimeOffset? ParseTime(string text)
-        {
-            if (!DateTimeOffset.TryParseExact(text, "yyyy-MM-ddTHH:mm:ss.fffzzz", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dateTime))
-                return null;
-
-            return dateTime;
         }
 
         private LegacyDataServiceClient CreateConnectedClient()

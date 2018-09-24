@@ -129,6 +129,7 @@
     <Compile Include="AQCSV.cs" />
     <Compile Include="AquariusChart.cs" />
     <Compile Include="Context.cs" />
+    <Compile Include="DateTimeParser.cs" />
     <Compile Include="ExpectedException.cs" />
     <Compile Include="ExternalDataSet.cs" />
     <Compile Include="GroupBy.cs" />

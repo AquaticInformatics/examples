@@ -268,8 +268,8 @@ namespace SharpShooterReportsRunner
             var request = new TimeSeriesDataCorrectedServiceRequest
             {
                 TimeSeriesUniqueId = timeSeriesDescription.UniqueId,
-                QueryFrom = ParseDateTime(timeSeriesDescription, timeSeries.QueryFrom),
-                QueryTo = ParseDateTime(timeSeriesDescription, timeSeries.QueryTo),
+                QueryFrom = DateTimeParser.Parse(timeSeriesDescription, timeSeries.QueryFrom),
+                QueryTo = DateTimeParser.Parse(timeSeriesDescription, timeSeries.QueryTo),
                 Unit = timeSeries.OutputUnitId,
                 IncludeGapMarkers = true
             };
@@ -327,8 +327,8 @@ namespace SharpShooterReportsRunner
             var request = new RatingCurveListServiceRequest
             {
                 RatingModelIdentifier = ratingModelDescription.Identifier,
-                QueryFrom = ParseDateTime(locationData, ratingModel.QueryFrom),
-                QueryTo = ParseDateTime(locationData, ratingModel.QueryTo),
+                QueryFrom = DateTimeParser.Parse(locationData, ratingModel.QueryFrom),
+                QueryTo = DateTimeParser.Parse(locationData, ratingModel.QueryTo),
             };
 
             var stepSize = double.TryParse(ratingModel.StepSize, NumberStyles.Any, CultureInfo.InvariantCulture, out var incrementSize)
@@ -357,7 +357,8 @@ namespace SharpShooterReportsRunner
             var ratingModelLoader = new RatingModelLoader
                 {
                     Context = _context,
-                    Client = _client
+                    Client = _client,
+                    LocationData = locationData
                 };
             ratingModelLoader.Load(ratingModelDescription);
 
@@ -571,42 +572,6 @@ namespace SharpShooterReportsRunner
                 ("AncestorLabel1", typeof(string), locationData.LocationName),
             });
         }
-
-        private static DateTimeOffset? ParseDateTime(TimeSeriesDescription timeSeriesDescription, string timeText)
-        {
-            return ParseDateTime(timeText, () => timeSeriesDescription.UtcOffsetIsoDuration.ToTimeSpan());
-        }
-
-        private static DateTimeOffset? ParseDateTime(LocationDataServiceResponse location, string timeText)
-        {
-            return ParseDateTime(timeText, () => TimeSpan.FromHours(location.UtcOffset));
-        }
-
-        private static DateTimeOffset? ParseDateTime(string timeText, Func<TimeSpan> utcOffsetFunc)
-        {
-            if (string.IsNullOrWhiteSpace(timeText))
-                return null;
-
-            timeText = timeText.Trim();
-
-            // TODO: Support water year
-            var dateTime = DateTime.ParseExact(timeText, SupportedDateFormats, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal);
-            var utcOffset = utcOffsetFunc();
-
-            var dateTimeOffset = new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), utcOffset);
-
-            return dateTimeOffset;
-        }
-
-        private static readonly string[] SupportedDateFormats =
-        {
-            "yyyy",
-            "yyyy-MM",
-            "yyyy-MM-dd",
-            "yyyy-MM-ddThh:mm",
-            "yyyy-MM-ddThh:mm:ss",
-            "yyyy-MM-ddThh:mm:ss.fff",
-        };
 
         private void AddLocation(DataSet dataSet, LocationDataServiceResponse location)
         {
