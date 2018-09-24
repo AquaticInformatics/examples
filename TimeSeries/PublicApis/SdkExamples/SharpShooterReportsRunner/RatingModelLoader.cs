@@ -9,7 +9,6 @@ using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using AQModelComputationDotNETLib;
-using CommunicationShared.Dto;
 using ServiceStack;
 using Parameter = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.Parameter;
 
@@ -116,6 +115,25 @@ namespace SharpShooterReportsRunner
             public double ShiftedDischarge { get; set; }
         }
 
+        public class RatingMeasurement
+        {
+            public double? Area { get; set; }
+            public string Condition { get; set; }
+            public double? DepVariableValue { get; set; }
+            public string DepVariableDescription { get; set; }
+            public double? IndepVariableValue { get; set; }
+            public string IndepVariableDescription { get; set; }
+            public double? EffectiveDepth { get; set; }
+            public double? MeanVelocity { get; set; }
+            public string MeasuredBy { get; set; }
+            public DateTime MeasurementTimestamp { get; set; }
+            public string Method { get; set; }
+            public string Quality { get; set; }
+            public double? StageChange { get; set; }
+            public double? Verticals { get; set; }
+            public double? Width { get; set; }
+        }
+
         public RatingCurveResult LoadRatingCurve(RatingCurve curve, int stepPrecision, DateTimeOffset curveEffectiveTime)
         {
             var result = new RatingCurveResult();
@@ -214,31 +232,52 @@ namespace SharpShooterReportsRunner
 
         private RatingMeasurement CreateRatingMeasurement(List<FieldVisitReading> readings)
         {
-            var inputReadings = readings.Where(r => r.ParameterId == InputParameter.ParameterId).ToList();
-            var outputReadings = readings.Where(r => r.ParameterId == OutputParameter.ParameterId).ToList();
+            var inputReadings = GetParameterReadings(readings, InputParameter.ParameterId);
+            var outputReadings = GetParameterReadings(readings, OutputParameter.ParameterId);
 
             if (!inputReadings.Any() || !outputReadings.Any())
                 return null;
 
             var outputReading = outputReadings.First();
 
-            // TODO: Should this be RatingMeasurement_T to grab control condition, method, area and width?
+            var areaReadings = GetParameterReadings(readings, "RiverSectionArea");
+            var widthReadings = GetParameterReadings(readings, "RiverSectionWidth");
+            var velocityReadings = GetParameterReadings(readings, "WV");
+            var depthReadings = GetParameterReadings(readings, "Depth");
 
             var rm = new RatingMeasurement
             {
-                DiscreteMeasurementID = outputReading.DiscreteMeasurementId.ToString(),
-                DisplayID = outputReading.DisplayId,
-                LocationID = outputReading.LocationId,
-                LocationVisitID = outputReading.VisitId,
+                Area = GetAverageReading(areaReadings),
+                Condition = outputReading.Condition,
+                DepVariableValue = GetAverageReading(outputReadings),
+                DepVariableDescription = RatingModelDescription.OutputParameter,
+                IndepVariableValue = GetAverageReading(inputReadings),
+                IndepVariableDescription = RatingModelDescription.InputParameter,
+                EffectiveDepth = GetAverageReading(depthReadings),
+                MeanVelocity = GetAverageReading(velocityReadings),
                 MeasuredBy = outputReading.Party,
-                MeasurementDetails = outputReading.Remarks,
+                MeasurementTimestamp = outputReading.MeasurementTime,
+                Method = outputReading.Method,
                 Quality = outputReading.Quality?.ToString(),
-                Indep = inputReadings.Average(r => r.Result),
-                Dep = outputReadings.Average(r => r.Result),
-                MeasurementTime = outputReading.MeasurementTime
+                Width = GetAverageReading(widthReadings),
             };
 
             return rm;
+        }
+
+        private static List<FieldVisitReading> GetParameterReadings(List<FieldVisitReading> readings, string parameterId)
+        {
+            return readings
+                .Where(r => r.ParameterId == parameterId)
+                .ToList();
+        }
+
+        private static double? GetAverageReading(List<FieldVisitReading> readings)
+        {
+            if (!readings.Any())
+                return null;
+
+            return readings.Average(r => r.Result);
         }
 
         public class AllTablesResult

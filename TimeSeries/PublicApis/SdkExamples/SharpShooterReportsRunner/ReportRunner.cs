@@ -474,25 +474,21 @@ namespace SharpShooterReportsRunner
                 rm => new object[]
                 {
                     rm.Area,
-                    "Unknown condition",
-                    rm.Dep,
-                    ratingModelDescription.OutputParameter,
-                    rm.Indep,
-                    ratingModelDescription.InputParameter,
-                    null, //Depth
-                    null, //Velocity
+                    rm.Condition,
+                    rm.DepVariableValue,
+                    rm.DepVariableDescription,
+                    rm.IndepVariableValue,
+                    rm.DepVariableDescription,
+                    rm.EffectiveDepth,
+                    rm.MeanVelocity,
                     rm.MeasuredBy,
                     0, // Epoch
-                    rm.MeasurementTime?.ToOADate(),
-                    rm.MeasurementTime.HasValue
-                        ? new DateTimeOffset(
-                            DateTime.SpecifyKind(rm.MeasurementTime.Value.Add(locationUtcOffset),
-                                DateTimeKind.Unspecified), locationUtcOffset)
-                        : (DateTimeOffset?) null,
-                    null, // method
+                    rm.MeasurementTimestamp.ToOADate(),
+                    new DateTimeOffset(DateTime.SpecifyKind(rm.MeasurementTimestamp, DateTimeKind.Unspecified), locationUtcOffset),
+                    rm.Method,
                     rm.Quality,
-                    null, // StageChange
-                    null, // Verticals
+                    rm.StageChange,
+                    rm.Verticals,
                     rm.Width
                 });
 
