@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Security;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
@@ -60,60 +61,92 @@ namespace PointZilla
                         ? $"Appending {Points.Count} {pointExtents} within TimeRange={GetTimeRange()} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
                         : $"Appending {Points.Count} {pointExtents} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ...");
 
+                var numberOfPointsAppended = 0;
+                var numberOfPointsDeleted = 0;
                 var stopwatch = Stopwatch.StartNew();
 
-                AppendResponse appendResponse;
-
-                if (isReflected)
+                foreach (var batch in GetPointBatches())
                 {
-                    appendResponse = client.Acquisition.Post(new PostReflectedTimeSeries
+                    var result = AppendPointBatch(client, timeSeries, batch.Item1, batch.Item2, isReflected, hasTimeRange);
+                    numberOfPointsAppended += result.NumberOfPointsAppended;
+                    numberOfPointsDeleted += result.NumberOfPointsDeleted;
+
+                    if (result.AppendStatus != AppendStatusCode.Completed)
+                        throw new ExpectedException($"Unexpected append status={result.AppendStatus}");
+                }
+
+                Log.Info($"Appended {numberOfPointsAppended} points (deleting {numberOfPointsDeleted} points) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds.");
+            }
+        }
+
+        private TimeSeriesAppendStatus AppendPointBatch(IAquariusClient client, TimeSeries timeSeries, List<ReflectedTimeSeriesPoint> points, Interval timeRange, bool isReflected, bool hasTimeRange)
+        {
+            AppendResponse appendResponse;
+
+            if (isReflected)
+            {
+                appendResponse = client.Acquisition.Post(new PostReflectedTimeSeries
+                {
+                    UniqueId = timeSeries.UniqueId,
+                    TimeRange = timeRange,
+                    Points = points
+                });
+            }
+            else
+            {
+                var basicPoints = points
+                    .Select(p => new TimeSeriesPoint
+                    {
+                        Time = p.Time,
+                        Value = p.Value
+                    })
+                    .ToList();
+
+                if (hasTimeRange)
+                {
+                    appendResponse = client.Acquisition.Post(new PostTimeSeriesOverwriteAppend
                     {
                         UniqueId = timeSeries.UniqueId,
-                        TimeRange = GetTimeRange(),
-                        Points = Points
+                        TimeRange = timeRange,
+                        Points = basicPoints
                     });
                 }
                 else
                 {
-                    var basicPoints = Points
-                        .Select(p => new TimeSeriesPoint
-                        {
-                            Time = p.Time,
-                            Value = p.Value
-                        })
-                        .ToList();
-
-                    if (hasTimeRange)
+                    appendResponse = client.Acquisition.Post(new PostTimeSeriesAppend
                     {
-                        appendResponse = client.Acquisition.Post(new PostTimeSeriesOverwriteAppend
-                        {
-                            UniqueId = timeSeries.UniqueId,
-                            TimeRange = GetTimeRange(),
-                            Points = basicPoints
-                        });
-                    }
-                    else
-                    {
-                        appendResponse = client.Acquisition.Post(new PostTimeSeriesAppend
-                        {
-                            UniqueId = timeSeries.UniqueId,
-                            Points = basicPoints
-                        });
-                    }
+                        UniqueId = timeSeries.UniqueId,
+                        Points = basicPoints
+                    });
                 }
-
-                var result = client.Acquisition.RequestAndPollUntilComplete(
-                    acquisition => appendResponse,
-                    (acquisition, response) => acquisition.Get(new GetTimeSeriesAppendStatus { AppendRequestIdentifier = response.AppendRequestIdentifier }),
-                    polledStatus => polledStatus.AppendStatus != AppendStatusCode.Pending,
-                    null,
-                    Context.AppendTimeout);
-
-                if (result.AppendStatus != AppendStatusCode.Completed)
-                    throw new ExpectedException($"Unexpected append status={result.AppendStatus}");
-
-                Log.Info($"Appended {result.NumberOfPointsAppended} points (deleting {result.NumberOfPointsDeleted} points) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds.");
             }
+
+            return client.Acquisition.RequestAndPollUntilComplete(
+                acquisition => appendResponse,
+                (acquisition, response) => acquisition.Get(new GetTimeSeriesAppendStatus { AppendRequestIdentifier = response.AppendRequestIdentifier }),
+                polledStatus => polledStatus.AppendStatus != AppendStatusCode.Pending,
+                null,
+                Context.AppendTimeout);
+        }
+
+        private IEnumerable<Tuple<List<ReflectedTimeSeriesPoint>, Interval>> GetPointBatches()
+        {
+            var points = GetPoints();
+            var remainingTimeRange = GetTimeRange();
+
+            var index = 0;
+            while (points.Count - index > Context.BatchSize)
+            {
+                var batchPoints = points.Skip(index).Take(Context.BatchSize).ToList();
+                var batchTimeRange = new Interval(remainingTimeRange.Start, batchPoints.Last().Time.GetValueOrDefault().PlusTicks(1));
+                remainingTimeRange = new Interval(batchTimeRange.End, remainingTimeRange.End);
+
+                yield return new Tuple<List<ReflectedTimeSeriesPoint>, Interval>(batchPoints, batchTimeRange);
+
+                index += Context.BatchSize;
+            }
+
+            yield return new Tuple<List<ReflectedTimeSeriesPoint>, Interval>(points.Skip(index).ToList(), remainingTimeRange);
         }
 
         private List<ReflectedTimeSeriesPoint> GetPoints()
