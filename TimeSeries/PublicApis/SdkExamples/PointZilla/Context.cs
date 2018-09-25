@@ -34,6 +34,7 @@ namespace PointZilla
         public Instant StartTime { get; set; } = Instant.FromDateTimeUtc(DateTime.UtcNow);
         public TimeSpan PointInterval { get; set; } = TimeSpan.FromMinutes(1);
         public int NumberOfPoints { get; set; } // 0 means "derive the point count from number of periods"
+        public int BatchSize { get; set; } = 500_000;
         public double NumberOfPeriods { get; set; } = 1;
         public WaveformType WaveformType { get; set; } = WaveformType.SineWave;
         public double WaveformOffset { get; set; } = 0;
