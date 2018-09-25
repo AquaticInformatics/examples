@@ -63,6 +63,7 @@ namespace PointZilla
 
                 var numberOfPointsAppended = 0;
                 var numberOfPointsDeleted = 0;
+                var batchCount = 0;
                 var stopwatch = Stopwatch.StartNew();
 
                 foreach (var batch in GetPointBatches())
@@ -70,12 +71,14 @@ namespace PointZilla
                     var result = AppendPointBatch(client, timeSeries, batch.Item1, batch.Item2, isReflected, hasTimeRange);
                     numberOfPointsAppended += result.NumberOfPointsAppended;
                     numberOfPointsDeleted += result.NumberOfPointsDeleted;
+                    batchCount += 1;
 
                     if (result.AppendStatus != AppendStatusCode.Completed)
                         throw new ExpectedException($"Unexpected append status={result.AppendStatus}");
                 }
 
-                Log.Info($"Appended {numberOfPointsAppended} points (deleting {numberOfPointsDeleted} points) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds.");
+                var batchText = batchCount > 1 ? $" using {batchCount} appends" : "";
+                Log.Info($"Appended {numberOfPointsAppended} points (deleting {numberOfPointsDeleted} points) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds{batchText}.");
             }
         }
 
