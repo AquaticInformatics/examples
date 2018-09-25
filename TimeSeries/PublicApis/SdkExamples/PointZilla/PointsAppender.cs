@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Security;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
@@ -71,7 +70,7 @@ namespace PointZilla
                     var result = AppendPointBatch(client, timeSeries, batch.Item1, batch.Item2, isReflected, hasTimeRange);
                     numberOfPointsAppended += result.NumberOfPointsAppended;
                     numberOfPointsDeleted += result.NumberOfPointsDeleted;
-                    batchCount += 1;
+                    batchCount++;
 
                     if (result.AppendStatus != AppendStatusCode.Completed)
                         throw new ExpectedException($"Unexpected append status={result.AppendStatus}");
