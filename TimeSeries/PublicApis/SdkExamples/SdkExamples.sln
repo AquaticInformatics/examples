@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2027
+VisualStudioVersion = 15.0.27130.2020
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppendPoints", "AppendPoints\AppendPoints.csproj", "{E2D7B054-9B51-4F15-B0AA-1A3565D0BAD4}"
 EndProject
@@ -16,6 +16,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserImporter", "UserImporter\UserImporter.csproj", "{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PointZilla", "PointZilla\PointZilla.csproj", "{359BF3C7-E80C-4A96-9D0C-1ACECBBFA7C2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpShooterReportsRunner", "SharpShooterReportsRunner\SharpShooterReportsRunner.csproj", "{76E2CAFF-7AEE-420B-B5B5-F9AC060F3F6F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TimeSeriesChangeMonitor", "TimeSeriesChangeMonitor\TimeSeriesChangeMonitor.csproj", "{F5935231-D291-4740-8377-3605B5039A88}"
 EndProject
@@ -41,6 +43,10 @@ Global
 		{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8BD7E403-82A9-4598-8D2C-4278D4FA4D38}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76E2CAFF-7AEE-420B-B5B5-F9AC060F3F6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76E2CAFF-7AEE-420B-B5B5-F9AC060F3F6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76E2CAFF-7AEE-420B-B5B5-F9AC060F3F6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76E2CAFF-7AEE-420B-B5B5-F9AC060F3F6F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{359BF3C7-E80C-4A96-9D0C-1ACECBBFA7C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{359BF3C7-E80C-4A96-9D0C-1ACECBBFA7C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{359BF3C7-E80C-4A96-9D0C-1ACECBBFA7C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
