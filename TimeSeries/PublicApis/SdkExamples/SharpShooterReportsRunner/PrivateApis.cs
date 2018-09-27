@@ -87,18 +87,5 @@ namespace PrivateApis
             public long? TemplateId { get; set; }
             public bool Publish { get; set; }
         }
-
-        [Route("/ratingmodel/{RatingModelId}/data", HttpMethods.Put)]
-        public class UpdateRatingModelDataRequest
-            : IReturnVoid
-        {
-            public UpdateRatingModelDataRequest()
-            {
-                OptimizedPackage = new byte[] { };
-            }
-
-            public long RatingModelId { get; set; }
-            public byte[] OptimizedPackage { get; set; }
-        }
     }
 }
