@@ -5,11 +5,9 @@ library(zip)
 library(RCurl)
 library(jsonlite)
 
-rm(list = ls())
 
 #REVERT
-setwd("C:/Users/rafael.banchs/Downloads/WDTF_Donald_Docs/scripts/rafa testing/DPIPWE.20180816.wdtfExport_v4")
-# setwd("C:/BatchProcessing/WDTF_V2A/WDTF_script_v2")
+setwd("current directory where script files and config files are located")
 
 ## ------------------------------------------------------------------------
 configJson <- fromJSON("config_file.json")
@@ -20,13 +18,6 @@ source("timeseries_client.R")
 
 ## ------------------------------------------------------------------------
  timeseries$connect(configJson$config$server$aqServer, configJson$config$server$aqUsername, configJson$config$server$aqPassword)
- timeseries$disconnect()
- timeseries$connect(configJson$config$server$aqServer, configJson$config$server$aqUsername, configJson$config$server$aqPassword)
-
-## ------------------------------------------------------------------------
-timeSeriesName = paste0(mappingJson$paramsInfo["HG","aqParamCode"],'.', configJson$siteInfo[["2219-1"]]$tslabels[1],'@',"2219-1")
-locationData = timeseries$getLocationData(timeseries$getLocationIdentifier(timeSeriesName))
-#print(locationData)
 
 ## ------------------------------------------------------------------------
 getTimeSeriesDataFrame = function(timeSeriesName){
@@ -464,7 +455,7 @@ makeWdtfZip = function() {
       write(wdtfCollection, file = filePath)
     }
     
-    wdtfOwnerId = "DPIPWE"
+    wdtfOwnerId <- configJson$config$ftpPath$wdtfOwnerId
     cwd = getwd()
     tryCatch({
       setwd(configJson$config$ftpPath$localTemPath)
@@ -493,6 +484,7 @@ UploadWdtf2Ftp = function(zipFileNames){
   
   server <- configJson$config$ftpServer$ftpTestServer
   credentials <- paste0(configJson$config$ftpServer$ftpTestUsername,':',configJson$config$ftpServer$ftpTestPassword)
+  ftpPath <- configJson$config$ftpPath$ftpUploadPath
   
   if(configJson$config$ftpPath$useFtp == TRUE) {
     server <- configJson$config$ftpServer$ftpServer
@@ -500,9 +492,7 @@ UploadWdtf2Ftp = function(zipFileNames){
   }
   for(z in zipFileNames) {
     localPath <- file.path(configJson$config$ftpPath$localTemPath, z)
-    #REVERT
-    uploadPath <- file.path(server, "WDTF", z)
-    # uploadPath <- file.path(server, "incoming/data", z)
+    uploadPath <- file.path(server, ftpPath, z)
     print(uploadPath)
     
     ftpUpload(localPath, uploadPath, userpwd = credentials)  
@@ -515,9 +505,8 @@ UploadWdtf2Ftp = function(zipFileNames){
 
 ## ------------------------------------------------------------------------
 zipFileNames = makeWdtfZip()
-#REVERT
 
-#UploadWdtf2Ftp(zipFileNames)
+UploadWdtf2Ftp(zipFileNames)
 
 print(paste0(zipFileNames," file Successfully created and uploaded into FTP site"))
 
