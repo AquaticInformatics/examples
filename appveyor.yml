@@ -62,12 +62,16 @@ artifacts:
     name: SosExporter
     type: file
 
+  - path: TimeSeries\PublicApis\SdkExamples\SharpShooterReportsRunner\bin\Release
+    name: SharpShooterReportsRunner
+    type: zip
+
 deploy:
   - provider: GitHub
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: Example utilities $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, SosExporter
+    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, SosExporter, SharpShooterReportsRunner
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true
