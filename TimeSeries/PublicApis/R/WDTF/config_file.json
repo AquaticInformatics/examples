@@ -1,0 +1,64 @@
+{
+
+	"config": {
+		"server": {
+			"aqServer": ["aquarius server name here"],
+			"aqUsername": ["your username here"],
+			"aqPassword": ["your password here"]
+		},
+
+		"ftpServer": {
+			"ftpServer": ["ftp server name here"],
+			"ftpUsername": ["your username here"],
+			"ftpPassword": ["your password here"],
+			"ftpTestServer": ["ftp test server name here"],
+			"ftpTestUsername": ["your test username here"],
+			"ftpTestPassword": ["your test password here"]
+		},
+
+		"timeRangeSpecifications": {
+		  "incrementalMode": [false],
+			"eventPeriodStartDay": ["2010-07-30 11:30:00"],
+			"eventPeriodEndDay": ["2017-08-14 08:00:00"],
+			"timeEnd": [""],
+			"utcOffset": ["+10:00"]
+		},
+
+		"ftpPath": {
+			"useFtp": [true],
+			"wdtfOwnerId": ["DPIPWE"],
+			"localTemPath": ["local path to save files locally"],
+			"ftpUploadPath": ["ftp path to upload files"]
+		}
+	},
+
+
+
+
+  
+  "siteInfo": {
+  	  "2219-1": {
+  			"siteID": ["2219-1"],
+  			"params": ["HG","QR"],
+  			"dataProvider": ["w00072"],
+  			"dataOwner": ["w00072"],
+  			"tslabels": ["1","1"],
+  			"regulationProperty": ["Reg200806.s3.1a","Reg200806.s3.1b"],
+  			"securityConstraints": ["Unclassified"],
+  			"status": ["combined"],
+  			"datum": ["GaugeDatum","GaugeDatum"]
+  		},
+  		"3395-1": {
+  			"siteID": ["3395-1"],
+  			"params": ["HG","QR"],
+  			"dataProvider": ["w00072"],
+  			"dataOwner": ["w00072"],
+  			"tslabels": ["1","1"],
+  			"regulationProperty": ["Reg200806.s3.1a","Reg200806.s3.1b"],
+  			"securityConstraints": ["Unclassified"],
+  			"status": ["combined"],
+  			"datum": ["GaugeDatum","GaugeDatum"]
+  		}
+  	}
+  	
+}
