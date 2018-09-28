@@ -93,9 +93,6 @@ The `-csvFormat=` option supports two prefconfigured formats:
 - `-csvFormat=NG` is equivalent to `-csvTimeField=1 -csvValueField=3 -csvGradeField=5 -csvQualifiersField=6 -csvSkipRows=0 -csvComment="#"`
 - `-csvFormat=3X` is equivalent to `-csvTimeField=1 -csvValueField=2 -csvGradeField=3 -csvQualifiersField=0 -csvSkipRows=2 -csvTimeFormat="MM/dd/yyyy HH:mm:ss"`
 
-
-
-
 ```sh
 $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/Stage.Historical@A001002.EntireRecord.csv
 
@@ -208,5 +205,66 @@ $ ./PointZilla.exe -server=myserver Stage.Label@Location -TimeRange=2018-04-25T0
 
 Like `curl`, the `PointZilla` tool has dozens of command line options, which can be a bit overwhelming. Fortunately, you'll rarely need to use all the options at once.
 
-Try the `/Help` option to see the entire list of supported options.
+Try the `/Help` option to see the entire list of supported options and read the [wiki for the @optionsFile syntax](https://github.com/AquaticInformatics/examples/wiki/Common-command-line-options).
+
+```
+Append points to an AQTS time-series.
+
+usage: PointZilla [-option=value] [@optionsFile] [command] [identifierOrGuid] [value] [csvFile] ...
+
+Supported -option=value settings (/option=value works too):
+
+  -Server                   AQTS server name
+  -Username                 AQTS username [default: admin]
+  -Password                 AQTS password [default: admin]
+  -Wait                     Wait for the append request to complete [default: True]
+  -AppendTimeout            Timeout period for append completion, in .NET TimeSpan format.
+  -BatchSize                Maximum number of points to send in a single append request [default: 500000]
+
+  ========================= Time-series options:
+  -TimeSeries               Target time-series identifier or unique ID
+  -TimeRange                Time-range for overwrite in ISO8061/ISO8601 (defaults to start/end points)
+  -Command                  Append operation to perform.  One of Auto, Append, OverwriteAppend, Reflected, DeleteAllPoints. [default: Auto]
+  -GradeCode                Optional grade code for all appended points
+  -Qualifiers               Optional qualifier list for all appended points
+  -CreateMode               Mode for creating missing time-series.  One of Never, Basic, Reflected. [default: Never]
+  -GapTolerance             Set the gap tolerance for newly-created time-series. [default: "MaxDuration"]
+  -UtcOffset                Set the UTC offset for any created location. [default: Use system timezone]
+
+  ========================= Copy points from another time-series:
+  -SourceTimeSeries         Source time-series to copy. Prefix with [server2] or [server2:username2:password2] to copy from another server
+  -SourceQueryFrom          Start time of extracted points in ISO8601 format.
+  -SourceQueryTo            End time of extracted points
+
+  ========================= Point-generator options:
+  -StartTime                Start time of generated points, in ISO8601 format. [default: the current time]
+  -PointInterval            Interval between generated points, in .NET TimeSpan format. [default: 00:01:00]
+  -NumberOfPoints           Number of points to generate. If 0, use NumberOfPeriods [default: 0]
+  -NumberOfPeriods          Number of waveform periods to generate. [default: 1]
+  -WaveformType             Waveform to generate. One of Linear, SawTooth, SineWave, SquareWave. [default: SineWave]
+  -WaveformOffset           Offset the generated waveform by this constant. [default: 0]
+  -WaveformPhase            Phase within one waveform period [default: 0]
+  -WaveformScalar           Scale the waveform by this amount [default: 1]
+  -WaveformPeriod           Waveform period before repeating [default: 1440]
+
+  ========================= CSV parsing options:
+  -CSV                      Parse the CSV file
+  -CsvTimeField             CSV column index for timestamps [default: 1]
+  -CsvValueField            CSV column index for values [default: 3]
+  -CsvGradeField            CSV column index for grade codes [default: 5]
+  -CsvQualifiersField       CSV column index for qualifiers [default: 6]
+  -CsvTimeFormat            Format of CSV time fields (defaults to ISO8601)
+  -CsvComment               CSV comment lines begin with this prefix [default: #]
+  -CsvSkipRows              Number of CSV rows to skip before parsing [default: 0]
+  -CsvIgnoreInvalidRows     Ignore CSV rows that can't be parsed [default: True]
+  -CsvRealign               Realign imported CSV points to the /StartTime value [default: False]
+  -CsvRemoveDuplicatePoints Remove duplicate points in the CSV before appending. [default: True]
+  -CsvFormat                Shortcut for known CSV formats. One of 'NG' or '3X'. [default: NG]
+
+Use the @optionsFile syntax to read more options from a file.
+
+  Each line in the file is treated as a command line option.
+  Blank lines and leading/trailing whitespace is ignored.
+  Comment lines begin with a # or // marker.
+```
  

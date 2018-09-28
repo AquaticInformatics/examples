@@ -24,7 +24,7 @@ namespace PointZilla
             return $"{key} {Description}{defaultValue}";
         }
 
-        private const int KeyWidth = 22;
+        private const int KeyWidth = 24;
         private static readonly string SeparatorLine = string.Empty.PadRight(KeyWidth + 1, '=');
     }
 }
