@@ -62,21 +62,34 @@ namespace PointZilla
 
                 var numberOfPointsAppended = 0;
                 var numberOfPointsDeleted = 0;
-                var batchCount = 0;
                 var stopwatch = Stopwatch.StartNew();
 
-                foreach (var batch in GetPointBatches())
+                var pointBatches = GetPointBatches(Points).ToList();
+                var isBatched = pointBatches.Count > 1;
+                var batchIndex = 1;
+
+                foreach (var batch in pointBatches)
                 {
-                    var result = AppendPointBatch(client, timeSeries, batch.Item1, batch.Item2, isReflected, hasTimeRange);
+                    if (isBatched)
+                    {
+                        var batchSummary =
+                            $"Appending batch #{batchIndex}: {batch.Points.Count} points [{batch.Points.First().Time} to {batch.Points.Last().Time}]";
+
+                        Log.Info( hasTimeRange
+                            ? $"{batchSummary} within TimeRange={batch.TimeRange} ..."
+                            : $"{batchSummary} ...");
+                    }
+
+                    var result = AppendPointBatch(client, timeSeries, batch.Points, batch.TimeRange, isReflected, hasTimeRange);
                     numberOfPointsAppended += result.NumberOfPointsAppended;
                     numberOfPointsDeleted += result.NumberOfPointsDeleted;
-                    batchCount++;
+                    ++batchIndex;
 
                     if (result.AppendStatus != AppendStatusCode.Completed)
                         throw new ExpectedException($"Unexpected append status={result.AppendStatus}");
                 }
 
-                var batchText = batchCount > 1 ? $" using {batchCount} appends" : "";
+                var batchText = isBatched ? $" using {pointBatches.Count} appends" : "";
                 Log.Info($"Appended {numberOfPointsAppended} points (deleting {numberOfPointsDeleted} points) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds{batchText}.");
             }
         }
@@ -131,9 +144,9 @@ namespace PointZilla
                 Context.AppendTimeout);
         }
 
-        private IEnumerable<Tuple<List<ReflectedTimeSeriesPoint>, Interval>> GetPointBatches()
+        private IEnumerable<(List<ReflectedTimeSeriesPoint> Points, Interval TimeRange)> GetPointBatches(
+            List<ReflectedTimeSeriesPoint> points)
         {
-            var points = GetPoints();
             var remainingTimeRange = GetTimeRange();
 
             var index = 0;
@@ -143,12 +156,12 @@ namespace PointZilla
                 var batchTimeRange = new Interval(remainingTimeRange.Start, batchPoints.Last().Time.GetValueOrDefault().PlusTicks(1));
                 remainingTimeRange = new Interval(batchTimeRange.End, remainingTimeRange.End);
 
-                yield return new Tuple<List<ReflectedTimeSeriesPoint>, Interval>(batchPoints, batchTimeRange);
+                yield return (batchPoints, batchTimeRange);
 
                 index += Context.BatchSize;
             }
 
-            yield return new Tuple<List<ReflectedTimeSeriesPoint>, Interval>(points.Skip(index).ToList(), remainingTimeRange);
+            yield return (points.Skip(index).ToList(), remainingTimeRange);
         }
 
         private List<ReflectedTimeSeriesPoint> GetPoints()

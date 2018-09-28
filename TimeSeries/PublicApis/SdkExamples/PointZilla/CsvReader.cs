@@ -89,6 +89,36 @@ namespace PointZilla
                 points.Add(point);
             }
 
+            if (Context.CsvRemoveDuplicatePoints)
+            {
+                points = points
+                    .OrderBy(p => p.Time)
+                    .ToList();
+
+                var duplicatePointCount = 0;
+
+                for (var i = 1; i < points.Count; ++i)
+                {
+                    var prevPoint = points[i - 1];
+                    var point = points[i];
+
+                    if (point.Time != prevPoint.Time)
+                        continue;
+
+                    ++duplicatePointCount;
+
+                    Log.Warn($"Discarding duplicate CSV point at {point.Time} with value {point.Value}");
+                    points.RemoveAt(i);
+
+                    --i;
+                }
+
+                if (duplicatePointCount > 0)
+                {
+                    Log.Warn($"Removed {duplicatePointCount} duplicate CSV points.");
+                }
+            }
+
             if (Context.CsvRealign)
             {
                 points = points
