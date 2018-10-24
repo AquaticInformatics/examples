@@ -98,6 +98,8 @@
     <Compile Include="PrivateApis.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RatingModelIdentifier.cs" />
+    <Compile Include="RatingModelIdentifierParser.cs" />
     <Compile Include="TimeSeriesIdentifier.cs" />
     <Compile Include="TimeSeriesIdentifierParser.cs" />
   </ItemGroup>

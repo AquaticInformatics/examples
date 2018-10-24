@@ -88,14 +88,15 @@ namespace LocationDeleter
                 new Option {Key = nameof(context.RecreateLocations), Setter = value => context.RecreateLocations = bool.Parse(value), Getter = () => context.RecreateLocations.ToString(), Description = "When true, recreate the location with the same properties."},
                 new Option {Key = "Location", Setter = value => context.LocationsToDelete.Add(value), Getter = () => string.Join(", ", context.LocationsToDelete), Description = "Locations to delete."},
                 new Option {Key = "TimeSeries", Setter = value => context.TimeSeriesToDelete.Add(value), Getter = () => string.Join(", ", context.TimeSeriesToDelete), Description = "Time-series to delete."},
+                new Option {Key = "RatingModel", Setter = value => context.RatingModelsToDelete.Add(value), Getter = () => string.Join(", ", context.RatingModelsToDelete), Description = "Rating models to delete."},
                 new Option {Key = nameof(context.VisitsBefore), Setter = value => context.VisitsBefore = ParseDateTime(value), Getter = () => context.VisitsBefore?.ToString("O"), Description = "Delete all visits in matching locations before and including this date."},
                 new Option {Key = nameof(context.VisitsAfter), Setter = value => context.VisitsAfter = ParseDateTime(value), Getter = () => context.VisitsAfter?.ToString("O"), Description = "Delete all visits in matching locations after and including this date."},
             };
 
             var usageMessage
-                    = $"Deletes locations, time-series, and/or field visits from an AQTS server."
+                    = $"Deletes locations, time-series, rating models, and/or field visits from an AQTS server."
                       + $"\n"
-                      + $"\nusage: {GetProgramName()} [-option=value] [@optionsFile] [location] [time-series] ..."
+                      + $"\nusage: {GetProgramName()} [-option=value] [@optionsFile] [location] [time-series] [rating model] ..."
                       + $"\n"
                       + $"\nSupported -option=value settings (/option=value works too):\n\n  -{string.Join("\n  -", options.Select(o => o.UsageText()))}"
                       + $"\n"
@@ -114,6 +115,10 @@ namespace LocationDeleter
                       + $"\nTime-series deletion:"
                       + $"\n====================="
                       + $"\nTime-series can specified by identifier or by time-series unique ID."
+                      + $"\n"
+                      + $"\nRating model deletion:"
+                      + $"\n====================="
+                      + $"\nRating models can specified by identifier."
                       + $"\n"
                       + $"\nField-visit deletion:"
                       + $"\n====================="
@@ -146,6 +151,12 @@ namespace LocationDeleter
                         throw new ExpectedException($"Unknown argument: {arg}\n\n{usageMessage}");
                     }
 
+                    if (RatingModelIdentifier.TryParse(arg, out _))
+                    {
+                        context.RatingModelsToDelete.Add(arg);
+                        continue;
+                    }
+
                     if (TimeSeriesIdentifier.TryParse(arg, out _))
                     {
                         context.TimeSeriesToDelete.Add(arg);
@@ -176,7 +187,7 @@ namespace LocationDeleter
             if (string.IsNullOrWhiteSpace(context.Username) || string.IsNullOrWhiteSpace(context.Password))
                 throw new ExpectedException("Valid AQTS credentials must be supplied.");
 
-            if (!context.LocationsToDelete.Any() && !context.TimeSeriesToDelete.Any() && !context.VisitsAfter.HasValue && !context.VisitsBefore.HasValue)
+            if (!context.LocationsToDelete.Any() && !context.TimeSeriesToDelete.Any() && !context.RatingModelsToDelete.Any() && !context.VisitsAfter.HasValue && !context.VisitsBefore.HasValue)
                 throw new ExpectedException($"You must specify something to delete. See /help or -help for details.");
 
             return context;

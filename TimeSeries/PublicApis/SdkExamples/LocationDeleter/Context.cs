@@ -13,6 +13,7 @@ namespace LocationDeleter
         public bool RecreateLocations { get; set; }
         public List<string> LocationsToDelete { get; set; } = new List<string>();
         public List<string> TimeSeriesToDelete { get; set; } = new List<string>();
+        public List<string> RatingModelsToDelete { get; set; } = new List<string>();
         public DateTimeOffset? VisitsBefore { get; set; }
         public DateTimeOffset? VisitsAfter { get; set; }
     }

@@ -46,6 +46,7 @@ namespace LocationDeleter
 
                 DeleteSpecifiedFieldVisits();
                 DeleteSpecifiedTimeSeries();
+                DeleteSpecifiedRatingModels();
                 DeleteSpecifiedLocations();
             }
         }
@@ -366,6 +367,135 @@ namespace LocationDeleter
                 default:
                     return $"{string.Join(", ", items.Take(items.Length - 1))} and {items.Last()}";
             }
+        }
+
+
+        private int LockedRatingModelCount { get; set; }
+
+        private void DeleteSpecifiedRatingModels()
+        {
+            if (!Context.RatingModelsToDelete.Any())
+                return;
+
+            if (Is3X())
+                throw new ExpectedException($"Rating model deletion is not supported for AQTS {Client.ServerVersion}");
+
+            LockedRatingModelCount = 0;
+
+            var deletedRatingModelCount = 0;
+
+            foreach (var ratingModelIdentifier in Context.RatingModelsToDelete)
+            {
+                deletedRatingModelCount += DeleteRatingModel(ratingModelIdentifier);
+            }
+
+            var lockedRatingModelSummary = string.Empty;
+
+            if (LockedRatingModelCount > 0)
+            {
+                lockedRatingModelSummary = $", skipping {LockedRatingModelCount} locked rating models.";
+            }
+
+            if (Context.DryRun)
+                Log.Info($"Dry run complete. {InspectedRatingModels} rating models would have been deleted{lockedRatingModelSummary}.");
+            else
+                Log.Info($"Deleted {deletedRatingModelCount} of {Context.RatingModelsToDelete.Count} rating models{lockedRatingModelSummary}.");
+        }
+
+        private int DeleteRatingModel(string ratingModelIdentifier)
+        {
+            var ratingModelInfo = GetRatingModelInfo(ratingModelIdentifier);
+
+            if (ratingModelInfo == null)
+            {
+                Log.Warn($"Rating model '{ratingModelIdentifier}' does not exist.");
+                return 0;
+            }
+
+            ++InspectedRatingModels;
+
+            if (!ConfirmAction(
+                $"deletion of '{ratingModelInfo.Identifier}'",
+                $"delete {ratingModelInfo.Identifier}",
+                () => GetRatingModelSummary(ratingModelInfo),
+                $"the identifier of the rating model",
+                ratingModelInfo.Identifier))
+            {
+                return 0;
+            }
+
+            Log.Info($"Deleting '{ratingModelInfo.Identifier}' ...");
+
+            try
+            {
+                _processor.Delete(new DeleteRatingModelRequest { RatingModelId = ratingModelInfo.RatingModelId });
+                Log.Info($"Deleted '{ratingModelInfo.Identifier}' successfully.");
+
+                return 1;
+            }
+            catch (WebServiceException exception)
+            {
+                if (exception.ErrorCode == "DependentRatingModelException")
+                {
+                    var derivedTimeSeries = GetDerivedTimeSeries(ratingModelInfo.Identifier);
+
+                    Log.Warn($"Rating model '{ratingModelInfo.Identifier}' has {derivedTimeSeries.Count} derived time-series and cannot be deleted. You will need to first delete '{string.Join("', '", derivedTimeSeries)}'");
+
+                    ++LockedRatingModelCount;
+
+                    return 0;
+                }
+
+                throw;
+            }
+        }
+
+        private RatingModelInfo GetRatingModelInfo(string ratingModelIdentifier)
+        {
+            var model = RatingModelIdentifierParser.ParseIdentifier(ratingModelIdentifier);
+            var locationInfo = ResolveLocationInfoNg(model.Location).Single();
+            var siteVisitLocation = GetSiteVisitLocation(locationInfo);
+
+            return _processor.Get(new GetRatingModelsForLocationRequest {LocationId = siteVisitLocation.Id})
+                .SingleOrDefault(r => r.InputInfo.ParameterDisplayId == model.InputParameter
+                             && r.OutputInfo.ParameterDisplayId == model.OutputParameter
+                             && r.Label == model.Label);
+        }
+
+        private string GetRatingModelSummary(RatingModelInfo ratingModelInfo)
+        {
+            var details = Client.Publish.Get(new RatingCurveListServiceRequest
+            {
+                RatingModelIdentifier = ratingModelInfo.Identifier
+            });
+
+            var derivedTimeSeries = GetDerivedTimeSeries(ratingModelInfo.Identifier);
+
+            var ratingModelSummary = FriendlyListExcludingZeroCounts(
+                "rating curve".ToQuantity(details.RatingCurves.Count),
+                "approval".ToQuantity(details.Approvals.Count),
+                "derived time-series".ToQuantity(derivedTimeSeries.Count));
+
+            return $"Rating model '{ratingModelInfo.Identifier}' has {ratingModelSummary}";
+        }
+
+        private List<string> GetDerivedTimeSeries(string ratingModelIdentifier)
+        {
+            var outputTimeSeries = Client.Publish.Get(new DownchainProcessorListByRatingModelServiceRequest
+                {
+                    RatingModelIdentifier = ratingModelIdentifier
+                })
+                .Processors
+                .Select(p => p.OutputTimeSeriesUniqueId)
+                .Distinct()
+                .ToList();
+
+            return Client.Publish.Get(new TimeSeriesDescriptionListByUniqueIdServiceRequest
+                {
+                    TimeSeriesUniqueIds = outputTimeSeries
+                }).TimeSeriesDescriptions
+                .Select(ts => ts.Identifier)
+                .ToList();
         }
 
         private void DeleteSpecifiedLocations()
