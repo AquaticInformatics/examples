@@ -99,5 +99,45 @@ namespace LocationDeleter.PrivateApis
         {
             public long TimeSeriesId { get; set; }
         }
+
+        [Route("/location/{LocationId}/ratingmodels", HttpMethods.Get)]
+        public class GetRatingModelsForLocationRequest : IReturn<List<RatingModelInfo>>
+        {
+            public long LocationId { get; set; }
+        }
+
+        public class RatingModelInfo
+        {
+            public long RatingModelId { get; set; }
+            public long LocationId { get; set; }
+            public string LocationIdentifier { get; set; }
+            public DateTime LastModified { get; set; }
+            public string LastModifiedBy { get; set; }
+            public string Identifier { get; set; }
+            public string Label { get; set; }
+            public string Description { get; set; }
+            public string Comment { get; set; }
+            public PortInfo InputInfo { get; set; }
+            public PortInfo OutputInfo { get; set; }
+            public TimeSpan UtcOffset { get; set; }
+            public string DefaultInputIds { get; set; }
+            public string Status { get; set; }
+            public long? TemplateId { get; set; }
+            public bool Publish { get; set; }
+        }
+
+        public class PortInfo
+        {
+            public string Units { get; set; }
+            public string UnitsSymbol { get; set; }
+            public string ParameterType { get; set; }
+            public string ParameterDisplayId { get; set; }
+        }
+
+        [Route("/ratingmodel/{RatingModelId}", HttpMethods.Delete)]
+        public class DeleteRatingModelRequest : IReturnVoid
+        {
+            public long RatingModelId { get; set; }
+        }
     }
 }

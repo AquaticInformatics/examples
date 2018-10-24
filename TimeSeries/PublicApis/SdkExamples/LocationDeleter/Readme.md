@@ -4,7 +4,7 @@
 
 Download the [latest LocationDeleter.exe release here](../../../../../../releases/latest)
 
-The `LocationDeleter` tool is a standalone .NET console utility for deleting locations, time-series, and/or field visits from AQTS app servers.
+The `LocationDeleter` tool is a standalone .NET console utility for deleting locations, time-series, rating models, and/or field visits from AQTS app servers.
 
 The `LocationDeleter` tool is not intended to be used on production systems. This tool exists to help administrators and integrators when configuring systems during initial setup, or when working with test systems to validate items created via the Provisioning API.
 
@@ -12,6 +12,7 @@ The `LocationDeleter` tool is not intended to be used on production systems. Thi
 
 - Can delete locations by identifier (case-insensitive) or by unique ID (for 201x app servers only). Publish API wildcard pattern matching is supported.
 - Can delete time-series by identifier or by unique ID.
+- Can delete rating models by identifier.
 - Can delete field visits before or after a given date.
 - Everything gets logged to `LocationDeleter.log`
 - Can delete multiple locations in one command.
@@ -64,6 +65,7 @@ C:\> LocationDeleter /Server=doug-vm2012r2 * /N
 Only location deletion is supported on 3.X systems, from 3.8 thru 3.10.
 
 - Time-series deletion is not supported.
+- Rating model deletion is not supported.
 - Field visit deletion is not supported.
 - Location recreation is not supported.
 
@@ -100,7 +102,7 @@ The full `/help` screen is shown below:
 ```
 Deletes locations, time-series, and/or field visits from an AQTS server.
 
-usage: LocationDeleter [-option=value] [@optionsFile] [location] [time-series] ...
+usage: LocationDeleter [-option=value] [@optionsFile] [location] [time-series] [rating model] ...
 
 Supported -option=value settings (/option=value works too):
 
@@ -112,6 +114,7 @@ Supported -option=value settings (/option=value works too):
   -RecreateLocations    When true, recreate the location with the same properties. [default: False]
   -Location             Locations to delete.
   -TimeSeries           Time-series to delete.
+  -RatingModel          Rating models to delete.
   -VisitsBefore         Delete all visits in matching locations before and including this date.
   -VisitsAfter          Delete all visits in matching locations after and including this date.
 
@@ -130,6 +133,10 @@ Publish API wildcard expansion of '*' is supported. '02*' will match locations b
 Time-series deletion:
 =====================
 Time-series can specified by identifier or by time-series unique ID.
+
+Rating model deletion:
+=====================
+Rating models can specified by identifier.
 
 Field-visit deletion:
 =====================
@@ -253,6 +260,27 @@ $ ./LocationDeleter.exe -server=doug-vm2012r2 stage.fake@schmidtkits
 ```
 
 - If you have many time-series to delete, putting them in an `@optionsFile` is highly recommended.
+
+## Deleting rating models
+
+You can also delete a specific rating model, using the `/RatingModel=identifier` option or just specify the rating model identifier on the command line.
+
+If a derived time-series is running using the rating model in a processing plan, you will need to delete that derived time-series before the rating model can be deleted.
+
+```cmd
+$ ./LocationDeleter.exe -server=doug-vm2012r2 "Stage-Discharge.RatingCurve@QM756918"
+17:25:22.574 INFO  - Connecting LocationDeleter v1.0.0.0 to doug-vm2012r2 ...
+17:25:23.795 INFO  - Connected to doug-vm2012r2 (2018.3.94.0)
+17:25:26.314 WARN  - Rating model 'Stage-Discharge.RatingCurve@QM756918' has 191 rating curves and 1 approval
+17:25:26.314 WARN  - Are you sure you want to delete Stage-Discharge.RatingCurve@QM756918?
+17:25:26.315 WARN  - Type the identifier of the rating model to confirm deletion.
+Stage-Discharge.RatingCurve@QM756918
+17:25:47.426 INFO  - Deleting 'Stage-Discharge.RatingCurve@QM756918' ...
+17:25:48.927 INFO  - Deleted 'Stage-Discharge.RatingCurve@QM756918' successfully.
+17:25:48.928 INFO  - Deleted 1 of 1 rating models.
+```
+
+- If you have many rating models to delete, putting them in an `@optionsFile` is highly recommended.
 
 ## Deleting field-visits by time-range
 
