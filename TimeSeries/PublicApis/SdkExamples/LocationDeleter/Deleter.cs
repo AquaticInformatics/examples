@@ -490,6 +490,9 @@ namespace LocationDeleter
                 .Distinct()
                 .ToList();
 
+            if (!outputTimeSeries.Any())
+                return new List<string>();
+
             return Client.Publish.Get(new TimeSeriesDescriptionListByUniqueIdServiceRequest
                 {
                     TimeSeriesUniqueIds = outputTimeSeries
