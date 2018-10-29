@@ -501,6 +501,8 @@ namespace LocationDeleter
                 .ToList();
         }
 
+        private int LockedLocationCount { get; set; }
+
         private void DeleteSpecifiedLocations()
         {
             if (ResolvedLocations.Count == 0 || IsFieldVisitDeletionEnabled())
@@ -521,10 +523,17 @@ namespace LocationDeleter
                 "field visit".ToQuantity(InspectedFieldVisits),
                 "attachment".ToQuantity(InspectedAttachments));
 
+            var lockedLocationSummary = string.Empty;
+
+            if (LockedLocationCount > 0)
+            {
+                lockedLocationSummary = $", skipping {"location".ToQuantity(LockedLocationCount)} locked by external dependencies.";
+            }
+
             if (Context.DryRun)
-                Log.Info($"Dry run completed. {"location".ToQuantity(InspectedLocations)} would have been deleted, including {deletionSummary}.");
+                Log.Info($"Dry run completed. {"location".ToQuantity(InspectedLocations)} would have been deleted, including {deletionSummary}{lockedLocationSummary}.");
             else
-                Log.Info($"Deleted {deletedLocationCount} of {"location".ToQuantity(ResolvedLocations.Count)}, including {deletionSummary}.");
+                Log.Info($"Deleted {deletedLocationCount} of {"location".ToQuantity(ResolvedLocations.Count)}, including {deletionSummary}{lockedLocationSummary}.");
         }
 
         private static string TimeSeriesInventory(int timeSeriesCount, int derivedTimeSeriesCount)
@@ -560,6 +569,12 @@ namespace LocationDeleter
 
             Log.Info($"Deleting location '{locationInfo.Identifier}' ...");
             var deletedLocation = DeleteLocationByLocationInfo(locationInfo);
+
+            if (deletedLocation == null)
+            {
+                return 0;
+            }
+
             Log.Info($"Deleted location '{locationInfo.Identifier}' successfully.");
 
             if (Context.RecreateLocations)
@@ -797,7 +812,23 @@ namespace LocationDeleter
 
             var location = Client.Provisioning.Get(new GetLocation {LocationUniqueId = locationInfo.UniqueId.Value});
 
-            _processor.Delete(new DeleteMigrationLocationByIdentifier {LocationIdentifier = locationInfo.Identifier});
+            try
+            {
+                _processor.Delete(new DeleteMigrationLocationByIdentifier {LocationIdentifier = locationInfo.Identifier});
+            }
+            catch (WebServiceException exception)
+            {
+                if (exception.ErrorCode == "InvalidOperationException")
+                {
+                    Log.Warn($"Location '{locationInfo.Identifier}' cannot be deleted. Reason: {exception.ErrorMessage}");
+
+                    ++LockedLocationCount;
+
+                    return null;
+                }
+
+                throw;
+            }
 
             return location;
         }
