@@ -133,7 +133,6 @@ namespace PointZilla
 
         private static readonly InterpolationType[] InterpolationTypesWithNoGaps =
         {
-            InterpolationType.PrecedingTotals,
             InterpolationType.InstantaneousTotals,
             InterpolationType.DiscreteValues,
         };
