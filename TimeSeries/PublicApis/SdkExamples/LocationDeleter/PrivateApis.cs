@@ -67,6 +67,13 @@ namespace LocationDeleter.PrivateApis
             public long Id { get; set; }
         }
 
+        [Route("/visits/{Id}/approvallevel", HttpMethods.Put)]
+        public class PutVisitApprovalLevel : IReturnVoid
+        {
+            public long Id { get; set; }
+            public long ApprovalLevelId { get; set; }
+        }
+
         // Approval DTOs lifted from 17.3 SiteVisit and trimmed down to minimum required properties
         [Route("/locations/{Id}/approvallevels", HttpMethods.Get)]
         public class GetLocationApprovalLevels : IReturn<ResolvedLocationRole>
@@ -118,12 +125,12 @@ namespace LocationDeleter.PrivateApis
         [Route("/approvaljobs/{Id}", HttpMethods.Get)]
         public class GetApprovalJob : IReturn<DatasetApprovalSaveResult>
         {
-            public Int64 Id { get; set; }
+            public long Id { get; set; }
         }
 
         public class DatasetApprovalSaveResult
         {
-            public Int64 Id { get; set; }
+            public long Id { get; set; }
             public bool Complete { get; set; }
             public bool Success { get; set; }
             public List<RelatedDataset> RelatedDatasets { get; set; }

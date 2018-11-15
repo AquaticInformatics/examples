@@ -11,6 +11,7 @@ using LocationDeleter.PrivateApis.Processor;
 using LocationDeleter.PrivateApis.SiteVisit;
 using ServiceStack;
 using ServiceStack.Logging;
+using ApprovalLevel = LocationDeleter.PrivateApis.SiteVisit.ApprovalLevel;
 using Publish3x = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x;
 
 namespace LocationDeleter
@@ -138,6 +139,22 @@ namespace LocationDeleter
                 .Where(v => v.IsLocked)
                 .ToList();
 
+            var lockedVisitSummary = $"{"locked visit".ToQuantity(lockedVisits.Count)} in '{locationInfo.Identifier}'";
+
+            if (lockedVisits.Any() && ConfirmAction(
+                $"unlocking of {lockedVisitSummary}",
+                $"unlock {lockedVisitSummary}",
+                () => lockedVisitSummary,
+                $"the identifier of the location",
+                locationInfo.Identifier))
+            {
+                UnlockVisits(siteVisitLocation.Id, lockedVisits);
+
+                lockedVisits.Clear();
+
+                Log.Info($"Unlocked {lockedVisitSummary}.");
+            }
+
             if (lockedVisits.Any())
             {
                 Log.Warn($"Skipping deletion of {"locked field visit".ToQuantity(lockedVisits.Count)} in location '{locationInfo.Identifier}'.");
@@ -180,6 +197,16 @@ namespace LocationDeleter
             Log.Info($"Deleted {visitSummary} successfully.");
 
             return visits.Count;
+        }
+
+        private void UnlockVisits(long locationId, List<Visit> visits)
+        {
+            var lowestApprovalLevel = GetLowestApprovalLevel(locationId);
+
+            foreach (var visit in visits)
+            {
+                _siteVisit.Put(new PutVisitApprovalLevel {Id = visit.Id, ApprovalLevelId = lowestApprovalLevel.Id});
+            }
         }
 
         private int LockedTimeSeriesCount { get; set; }
@@ -287,10 +314,7 @@ namespace LocationDeleter
 
             var siteVisitLocation = GetSiteVisitLocation(timeSeriesDescription);
 
-            var lowestApprovalLevel = _siteVisit.Get(new GetLocationApprovalLevels {Id = siteVisitLocation.Id})
-                .ApprovalLevels
-                .OrderBy(a => a.Level)
-                .First();
+            var lowestApprovalLevel = GetLowestApprovalLevel(siteVisitLocation.Id);
 
             var timeSeriesInfo = GetTimeSeriesInfo(timeSeriesDescription);
 
@@ -326,6 +350,14 @@ namespace LocationDeleter
         }
 
         private static readonly AquariusServerVersion MinimumApprovalUnlockVersion = AquariusServerVersion.Create("17.3.75");
+
+        private ApprovalLevel GetLowestApprovalLevel(long locationId)
+        {
+            return _siteVisit.Get(new GetLocationApprovalLevels {Id = locationId})
+                .ApprovalLevels
+                .OrderBy(a => a.Level)
+                .First();
+        }
 
         private void DeleteTimeSeries(TimeSeriesDescription timeSeriesDescription)
         {
