@@ -251,9 +251,20 @@ namespace LocationDeleter
             }
             catch (WebServiceException exception)
             {
-                if (exception.ErrorCode == "DeleteLockedTimeSeriesException")
+                if (IsTimeSeriesLocked(exception))
                 {
                     Log.Warn($"Time-series '{timeSeriesDescription.Identifier}' has locked data and cannot be deleted.");
+
+                    if (ConfirmAction(
+                        "unlocking of approved regions",
+                        "unlock approved regions",
+                        () => timeSeriesDescription.Identifier,
+                        "the identifier of the time-series",
+                        timeSeriesDescription.Identifier))
+                    {
+                        if (UnlockTimeSeries(timeSeriesDescription))
+                            return 1;
+                    }
 
                     ++LockedTimeSeriesCount;
 
@@ -264,6 +275,58 @@ namespace LocationDeleter
             }
         }
 
+        private static bool IsTimeSeriesLocked(WebServiceException exception)
+        {
+            return exception.ErrorCode == "DeleteLockedTimeSeriesException";
+        }
+
+        private bool UnlockTimeSeries(TimeSeriesDescription timeSeriesDescription)
+        {
+            if (Client.ServerVersion.IsLessThan(MinimumApprovalUnlockVersion))
+                return false;
+
+            var siteVisitLocation = GetSiteVisitLocation(timeSeriesDescription);
+
+            var lowestApprovalLevel = _siteVisit.Get(new GetLocationApprovalLevels {Id = siteVisitLocation.Id})
+                .ApprovalLevels
+                .OrderBy(a => a.Level)
+                .First();
+
+            var timeSeriesInfo = GetTimeSeriesInfo(timeSeriesDescription);
+
+            Log.Info($"Unlocking '{timeSeriesDescription.Identifier}' to ApprovalLevel={lowestApprovalLevel.Level} ({lowestApprovalLevel.Name})");
+
+            var approvalJob = _siteVisit.RequestAndPollUntilComplete(
+                siteVisit => siteVisit.Post(new PostDatasetApproval
+                {
+                    Id = timeSeriesInfo.TimeSeriesId,
+                    IsMigrationRequest = true,
+                    ApprovalLevelId = lowestApprovalLevel.Id
+                }),
+                (siteVisit, response) => siteVisit.Get(new GetApprovalJob {Id = response.Id}),
+                polledStatus => polledStatus.Complete);
+
+            if (!approvalJob.Success)
+            {
+                Log.Warn($"Can't unlock approvals for '{timeSeriesDescription.Identifier}': {string.Join(", ", approvalJob.RelatedDatasets.SelectMany(dataset => dataset.ApprovalRejectionReasons))}");
+                return false;
+            }
+
+            try
+            {
+                DeleteTimeSeries(timeSeriesDescription);
+                Log.Info($"Deleted '{timeSeriesDescription.Identifier}' successfully.");
+
+                return true;
+            }
+            catch (WebServiceException)
+            {
+                return false;
+            }
+        }
+
+        private static readonly AquariusServerVersion MinimumApprovalUnlockVersion = AquariusServerVersion.Create("17.3.75");
+
         private void DeleteTimeSeries(TimeSeriesDescription timeSeriesDescription)
         {
             if (timeSeriesDescription.TimeSeriesType == "Reflected")
@@ -272,12 +335,22 @@ namespace LocationDeleter
                 return;
             }
 
-            var locationInfo = ResolveLocationInfoNg(timeSeriesDescription.LocationIdentifier).Single();
-            var siteVisitLocation = GetSiteVisitLocation(locationInfo);
-            var timeSeries = _processor.Get(new GetTimeSeriesForLocationRequest { LocationId = siteVisitLocation.Id })
-                .Single(ts => ts.UniqueId == timeSeriesDescription.UniqueId);
+            var timeSeriesInfo = GetTimeSeriesInfo(timeSeriesDescription);
 
-            _processor.Delete(new DeleteTimeSeriesRequest {TimeSeriesId = timeSeries.TimeSeriesId});
+            _processor.Delete(new DeleteTimeSeriesRequest {TimeSeriesId = timeSeriesInfo.TimeSeriesId});
+        }
+
+        private TimeSeriesInfo GetTimeSeriesInfo(TimeSeriesDescription timeSeriesDescription)
+        {
+            var siteVisitLocation = GetSiteVisitLocation(timeSeriesDescription);
+
+            return GetTimeSeriesInfo(timeSeriesDescription, siteVisitLocation.Id);
+        }
+
+        private TimeSeriesInfo GetTimeSeriesInfo(TimeSeriesDescription timeSeriesDescription, long siteVisitLocationId)
+        {
+            return _processor.Get(new GetTimeSeriesForLocationRequest {LocationId = siteVisitLocationId})
+                .Single(ts => ts.UniqueId == timeSeriesDescription.UniqueId);
         }
 
         private TimeSeriesDescription GetTimeSeriesDescription(string timeSeriesIdentifierOrGuid)
@@ -787,6 +860,12 @@ namespace LocationDeleter
 
             // We can't recreate a location in 3.X, so no need to return a provisioning object
             return null;
+        }
+
+        private SearchLocation GetSiteVisitLocation(TimeSeriesDescription timeSeriesDescription)
+        {
+            var locationInfo = ResolveLocationInfoNg(timeSeriesDescription.LocationIdentifier).Single();
+            return GetSiteVisitLocation(locationInfo);
         }
 
         private SearchLocation GetSiteVisitLocation(LocationInfo locationInfo)
