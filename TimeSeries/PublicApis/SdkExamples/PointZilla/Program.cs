@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
+using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using log4net;
 using NodaTime;
 using ServiceStack;
@@ -105,9 +106,21 @@ namespace PointZilla
                 new Option {Key = nameof(context.Command), Setter = value => context.Command = ParseEnum<CommandType>(value), Getter = () => context.Command.ToString(), Description = $"Append operation to perform.  {EnumOptions<CommandType>()}"},
                 new Option {Key = nameof(context.GradeCode), Setter = value => context.GradeCode = int.Parse(value), Getter = () => context.GradeCode.ToString(), Description = "Optional grade code for all appended points"},
                 new Option {Key = nameof(context.Qualifiers), Setter = value => context.Qualifiers = QualifiersParser.Parse(value), Getter = () => string.Join(",", context.Qualifiers), Description = "Optional qualifier list for all appended points"},
-                new Option {Key = nameof(context.CreateMode), Setter = value => context.CreateMode = ParseEnum<CreateMode>(value), Getter = () => context.CreateMode.ToString(), Description = $"Mode for creating missing time-series.  {EnumOptions<CreateMode>()}"},
-                new Option {Key = nameof(context.GapTolerance), Setter = value => context.GapTolerance = value.FromJson<Duration>(), Getter = () => context.GapTolerance.ToJson(), Description = "Set the gap tolerance for newly-created time-series."},
-                new Option {Key = nameof(context.UtcOffset), Setter = value => context.UtcOffset = value.FromJson<Offset>(), Getter = () => string.Empty, Description = "Set the UTC offset for any created location. [default: Use system timezone]"},
+
+                new Option(), new Option {Description = "Time-series creation options:"},
+                new Option {Key = nameof(context.CreateMode), Setter = value => context.CreateMode = ParseEnum<CreateMode>(value), Getter = () => context.CreateMode.ToString(), Description = $"Mode for creating missing time-series. {EnumOptions<CreateMode>()}"},
+                new Option {Key = nameof(context.GapTolerance), Setter = value => context.GapTolerance = value.FromJson<Duration>(), Getter = () => context.GapTolerance.ToJson(), Description = "Gap tolerance for newly-created time-series."},
+                new Option {Key = nameof(context.UtcOffset), Setter = value => context.UtcOffset = value.FromJson<Offset>(), Getter = () => string.Empty, Description = "UTC offset for any created time-series or location. [default: Use system timezone]"},
+                new Option {Key = nameof(context.Unit), Setter = value => context.Unit = value, Getter = () => context.Unit, Description = "Time-series unit"},
+                new Option {Key = nameof(context.InterpolationType), Setter = value => context.InterpolationType = ParseEnum<InterpolationType>(value), Getter = () => context.InterpolationType.ToString(), Description = $"Time-series interpolation type. {EnumOptions<InterpolationType>()}"},
+                new Option {Key = nameof(context.Publish), Setter = value => context.Publish = bool.Parse(value), Getter = () => context.Publish.ToString(), Description = "Publish flag."},
+                new Option {Key = nameof(context.Description), Setter = value => context.Description = value, Getter = () => context.Description, Description = "Time-series description"},
+                new Option {Key = nameof(context.Comment), Setter = value => context.Comment = value, Getter = () => context.Comment, Description = "Time-series comment"},
+                new Option {Key = nameof(context.Method), Setter = value => context.Method = value, Getter = () => context.Method, Description = "Time-series monitoring method"},
+                new Option {Key = nameof(context.ComputationIdentifier), Setter = value => context.ComputationIdentifier = value, Getter = () => context.ComputationIdentifier, Description = "Time-series computation identifier"},
+                new Option {Key = nameof(context.ComputationPeriodIdentifier), Setter = value => context.ComputationPeriodIdentifier = value, Getter = () => context.ComputationPeriodIdentifier, Description = "Time-series computation period identifier"},
+                new Option {Key = nameof(context.SubLocationIdentifier), Setter = value => context.SubLocationIdentifier = value, Getter = () => context.SubLocationIdentifier, Description = "Time-series sub-location identifier"},
+                new Option {Key = nameof(context.ExtendedAttributeValues), Setter = value => ParseExtendedAttributeValue(context, value), Getter = () => string.Empty, Description = "Extended attribute values in UPPERCASE_COLUMN_NAME@UPPERCASE_TABLE_NAME=value syntax. Can be set multiple times."},
 
                 new Option(), new Option {Description = "Copy points from another time-series:"},
                 new Option {Key = nameof(context.SourceTimeSeries), Setter = value => {if (TimeSeriesIdentifier.TryParse(value, out var tsi)) context.SourceTimeSeries = tsi; }, Getter = () => context.SourceTimeSeries?.ToString(), Description = "Source time-series to copy. Prefix with [server2] or [server2:username2:password2] to copy from another server"},
@@ -347,6 +360,23 @@ namespace PointZilla
             return new Interval(
                 components[0].FromJson<Instant>(),
                 components[1].FromJson<Instant>());
+        }
+
+        private static void ParseExtendedAttributeValue(Context context, string text)
+        {
+            var components = text.Split(new[] {'='}, 2);
+
+            if (components.Length < 2)
+                throw new ExpectedException($"'{text}' is not in UPPERCASE_COLUMN_NAME@UPPERCASE_TABLE_NAME=value format.");
+
+            var columnIdentifier = components[0].Trim();
+            var value = components[1].Trim();
+
+            context.ExtendedAttributeValues.Add(new ExtendedAttributeValue
+            {
+                ColumnIdentifier = columnIdentifier,
+                Value = value
+            });
         }
 
         private readonly Context _context;

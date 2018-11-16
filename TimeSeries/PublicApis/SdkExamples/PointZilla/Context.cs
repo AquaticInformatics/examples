@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Aquarius.TimeSeries.Client.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
+using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using NodaTime;
 
 namespace PointZilla
@@ -24,6 +25,16 @@ namespace PointZilla
         public CreateMode CreateMode { get; set; } = CreateMode.Never;
         public Duration GapTolerance { get; set; } = DurationExtensions.MaxGapDuration;
         public Offset? UtcOffset { get; set; }
+        public string Unit { get; set; }
+        public InterpolationType? InterpolationType { get; set; }
+        public bool Publish { get; set; }
+        public string Description { get; set; } = "Created by PointZilla";
+        public string Comment { get; set; }
+        public string Method { get; set; }
+        public string ComputationIdentifier { get; set; }
+        public string ComputationPeriodIdentifier { get; set; }
+        public string SubLocationIdentifier { get; set; }
+        public List<ExtendedAttributeValue> ExtendedAttributeValues { get; set; } = new List<ExtendedAttributeValue>();
 
         public TimeSeriesIdentifier SourceTimeSeries { get; set; }
         public Instant? SourceQueryFrom { get; set; }

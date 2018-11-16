@@ -60,7 +60,7 @@ namespace PointZilla
                 Description = "Dummy location created by PointZilla",
                 LocationPath = locationFolder.LocationFolderPath,
                 UtcOffset = Context.UtcOffset ?? Offset.FromTicks(DateTimeOffset.Now.Offset.Ticks),
-                ExtendedAttributeValues = GetDefaultExtendedAttributes(locationType.ExtendedAttributeFields).ToList()
+                ExtendedAttributeValues = MergeExtendedAttributesWithMandatoryExtendedAttributes(locationType.ExtendedAttributeFields).ToList()
             };
 
             Log.Info($"Creating location '{locationIdentifier}' ...");
@@ -89,7 +89,9 @@ namespace PointZilla
             if (parameter == null)
                 throw new ExpectedException($"Parameter '{timeSeriesInfo.Parameter}' does not exist in the system.");
 
-            var gapTolerance = InterpolationTypesWithNoGaps.Contains(parameter.InterpolationType)
+            var interpolationType = Context.InterpolationType ?? parameter.InterpolationType;
+
+            var gapTolerance = InterpolationTypesWithNoGaps.Contains(interpolationType)
                 ? DurationExtensions.MaxGapDuration
                 : Context.GapTolerance;
 
@@ -103,7 +105,7 @@ namespace PointZilla
 
             if (Context.CreateMode == CreateMode.Reflected)
             {
-                reflectedTimeSeries = new PostReflectedTimeSeries { GapTolerance = gapTolerance };
+                reflectedTimeSeries = new PostReflectedTimeSeries {GapTolerance = gapTolerance};
                 request = reflectedTimeSeries;
             }
             else
@@ -113,14 +115,19 @@ namespace PointZilla
             }
 
             request.LocationUniqueId = location.UniqueId;
-            request.UtcOffset = location.UtcOffset;
+            request.UtcOffset = Context.UtcOffset ?? location.UtcOffset;
             request.Label = timeSeriesInfo.Label;
             request.Parameter = parameter.ParameterId;
-            request.Description = "Created by PointZilla";
-            request.ExtendedAttributeValues = GetDefaultExtendedAttributes(timeSeriesExtendedAttributes).ToList();
-            request.Unit = parameter.UnitIdentifier;
-            request.InterpolationType = parameter.InterpolationType;
-            request.Method = defaultMonitoringMethod.MethodCode;
+            request.Description = Context.Description;
+            request.Comment = Context.Comment;
+            request.Unit = Context.Unit ?? parameter.UnitIdentifier;
+            request.InterpolationType = interpolationType;
+            request.Publish = Context.Publish;
+            request.Method = Context.Method ?? defaultMonitoringMethod.MethodCode;
+            request.ComputationIdentifier = Context.ComputationIdentifier;
+            request.ComputationPeriodIdentifier = Context.ComputationPeriodIdentifier;
+            request.SubLocationIdentifier = Context.SubLocationIdentifier;
+            request.ExtendedAttributeValues = MergeExtendedAttributesWithMandatoryExtendedAttributes(timeSeriesExtendedAttributes).ToList();
 
             Log.Info($"Creating '{timeSeriesIdentifier}' time-series ...");
 
@@ -137,11 +144,24 @@ namespace PointZilla
             InterpolationType.DiscreteValues,
         };
 
-        private static IEnumerable<ExtendedAttributeValue> GetDefaultExtendedAttributes(IList<ExtendedAttributeField> extendedAttributeFields)
+        private IEnumerable<ExtendedAttributeValue> MergeExtendedAttributesWithMandatoryExtendedAttributes(IList<ExtendedAttributeField> extendedAttributeFields)
         {
-            return extendedAttributeFields
-                .Where(f => !f.CanBeEmpty)
-                .Select(CreateDefaultValue);
+            var unknownAttributes = Context
+                .ExtendedAttributeValues
+                .Where(eav => extendedAttributeFields.All(f => eav.ColumnIdentifier != f.ColumnIdentifier))
+                .ToList();
+
+            if (unknownAttributes.Any())
+            {
+                Log.Warn($"Ignoring {unknownAttributes.Count} unknown extended attributes: {string.Join(", ", unknownAttributes.Select(a => $"{a.ColumnIdentifier}={a.Value}"))}");
+            }
+
+            return Context
+                .ExtendedAttributeValues
+                .Where(eav => extendedAttributeFields.Any(f => eav.ColumnIdentifier == f.ColumnIdentifier))
+                .Concat(extendedAttributeFields
+                    .Where(f => Context.ExtendedAttributeValues.All(eav => eav.ColumnIdentifier != f.ColumnIdentifier) && !f.CanBeEmpty)
+                    .Select(CreateDefaultValue));
         }
 
         private static ExtendedAttributeValue CreateDefaultValue(ExtendedAttributeField field)
