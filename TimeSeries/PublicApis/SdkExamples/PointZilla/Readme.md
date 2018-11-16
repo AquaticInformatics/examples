@@ -128,6 +128,27 @@ When time-series creation is enabled, a location will also be created if needed.
 
 This mode is useful for testing, but is not recommended for production systems, since the default configurations chosen by PointZilla are likely not correct.
 
+### Caveats about creating a time-series using PointZilla
+
+There are a number of command line options which help you create a time-series correctly (see the "Time Series creation options" section in the `--help` page).
+
+The basic rules for the setting created time-series properties are:
+- Use reasonable defaults when possible.
+- The parameter's default unit, interpolation type, and monitoring method are used as a starting point.
+- No gap tolerance is configured by default.
+- If you are copying a time-series from another AQTS system using the [`/SourceTimeSeries=`](#copying-points-from-another-time-series) option, copy as many of the source time-series properties as possible.
+- Any command line options you set will override any automatically inferred defaults.
+
+So where does this approach fall down? What are the scenarios where using PointZilla to create and copy a time-series won't give me an exact match of the original?
+- PointZilla just copies the corrected points and uses those values as raw point values. You lose the entire correction history.
+- PointZilla can't copy the gap tolerance or interpolation type from an AQTS 3.X system. If you need a different value, you'll need to set a `/GapTolerance=` or `/InterpolationType=` command line option explicitly.
+
+### I created my time-series incorrectly, oh no! What do I do now?
+
+[LocationDeleter](https://github.com/AquaticInformatics/examples/blob/master/TimeSeries/PublicApis/SdkExamples/LocationDeleter/Readme.md) (aka. "DeleteZilla") is your friend here.
+
+If your PointZilla command-line creates a time-series incorrectly, just use `LocationDeleter` in [Time-Series Deletion Mode](https://github.com/AquaticInformatics/examples/blob/master/TimeSeries/PublicApis/SdkExamples/LocationDeleter/Readme.md#deleting-time-series) to delete the borked time-series and try again.
+
 ## Appending grades and qualifiers
 
 When the target time-series is a reflected time-series, any grade codes or qualifiers imported from CSV rows or manually set via the `/GradeCode` or `/Qualifiers` options will be appended along with the core timestamp and values.
