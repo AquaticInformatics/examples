@@ -227,9 +227,22 @@ Supported -option=value settings (/option=value works too):
   -Command                  Append operation to perform.  One of Auto, Append, OverwriteAppend, Reflected, DeleteAllPoints. [default: Auto]
   -GradeCode                Optional grade code for all appended points
   -Qualifiers               Optional qualifier list for all appended points
-  -CreateMode               Mode for creating missing time-series.  One of Never, Basic, Reflected. [default: Never]
-  -GapTolerance             Set the gap tolerance for newly-created time-series. [default: "MaxDuration"]
-  -UtcOffset                Set the UTC offset for any created location. [default: Use system timezone]
+
+  ========================= Time-series creation options:
+  -CreateMode               Mode for creating missing time-series. One of Never, Basic, Reflected. [default: Never]
+  -GapTolerance             Gap tolerance for newly-created time-series. [default: "MaxDuration"]
+  -UtcOffset                UTC offset for any created time-series or location. [default: Use system timezone]
+  -Unit                     Time-series unit
+  -InterpolationType        Time-series interpolation type. One of InstantaneousValues, PrecedingConstant, PrecedingTotals, InstantaneousTotals, DiscreteValues, SucceedingConstant.
+  -Publish                  Publish flag. [default: False]
+  -Description              Time-series description [default: Created by PointZilla]
+  -Comment                  Time-series comment
+  -Method                   Time-series monitoring method
+  -ComputationIdentifier    Time-series computation identifier
+  -ComputationPeriodIdentifier Time-series computation period identifier
+  -SubLocationIdentifier    Time-series sub-location identifier
+  -ExtendedAttributeValues  Extended attribute values in UPPERCASE_COLUMN_NAME@UPPERCASE_TABLE_NAME=value syntax. Can be set multiple times.
+
 
   ========================= Copy points from another time-series:
   -SourceTimeSeries         Source time-series to copy. Prefix with [server2] or [server2:username2:password2] to copy from another server
