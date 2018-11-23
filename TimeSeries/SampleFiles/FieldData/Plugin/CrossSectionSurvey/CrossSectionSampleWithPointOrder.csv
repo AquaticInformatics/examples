@@ -11,9 +11,9 @@ Unit: ft
 StartBank: Left bank
 Comment: Used the big willow tree at the river bank as our anchor point.
 
-Distance, Elevation, Comment
-0, 7.467,
-19.1, 6.909, "some comment"
-44.8, 6.3, "yet, another, comment"
-70.1, 5.356, another comment
-82.4, 5.287,
+PointOrder, Distance, Elevation, Comment
+3, 44.8, 6.3, "yet, another, comment"
+1, 0, 7.467,
+4, 70.1, 5.356, another comment
+2, 19.1, 6.909, "some comment"
+5, 82.4, 5.287,
