@@ -5,13 +5,15 @@ using System.Reflection;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
+using Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
-using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using Get3xCorrectedData = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.TimeSeriesDataCorrectedServiceRequest;
 using Get3xTimeSeriesDescription = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.TimeSeriesDescriptionServiceRequest;
 using NodaTime;
 using ServiceStack.Logging;
 using InterpolationType = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.InterpolationType;
+using TimeRange = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeRange;
+using TimeSeriesDataCorrectedServiceRequest = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeSeriesDataCorrectedServiceRequest;
 
 namespace PointZilla
 {
@@ -48,6 +50,8 @@ namespace PointZilla
         {
             var timeSeriesInfo = client.GetTimeSeriesInfo(Context.SourceTimeSeries.Identifier);
 
+            Log.Info($"Loading points from '{timeSeriesInfo.Identifier}' ...");
+
             var timeSeriesData = client.Publish.Get(new TimeSeriesDataCorrectedServiceRequest
             {
                 TimeSeriesUniqueId = timeSeriesInfo.UniqueId,
@@ -74,7 +78,6 @@ namespace PointZilla
 
             SetTimeSeriesCreationProperties(
                 timeSeriesInfo,
-                timeSeriesInfo.UtcOffset,
                 timeSeriesData.Methods.LastOrDefault()?.MethodCode,
                 gapTolerance,
                 interpolationType);
@@ -102,7 +105,6 @@ namespace PointZilla
 
         private void SetTimeSeriesCreationProperties(
             TimeSeries timeSeries,
-            Offset? utcOffset = null,
             string method = null,
             Duration? gapTolerance = null,
             InterpolationType? interpolationType = null)
@@ -113,18 +115,17 @@ namespace PointZilla
             if (interpolationType.HasValue && !Context.InterpolationType.HasValue)
                 Context.InterpolationType = interpolationType;
 
-            if (utcOffset.HasValue && !Context.UtcOffset.HasValue)
-                Context.UtcOffset = utcOffset.Value;
-
             Context.Publish = timeSeries.Publish;
             Context.Description = timeSeries.Description;
 
+            Context.UtcOffset = Context.UtcOffset ?? timeSeries.UtcOffset;
             Context.Method = Context.Method ?? method;
             Context.Unit = Context.Unit ?? timeSeries.Unit;
             Context.Comment = Context.Comment ?? timeSeries.Comment;
             Context.ComputationIdentifier = Context.ComputationIdentifier ?? timeSeries.ComputationIdentifier;
             Context.ComputationPeriodIdentifier = Context.ComputationPeriodIdentifier ?? timeSeries.ComputationPeriodIdentifier;
             Context.SubLocationIdentifier = Context.SubLocationIdentifier ?? timeSeries.SubLocationIdentifier;
+            Context.TimeSeriesType = Context.TimeSeriesType ?? timeSeries.TimeSeriesType;
 
             foreach (var extendedAttributeValue in timeSeries.ExtendedAttributeValues)
             {
@@ -134,6 +135,7 @@ namespace PointZilla
                 Context.ExtendedAttributeValues.Add(extendedAttributeValue);
             }
         }
+
 
         private List<ReflectedTimeSeriesPoint> LoadPointsFrom3X(IAquariusClient client)
         {
@@ -148,12 +150,16 @@ namespace PointZilla
             if (timeSeriesDescription == null)
                 throw new ExpectedException($"Can't find '{Context.SourceTimeSeries.Identifier}' time-series in location '{Context.SourceTimeSeries.LocationIdentifier}'.");
 
-            var points = client.Publish.Get(new Get3xCorrectedData
-                {
-                    TimeSeriesIdentifier = Context.SourceTimeSeries.Identifier,
-                    QueryFrom = Context.SourceQueryFrom?.ToDateTimeOffset(),
-                    QueryTo = Context.SourceQueryTo?.ToDateTimeOffset()
-                })
+            Log.Info($"Loading points from '{timeSeriesDescription.Identifier}' ...");
+
+            var correctedData = client.Publish.Get(new Get3xCorrectedData
+            {
+                TimeSeriesIdentifier = Context.SourceTimeSeries.Identifier,
+                QueryFrom = Context.SourceQueryFrom?.ToDateTimeOffset(),
+                QueryTo = Context.SourceQueryTo?.ToDateTimeOffset()
+            });
+
+            var points = correctedData
                 .Points
                 .Select(p => new ReflectedTimeSeriesPoint
                 {
@@ -163,14 +169,27 @@ namespace PointZilla
                 })
                 .ToList();
 
-            SetTimeSeriesCreationProperties(new TimeSeries
+            // 3.X Publish API's TimeSeriesDescription is missing some info, so grab those pieces from elsewhere
+
+            // The time-range start will always be in the offset of the time-series, even when no points exist
+            var utcOffset = Offset.FromHoursAndMinutes(correctedData.TimeRange.StartTime.Offset.Hours, correctedData.TimeRange.StartTime.Offset.Minutes);
+
+            // We can infer the interpolationType from the last point (if one exists)
+            var interpolationType = Context.InterpolationType ?? (correctedData.Points.Any()
+                                        ? (InterpolationType?)correctedData.Points.Last().Interpolation
+                                        : null);
+
+            var timeSeries = new TimeSeries
             {
+                Identifier = Context.SourceTimeSeries.Identifier,
                 Parameter = timeSeriesDescription.Parameter,
                 Label = timeSeriesDescription.Label,
                 Unit = timeSeriesDescription.Unit,
                 Publish = timeSeriesDescription.Publish,
                 Description = timeSeriesDescription.Description,
                 Comment = timeSeriesDescription.Comment,
+                TimeSeriesType = KnownTimeSeriesTypes[timeSeriesDescription.TimeSeriesType],
+                UtcOffset = utcOffset,
                 ComputationIdentifier = timeSeriesDescription.ComputationIdentifier,
                 ComputationPeriodIdentifier = timeSeriesDescription.ComputationPeriodIdentifier,
                 SubLocationIdentifier = timeSeriesDescription.SubLocationIdentifier,
@@ -182,11 +201,27 @@ namespace PointZilla
                             Value = ea.Value.ToString()
                         })
                     .ToList()
-            });
+            };
+
+            SetTimeSeriesCreationProperties(timeSeries, interpolationType: interpolationType);
 
             Log.Info($"Loaded {points.Count} points from {Context.SourceTimeSeries.Identifier}");
 
             return points;
         }
+
+        private static readonly Dictionary<AtomType, TimeSeriesType> KnownTimeSeriesTypes =
+            new Dictionary<AtomType, TimeSeriesType>
+            {
+                { AtomType.TimeSeries_Basic, TimeSeriesType.ProcessorBasic},
+                { AtomType.TimeSeries_Field_Visit, TimeSeriesType.External},
+                { AtomType.TimeSeries_Composite, TimeSeriesType.ProcessorDerived},
+                { AtomType.TimeSeries_Rating_Curve_Derived, TimeSeriesType.ProcessorDerived},
+                { AtomType.TimeSeries_Calculated_Derived, TimeSeriesType.ProcessorDerived},
+                { AtomType.TimeSeries_External, TimeSeriesType.External},
+                { AtomType.TimeSeries_Statistical_Derived, TimeSeriesType.ProcessorDerived},
+                { AtomType.TimeSeries_ProcessorBasic, TimeSeriesType.ProcessorBasic},
+                { AtomType.TimeSeries_ProcessorDerived, TimeSeriesType.ProcessorDerived},
+            };
     }
 }

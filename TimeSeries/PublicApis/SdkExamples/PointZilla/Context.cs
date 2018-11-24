@@ -9,6 +9,8 @@ namespace PointZilla
 {
     public class Context
     {
+        public string ExecutingFileVersion { get; set; }
+
         public string Server { get; set; }
         public string Username { get; set; } = "admin";
         public string Password { get; set; } = "admin";
@@ -35,10 +37,13 @@ namespace PointZilla
         public string ComputationPeriodIdentifier { get; set; }
         public string SubLocationIdentifier { get; set; }
         public List<ExtendedAttributeValue> ExtendedAttributeValues { get; set; } = new List<ExtendedAttributeValue>();
+        public TimeSeriesType? TimeSeriesType { get; set; }
 
         public TimeSeriesIdentifier SourceTimeSeries { get; set; }
         public Instant? SourceQueryFrom { get; set; }
         public Instant? SourceQueryTo { get; set; }
+        public string SaveCsvPath { get; set; }
+        public bool StopAfterSavingCsv { get; set; }
 
         public List<ReflectedTimeSeriesPoint> ManualPoints { get; set; } = new List<ReflectedTimeSeriesPoint>();
 

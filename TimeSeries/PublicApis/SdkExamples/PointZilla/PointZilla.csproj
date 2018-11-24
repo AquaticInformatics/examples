@@ -87,6 +87,7 @@
     <Compile Include="Context.cs" />
     <Compile Include="CreateMode.cs" />
     <Compile Include="CsvReader.cs" />
+    <Compile Include="CsvWriter.cs" />
     <Compile Include="ExpectedException.cs" />
     <Compile Include="ExternalPointsReader.cs" />
     <Compile Include="TimeSeriesCreator.cs" />

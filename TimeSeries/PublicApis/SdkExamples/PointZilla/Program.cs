@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -80,9 +81,21 @@ namespace PointZilla
             return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
         }
 
+        private static string GetExecutingFileVersion()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
+
+            // ReSharper disable once PossibleNullReferenceException
+            return $"{MethodBase.GetCurrentMethod().DeclaringType.Namespace} v{fileVersionInfo.FileVersion}";
+        }
+
         private static Context ParseArgs(string[] args)
         {
-            var context = new Context();
+            var context = new Context
+            {
+                ExecutingFileVersion = GetExecutingFileVersion()
+            };
 
             SetNgCsvFormat(context);
 
@@ -120,6 +133,7 @@ namespace PointZilla
                 new Option {Key = nameof(context.ComputationIdentifier), Setter = value => context.ComputationIdentifier = value, Getter = () => context.ComputationIdentifier, Description = "Time-series computation identifier"},
                 new Option {Key = nameof(context.ComputationPeriodIdentifier), Setter = value => context.ComputationPeriodIdentifier = value, Getter = () => context.ComputationPeriodIdentifier, Description = "Time-series computation period identifier"},
                 new Option {Key = nameof(context.SubLocationIdentifier), Setter = value => context.SubLocationIdentifier = value, Getter = () => context.SubLocationIdentifier, Description = "Time-series sub-location identifier"},
+                new Option {Key = nameof(context.TimeSeriesType), Setter = value => context.TimeSeriesType = ParseEnum<TimeSeriesType>(value), Getter = () => context.TimeSeriesType.ToString(), Description = $"Time-series type. {EnumOptions<TimeSeriesType>()}"},
                 new Option {Key = nameof(context.ExtendedAttributeValues), Setter = value => ParseExtendedAttributeValue(context, value), Getter = () => string.Empty, Description = "Extended attribute values in UPPERCASE_COLUMN_NAME@UPPERCASE_TABLE_NAME=value syntax. Can be set multiple times."},
 
                 new Option(), new Option {Description = "Copy points from another time-series:"},
@@ -150,7 +164,7 @@ namespace PointZilla
                 new Option {Key = nameof(context.CsvIgnoreInvalidRows), Setter = value => context.CsvIgnoreInvalidRows = bool.Parse(value), Getter = () => context.CsvIgnoreInvalidRows.ToString(), Description = "Ignore CSV rows that can't be parsed"},
                 new Option {Key = nameof(context.CsvRealign), Setter = value => context.CsvRealign = bool.Parse(value), Getter = () => context.CsvRealign.ToString(), Description = $"Realign imported CSV points to the /{nameof(context.StartTime)} value"},
                 new Option {Key = nameof(context.CsvRemoveDuplicatePoints), Setter = value => context.CsvRemoveDuplicatePoints = bool.Parse(value), Getter = () => context.CsvRemoveDuplicatePoints.ToString(), Description = "Remove duplicate points in the CSV before appending."},
-                new Option {Key = "CsvFormat", Description = "Shortcut for known CSV formats. One of 'NG' or '3X'. [default: NG]", Setter =
+                new Option {Key = "CsvFormat", Description = "Shortcut for known CSV formats. One of 'NG', '3X', or 'PointZilla'. [default: NG]", Setter =
                     value =>
                     {
                         if (value.Equals("Ng", StringComparison.InvariantCultureIgnoreCase))
@@ -161,11 +175,19 @@ namespace PointZilla
                         {
                             Set3XCsvFormat(context);
                         }
+                        else if (value.Equals("PointZilla", StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            CsvWriter.SetPointZillaCsvFormat(context);
+                        }
                         else
                         {
                             throw new ExpectedException($"'{value}' is an unknown CSV format.");
                         }
-                    }}, 
+                    }},
+
+                new Option(), new Option {Description = "CSV saving options:"},
+                new Option {Key = nameof(context.SaveCsvPath), Setter = value => context.SaveCsvPath = value, Getter = () => context.SaveCsvPath, Description = "When set, saves the extracted/generated points to a CSV file. If only a directory is specified, an appropriate filename will be generated."},
+                new Option {Key = nameof(context.StopAfterSavingCsv), Setter = value => context.StopAfterSavingCsv = bool.Parse(value), Getter = () => context.StopAfterSavingCsv.ToString(), Description = "When true, stop after saving a CSV file, before appending any points."},
             };
 
             var usageMessage
@@ -242,11 +264,20 @@ namespace PointZilla
                 option.Setter(value);
             }
 
-            if (string.IsNullOrWhiteSpace(context.Server))
-                throw new ExpectedException($"A /{nameof(context.Server)} option is required.\n\n{usageMessage}");
+            if (string.IsNullOrEmpty(context.Server) && string.IsNullOrEmpty(context.TimeSeries) && !string.IsNullOrEmpty(context.SaveCsvPath))
+                context.StopAfterSavingCsv = true;
 
-            if (string.IsNullOrWhiteSpace(context.TimeSeries))
-                throw new ExpectedException($"A /{nameof(context.TimeSeries)} option is required.\n\n{usageMessage}");
+            if (context.SourceTimeSeries != null && string.IsNullOrEmpty(context.SourceTimeSeries.Server) && string.IsNullOrEmpty(context.Server))
+                throw new ExpectedException($"A /{nameof(context.Server)} option is required to load the source time-series.\n\n{usageMessage}");
+
+            if (!context.StopAfterSavingCsv)
+            {
+                if (string.IsNullOrWhiteSpace(context.Server))
+                    throw new ExpectedException($"A /{nameof(context.Server)} option is required.\n\n{usageMessage}");
+
+                if (string.IsNullOrWhiteSpace(context.TimeSeries))
+                    throw new ExpectedException($"A /{nameof(context.TimeSeries)} option is required.\n\n{usageMessage}");
+            }
 
             return context;
         }
