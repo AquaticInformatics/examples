@@ -161,7 +161,7 @@ namespace PointZilla
                 if (int.TryParse(text, out var grade))
                     gradeCode = grade;
             });
-            ParseField(fields, Context.CsvQualifiersField, text => qualifiers = text.Split(QualifierDelimeters, StringSplitOptions.RemoveEmptyEntries).ToList());
+            ParseField(fields, Context.CsvQualifiersField, text => qualifiers = text.Split(QualifierDelimiters, StringSplitOptions.RemoveEmptyEntries).ToList());
 
             if (time == null)
                 return null;
@@ -175,7 +175,7 @@ namespace PointZilla
             };
         }
 
-        private static readonly char[] QualifierDelimeters = {','};
+        private static readonly char[] QualifierDelimiters = {','};
 
         private static void ParseField(string[] fields, int fieldIndex, Action<string> parseAction)
         {

@@ -26,9 +26,20 @@ namespace PointZilla
 
         public void AppendPoints()
         {
+            Log.Info(Context.ExecutingFileVersion);
+
             Points = GetPoints()
                 .OrderBy(p => p.Time)
                 .ToList();
+
+            if (!string.IsNullOrEmpty(Context.SaveCsvPath))
+            {
+                new CsvWriter(Context)
+                    .WritePoints(Points);
+
+                if (Context.StopAfterSavingCsv)
+                    return;
+            }
 
             Log.Info($"Connecting to {Context.Server} ...");
 

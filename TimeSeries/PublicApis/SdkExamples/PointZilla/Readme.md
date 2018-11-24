@@ -182,7 +182,7 @@ The `/SourceTimeSeries=[otherserver]parameter.label@location` syntax can be used
 If different credentials are required for the other server, use the `[otherserver:username:password]parameter.label@location` syntax.
 
 ```sh
-$ ./PointZilla.exe -server=myserver Stage.Label@MyLocation -sourcetimeseries=[otherserver]Stage.Working@OtherLocation
+$ ./PointZilla.exe -server=myserver Stage.Label@MyLocation -sourcetimeseries="[otherserver]Stage.Working@OtherLocation"
 
 13:31:57.829 INFO  - Connected to otherserver (3.10.905.0)
 13:31:58.501 INFO  - Loaded 250 points from Stage.Working@OtherLocation
@@ -192,6 +192,18 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation -sourcetimeseries=[ot
 ```
 
 The source time-series system can be any AQTS system as far back as AQUARIUS Time-Series 3.8.
+
+## Comparing the points in two different time-series
+
+Use the `/SaveCsvPath=` option to save the extracted points to a CSV file, and then use standard text differencing tools to see if anything is different.
+
+Here is a bash script which compares the saved CSV output of two time-series. This only compares the corrected points, but that is usually a good indicator of "sameness".
+
+```sh
+$ ./PointZilla.exe -saveCsvPath=system1 -sourceTimeSeries="[old3xServer]Stage.Primary@Location1"
+$ ./PointZilla.exe -saveCsvPath=system2 -sourceTimeSeries="[newNgServer]Stage.Primary@Location1"
+$ diff system1/Stage.Primary@Location1.EntireRecord.csv system2/Stage.Primary@Location1.EntireRecord.csv && echo "Time-series are identical." || echo "Nope, they are different"
+```
 
 ## Deleting all points in a time-series
 
@@ -241,14 +253,14 @@ Supported -option=value settings (/option=value works too):
   -Wait                     Wait for the append request to complete [default: True]
   -AppendTimeout            Timeout period for append completion, in .NET TimeSpan format.
   -BatchSize                Maximum number of points to send in a single append request [default: 500000]
-
+  
   ========================= Time-series options:
   -TimeSeries               Target time-series identifier or unique ID
   -TimeRange                Time-range for overwrite in ISO8061/ISO8601 (defaults to start/end points)
   -Command                  Append operation to perform.  One of Auto, Append, OverwriteAppend, Reflected, DeleteAllPoints. [default: Auto]
   -GradeCode                Optional grade code for all appended points
   -Qualifiers               Optional qualifier list for all appended points
-
+  
   ========================= Time-series creation options:
   -CreateMode               Mode for creating missing time-series. One of Never, Basic, Reflected. [default: Never]
   -GapTolerance             Gap tolerance for newly-created time-series. [default: "MaxDuration"]
@@ -262,14 +274,14 @@ Supported -option=value settings (/option=value works too):
   -ComputationIdentifier    Time-series computation identifier
   -ComputationPeriodIdentifier Time-series computation period identifier
   -SubLocationIdentifier    Time-series sub-location identifier
+  -TimeSeriesType           Time-series type. One of Unknown, ProcessorBasic, ProcessorDerived, External, Reflected.
   -ExtendedAttributeValues  Extended attribute values in UPPERCASE_COLUMN_NAME@UPPERCASE_TABLE_NAME=value syntax. Can be set multiple times.
-
-
+  
   ========================= Copy points from another time-series:
   -SourceTimeSeries         Source time-series to copy. Prefix with [server2] or [server2:username2:password2] to copy from another server
   -SourceQueryFrom          Start time of extracted points in ISO8601 format.
   -SourceQueryTo            End time of extracted points
-
+  
   ========================= Point-generator options:
   -StartTime                Start time of generated points, in ISO8601 format. [default: the current time]
   -PointInterval            Interval between generated points, in .NET TimeSpan format. [default: 00:01:00]
@@ -280,7 +292,7 @@ Supported -option=value settings (/option=value works too):
   -WaveformPhase            Phase within one waveform period [default: 0]
   -WaveformScalar           Scale the waveform by this amount [default: 1]
   -WaveformPeriod           Waveform period before repeating [default: 1440]
-
+  
   ========================= CSV parsing options:
   -CSV                      Parse the CSV file
   -CsvTimeField             CSV column index for timestamps [default: 1]
@@ -293,7 +305,11 @@ Supported -option=value settings (/option=value works too):
   -CsvIgnoreInvalidRows     Ignore CSV rows that can't be parsed [default: True]
   -CsvRealign               Realign imported CSV points to the /StartTime value [default: False]
   -CsvRemoveDuplicatePoints Remove duplicate points in the CSV before appending. [default: True]
-  -CsvFormat                Shortcut for known CSV formats. One of 'NG' or '3X'. [default: NG]
+  -CsvFormat                Shortcut for known CSV formats. One of 'NG', '3X', or 'PointZilla'. [default: NG]
+  
+  ========================= CSV saving options:
+  -SaveCsvPath              When set, saves the extracted/generated points to a CSV file. If only a directory is specified, an appropriate filename will be generated.
+  -StopAfterSavingCsv       When true, stop after saving a CSV file, before appending any points. [default: False]
 
 Use the @optionsFile syntax to read more options from a file.
 

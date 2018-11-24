@@ -13,6 +13,13 @@ namespace PointZilla
             if (Guid.TryParse(identifier, out var uniqueId))
                 return uniqueId;
 
+            var timeSeriesDescription = client.GetTimeSeriesDescription(identifier);
+
+            return timeSeriesDescription.UniqueId;
+        }
+
+        public static TimeSeriesDescription GetTimeSeriesDescription(this IAquariusClient client, string identifier)
+        {
             var location = TimeSeriesIdentifierParser.ParseLocationIdentifier(identifier);
 
             var response = client.Publish.Get(new TimeSeriesDescriptionServiceRequest { LocationIdentifier = location });
@@ -22,7 +29,7 @@ namespace PointZilla
             if (timeSeriesDescription == null)
                 throw new ExpectedException($"Can't find '{identifier}' at location '{location}'");
 
-            return timeSeriesDescription.UniqueId;
+            return timeSeriesDescription;
         }
 
         public static TimeSeries GetTimeSeriesInfo(this IAquariusClient client, string identifier)
