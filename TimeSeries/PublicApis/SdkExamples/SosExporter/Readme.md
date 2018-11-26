@@ -224,6 +224,7 @@ Supported -option=value settings (/option=value works too):
   -ForceResync                 When true, force a full resync of all time-series. [default: False]
   -NeverResync                 When true, avoid full time-series resync, even when the algorithm recommends it. [default: False]
   -ChangesSince                The starting changes-since time in ISO 8601 format. Defaults to the saved AQTS global setting value.
+  -ApplyRounding               When true, export the rounded point values. [default: True]
   -MaximumPointsPerObservation The maximum number of points per SOS observation [default: 1000]
   -MaximumExportDuration       The maximum duration before polling AQTS for more changes, in hh:mm:ss format.  Defaults to the AQTS global setting.
   -Timeout                     The timeout used for all web requests, in hh:mm:ss format. [default: 5 minutes]
