@@ -532,7 +532,7 @@ namespace SosExporter
             {
                 TimeSeriesUniqueId = timeSeriesDescription.UniqueId,
                 QueryFrom = GetInitialQueryFrom(detectedChange),
-                ApplyRounding = true,
+                ApplyRounding = Context.ApplyRounding,
             };
 
             var existingSensor = Sos.FindExistingSensor(timeSeriesDescription);

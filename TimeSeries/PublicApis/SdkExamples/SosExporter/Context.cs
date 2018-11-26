@@ -99,5 +99,6 @@ namespace SosExporter
         public int MaximumPointsPerObservation { get; set; } = 1000;
         public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(5);
         public TimeSpan? MaximumExportDuration { get; set; }
+        public bool ApplyRounding { get; set; } = true;
     }
 }

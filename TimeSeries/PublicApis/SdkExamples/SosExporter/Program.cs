@@ -305,6 +305,13 @@ namespace SosExporter
                 },
                 new Option
                 {
+                    Key = nameof(context.ApplyRounding),
+                    Setter = value => context.ApplyRounding = bool.Parse(value),
+                    Getter = () => context.ApplyRounding.ToString(),
+                    Description = "When true, export the rounded point values."
+                },
+                new Option
+                {
                     Key = nameof(context.MaximumPointsPerObservation),
                     Setter = value => context.MaximumPointsPerObservation = int.Parse(value),
                     Getter = () => context.MaximumPointsPerObservation.ToString(),
