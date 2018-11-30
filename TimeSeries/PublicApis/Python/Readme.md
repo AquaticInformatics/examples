@@ -201,6 +201,20 @@ To construct correct `datetime` objects, you will need to use the `pytz` library
 >>> timeseries.iso8601(timeseries.datetime('2017-07-01T00:00:00-04:00'))
 '2017-07-01T04:00:00.000000Z'
 ```
+
+## Helper methods in the `timeseries_client.py` wrapper
+
+The `timeseries_client.py`  wrapper exposes a few helper methods to make your python integrations simpler.
+
+- `iso8601(datetime)` - Converts a Python datetime into an ISO 8601 text string
+- `datetime(text)` - Converts an ISO8601 text string into a python datetime
+- `getTimeSeriesUniqueId(timeSeriesIdentifier)` - Gets the unique ID from a text identifier
+    - Will raise a `ModelNotFoundException` if the location or time-series does not exist
+- `getLocationData(locationIdentifier)` - Gets the attributes of a location
+- `getReportList()` - Gets the list of generated reports on the system
+- `deleteReport(reportUniqueId)` - Deletes a specific generated report
+- `uploadExternalReport(locationUniqueId, pathToFile, title)` - Uploads a file as an external report
+
 # Example 1 - Finding the unique ID of a time-series
 
 This example will use the `/GetTimeSeriesDescriptionList` operation from the Publish API to find the unique ID of a time-series.
@@ -226,7 +240,25 @@ Many AQTS APIs which operate on a time-series require this `UniqueId` value as a
 >>> ts = [d for d in descriptions if d['Identifier'] == identifier][0]
 
 # Now grab the UniqueId property
->>> ts['UniqueId']
+>>> tsUniqueId = ts['UniqueId']
+>>> tsUniqueId
+u'4d5acfc21eb44ab6902dc6547ab82935'
+```
+
+Since this operation is common enough, the wrapper includes a `getTimeSeriesUniqueId()` method which does this work for you.
+
+```python
+# Use the helper method to do all the work
+>>> tsUniqueId = timeseries.getTimeSeriesUniqueId("Stage.Working@MyLocation")
+>>> tsUniqueId
+u'4d5acfc21eb44ab6902dc6547ab82935'
+```
+
+The `getTimeSeriesUniqueId()` method is also smart enough to recognize unique IDs as input, so if your code passes in a unique ID, the method just returns it as-is. This gives your code a bit more flexibility in the types of arguments it can accept for your scripting tasks.
+
+```python
+>>> tsUniqueId = timeseries.getTimeSeriesUniqueId("4d5acfc21eb44ab6902dc6547ab82935")
+>>> tsUniqueId
 u'4d5acfc21eb44ab6902dc6547ab82935'
 ```
 
