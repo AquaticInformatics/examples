@@ -569,19 +569,31 @@ namespace LocationDeleter
 
         private string GetRatingModelSummary(RatingModelInfo ratingModelInfo)
         {
-            var details = Client.Publish.Get(new RatingCurveListServiceRequest
+            try
             {
-                RatingModelIdentifier = ratingModelInfo.Identifier
-            });
+                var details = Client.Publish.Get(new RatingCurveListServiceRequest
+                {
+                    RatingModelIdentifier = ratingModelInfo.Identifier
+                });
 
-            var derivedTimeSeries = GetDerivedTimeSeries(ratingModelInfo.Identifier);
+                var derivedTimeSeries = GetDerivedTimeSeries(ratingModelInfo.Identifier);
 
-            var ratingModelSummary = FriendlyListExcludingZeroCounts(
-                "rating curve".ToQuantity(details.RatingCurves.Count),
-                "approval".ToQuantity(details.Approvals.Count),
-                "derived time-series".ToQuantity(derivedTimeSeries.Count));
+                var ratingModelSummary = FriendlyListExcludingZeroCounts(
+                    "rating curve".ToQuantity(details.RatingCurves.Count),
+                    "approval".ToQuantity(details.Approvals.Count),
+                    "derived time-series".ToQuantity(derivedTimeSeries.Count));
 
-            return $"Rating model '{ratingModelInfo.Identifier}' has {ratingModelSummary}";
+                return $"Rating model '{ratingModelInfo.Identifier}' has {ratingModelSummary}";
+            }
+            catch (WebServiceException exception)
+            {
+                if (exception.ErrorCode == "ArgumentException" && exception.ErrorMessage.Contains("has no rating curves"))
+                {
+                    return $"Rating model '{ratingModelInfo.Identifier}' has no rating curves.";
+                }
+
+                throw;
+            }
         }
 
         private List<string> GetDerivedTimeSeries(string ratingModelIdentifier)
