@@ -76,15 +76,12 @@ timeseriesClient <- setRefClass("timeseriesClient",
     disconnect = function() {
       
       if (isLegacy) {
-        # 3.X doesn't support proper disconnection, so just abandon the session below
+        # 3.X doesn't support proper disconnection, so just abandon the session and allow it to expire in 60 minutes
       } else {
         # Delete the session immediately, like we should
         r <- DELETE(paste0(publishUri, "/session"))
         stop_for_status(r, "disconnect from AQTS")
       }
-      
-      # Abandon all session cookies associated with the connection
-      handle_reset(publishUri)
     },
 
 #' Auto-configures the proxy to route all requests through Fiddler
