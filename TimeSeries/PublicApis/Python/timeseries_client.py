@@ -177,6 +177,49 @@ class timeseries_client:
         """Destroys the authenticated session"""
         self.publish.delete('/session')
 
+    def isVersionLessThan(self, sourceVersion, targetVersion):
+        """
+        Is the source version strictly less than the target version.
+
+        :param sourceVersion: The source version, in dotted.string notation
+        :param targetVersion: If None, the connected server version is used
+        :return: True if the source version is strictly less than the target version
+        """
+        if targetVersion is None:
+            targetVersion = self.serverVersion
+
+        def createIntegerVector(versionText):
+
+            if versionText == '0.0.0.0':
+                # Force developer versions to be treated as latest-n-greatest
+                versionText = '9999.99'
+
+            versions = [int(i) for i in versionText.split('.')]
+
+            if len(versions) > 0 and 14 <= versions[0] <= 99:
+                # Adjust the leading component to match the 20xx.y release convention
+                versions[0] += 2000
+
+            return versions
+
+        target = createIntegerVector(targetVersion)
+        source = createIntegerVector(sourceVersion)
+
+        for i in range(len(source)):
+            if i >= len(target):
+                return False
+
+            if source[i] < target[i]:
+                return True
+
+            if source[i] > target[i]:
+                return False
+
+        return len(source) < len(target)
+
+    def isServerVersionLessThan(self, targetVersion):
+        return self.isVersionLessThan(self.serverVersion, targetVersion)
+
     def iso8601(self, datetime):
         """Formats the datetime object as an ISO8601 timestamp"""
         return pyrfc3339.generate(datetime, microseconds=True)
@@ -211,10 +254,10 @@ class timeseries_client:
         """
         if isinstance(item, list):
             # Concatenate all values with commas
-            return item
+            return '[' + ','.join([str(self.toJSV(i)) for i in item]) + ']'
         if isinstance(item, dict):
-            #
-            return item
+            # Concatenate all the name/value pairs
+            return '{' + ','.join([k+':'+str(self.toJSV(item[k])) for k in item.keys()]) + '}'
 
         return item
 
@@ -312,10 +355,13 @@ class timeseries_client:
                 'Publish': publish,
                 'ComputationIdentifier': computationIdentifier,
                 'ComputationPeriodIdentifier': computationPeriodIdentifier,
-                'ExtendedFilters': extendedFilters
+                'ExtendedFilters': self.toJSV(extendedFilters)
             }).json()['TimeSeriesDescriptions']
 
     def getTimeSeriesData(self, timeSeriesIds, queryFrom=None, queryTo=None, outputUnitIds=None, includeGapMarkers=None):
+        if isinstance(timeSeriesIds, list):
+            timeSeriesIds = [self.getTimeSeriesUniqueId(ts) for ts in timeSeriesIds]
+
         return self.publish.get(
             "/GetTimeSeriesData",
             params={
