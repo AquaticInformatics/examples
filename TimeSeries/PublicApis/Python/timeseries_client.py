@@ -5,7 +5,8 @@
 import requests
 from requests.exceptions import HTTPError
 import pyrfc3339
-
+from datetime import datetime
+import re
 
 def create_endpoint(hostname, root_path):
     prefix = "http://"
@@ -151,6 +152,10 @@ class timeseries_client:
         # Authenticate once
         self.connect(username, password)
 
+        # Cache the server version
+        versionSession = TimeseriesSession(hostname, "/AQUARIUS/apps/v1")
+        self.serverVersion = versionSession.get('/version').json()["ApiVersion"]
+
     def __enter__(self):
         return self
 
@@ -172,6 +177,49 @@ class timeseries_client:
         """Destroys the authenticated session"""
         self.publish.delete('/session')
 
+    def isVersionLessThan(self, sourceVersion, targetVersion):
+        """
+        Is the source version strictly less than the target version.
+
+        :param sourceVersion: The source version, in dotted.string notation
+        :param targetVersion: If None, the connected server version is used
+        :return: True if the source version is strictly less than the target version
+        """
+        if targetVersion is None:
+            targetVersion = self.serverVersion
+
+        def createIntegerVector(versionText):
+
+            if versionText == '0.0.0.0':
+                # Force developer versions to be treated as latest-n-greatest
+                versionText = '9999.99'
+
+            versions = [int(i) for i in versionText.split('.')]
+
+            if len(versions) > 0 and 14 <= versions[0] <= 99:
+                # Adjust the leading component to match the 20xx.y release convention
+                versions[0] += 2000
+
+            return versions
+
+        target = createIntegerVector(targetVersion)
+        source = createIntegerVector(sourceVersion)
+
+        for i in range(len(source)):
+            if i >= len(target):
+                return False
+
+            if source[i] < target[i]:
+                return True
+
+            if source[i] > target[i]:
+                return False
+
+        return len(source) < len(target)
+
+    def isServerVersionLessThan(self, targetVersion):
+        return self.isVersionLessThan(self.serverVersion, targetVersion)
+
     def iso8601(self, datetime):
         """Formats the datetime object as an ISO8601 timestamp"""
         return pyrfc3339.generate(datetime, microseconds=True)
@@ -180,12 +228,45 @@ class timeseries_client:
         """Parses the ISO8601 timestamp to a standard python datetime object"""
         return pyrfc3339.parse(text)
 
-    def getTimeSeriesUniqueId(self, identifier):
+    def coerceQueryTime(self, querytime):
+        """Coerces the timevalue into a best possible query time format"""
+        if isinstance(querytime, querytime):
+            if querytime.tzinfo is None:
+                # Format naive date times as a local time
+                return querytime.strftime('%Y-%m-%d %H:%M:%S.%f')
+            else:
+                # Format unambiguous times as ISO8061
+                return self.iso8601(querytime)
+
+        # Otherwise return the value as-is and hope for the best
+        return querytime
+
+    def toJSV(self, item):
+        """
+        Converts non-scalar GET request parameters into JSV format.
+
+        Lists must be comma separated
+        Dictionaries must be in {Name1:Value1,Name2:Value2} format
+
+        https://github.com/ServiceStack/ServiceStack.Text/wiki/JSV-Format
+        :param item: item to be converted into JSV format
+        :return: the JSV representation of the item
+        """
+        if isinstance(item, list):
+            # Concatenate all values with commas
+            return '[' + ','.join([str(self.toJSV(i)) for i in item]) + ']'
+        if isinstance(item, dict):
+            # Concatenate all the name/value pairs
+            return '{' + ','.join([k+':'+str(self.toJSV(item[k])) for k in item.keys()]) + '}'
+
+        return item
+
+    def getTimeSeriesUniqueId(self, timeSeriesIdentifier):
         """Gets the unique ID of a time-series"""
-        parts = identifier.split('@')
+        parts = timeSeriesIdentifier.split('@')
 
         if len(parts) < 2:
-            return identifier
+            return timeSeriesIdentifier
 
         location = parts[1]
 
@@ -197,25 +278,121 @@ class timeseries_client:
         except requests.exceptions.HTTPError as e:
             raise LocationNotFoundException(location)
 
-        matches = [d for d in descriptions if d['Identifier'] == identifier]
+        matches = [d for d in descriptions if d['Identifier'] == timeSeriesIdentifier]
 
         if len(matches) != 1:
-            raise TimeSeriesNotFoundException(identifier)
+            raise TimeSeriesNotFoundException(timeSeriesIdentifier)
 
         return matches[0]['UniqueId']
+
+    def getLocationIdentifier(self, timeSeriesOrRatingModelIdentifier):
+        """Extracts the location identifier from a 'Parameter.Label@Location' time-series or rating model identifier"""
+        parts = timeSeriesOrRatingModelIdentifier.split('@')
+
+        if len(parts) < 2:
+            raise LocationNotFoundException(timeSeriesOrRatingModelIdentifier)
+
+        return parts[1]
 
     def getLocationData(self, identifier):
         """Gets the location data"""
         return self.publish.get(
             "/GetLocationData", params={'LocationIdentifier': identifier}).json()
 
+    def getLocationUniqueId(self, locationIdentifier):
+        """Gets the location unique ID for the location"""
+        if re.match('^[0-9a-f]{32}$', locationIdentifier):
+            # Return existing GUIDs as-is
+            return locationIdentifier
+
+        locationData = self.getLocationData(locationIdentifier)
+
+        return locationData['UniqueId']
+
+    def getRatings(self, locationIdentifier, queryFrom=None, queryTo=None, inputParameter=None, outputParameter=None):
+        ratingModelDescriptions = self.publish.get(
+            "/GetRatingModelDescriptionList",
+            params={
+                'LocationIdentifier': locationIdentifier,
+                'QueryFrom': self.coerceQueryTime(queryFrom),
+                'QueryTo': self.coerceQueryTime(queryTo),
+                'InputParameter': inputParameter,
+                'OutputParameter': outputParameter
+            }).json()['RatingModelDescriptions']
+
+        # TODO: Get the rating curves in effect during those times
+        return ratingModelDescriptions
+
+    def getRatingModelOutputValues(self, ratingModelIdentifier, inputValues, effectiveTime=None, applyShifts=None):
+        return self.publish.get(
+            "/GetRatingModelOutputValues",
+            params={
+                'RatingModelIdentifier': ratingModelIdentifier,
+                'InputValues': inputValues,
+                'EffectiveTime': self.coerceQueryTime(effectiveTime),
+                'ApplyShifts': applyShifts
+            }).json()['OutputValues']
+
+    def getFieldVisits(self, locationIdentifier, queryFrom=None, queryTo=None, activityType=None):
+        fieldVisitDescriptions = self.publish.get(
+            "/GetFieldVisitDescriptionList",
+            params={
+                'LocationIdentifier': locationIdentifier,
+                'QueryFrom': self.coerceQueryTime(queryFrom),
+                'QueryTo': self.coerceQueryTime(queryTo),
+                'ActivityType': activityType
+            }).json()['FieldVisitDescriptions']
+
+        # TODO: Fetch details for each visit
+        return fieldVisitDescriptions
+
+    def getTimeSeriesDescriptions(self, locationIdentifier=None, parameter=None, publish=None, computationIdentifier=None, computationPeriodIdentifier=None, extendedFilters=None):
+        return self.publish.get(
+            "/GetTimeSeriesDescriptionList",
+            params={
+                'LocationIdentifier': locationIdentifier,
+                'Parameter': parameter,
+                'Publish': publish,
+                'ComputationIdentifier': computationIdentifier,
+                'ComputationPeriodIdentifier': computationPeriodIdentifier,
+                'ExtendedFilters': self.toJSV(extendedFilters)
+            }).json()['TimeSeriesDescriptions']
+
+    def getTimeSeriesData(self, timeSeriesIds, queryFrom=None, queryTo=None, outputUnitIds=None, includeGapMarkers=None):
+        if isinstance(timeSeriesIds, list):
+            timeSeriesIds = [self.getTimeSeriesUniqueId(ts) for ts in timeSeriesIds]
+
+        return self.publish.get(
+            "/GetTimeSeriesData",
+            params={
+                'TimeSeriesUniqueIds': self.toJSV(timeSeriesIds),
+                'TimeSeriesOutputUnitIds': self.toJSV(outputUnitIds),
+                'QueryFrom': self.coerceQueryTime(queryFrom),
+                'QueryTo': self.coerceQueryTime(queryTo),
+                'IncludeGapMarkers': includeGapMarkers
+            }).json()
+
+    def getTimeSeriesCorrectedData(self, timeSeriesIdentifier, queryFrom=None, queryTo=None, getParts=None, includeGapMarkers=None):
+        return self.publish.get(
+            "/GetTimeSeriesCorrectedData",
+            params={
+                'TimeSeriesUniqueId': self.getTimeSeriesUniqueId(timeSeriesIdentifier),
+                'QueryFrom': self.coerceQueryTime(queryFrom),
+                'QueryTo': self.coerceQueryTime(queryTo),
+                'GetParts': getParts,
+                'IncludeGapMarkers': includeGapMarkers
+            }).json()
+
     def getReportList(self):
+        """Gets all the generated reports on the system"""
         return self.publish.get("/GetReportList").json()['Reports']
 
     def deleteReport(self, reportUniqueId):
+        """Deletes the generated report from the system"""
         self.acquisition.delete("/attachments/reports/" + reportUniqueId)
 
     def uploadExternalReport(self, locationUniqueId, pathToFile, title, deleteDuplicateReports=False):
+        """Uploads a file as external report to the given location"""
         if deleteDuplicateReports:
             # Get the current reports
             for r in [r for r in self.getReportList() if r['Title'] == title and not r['IsTransient']]:
