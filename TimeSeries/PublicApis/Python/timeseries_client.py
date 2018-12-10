@@ -230,7 +230,7 @@ class timeseries_client:
 
     def coerceQueryTime(self, querytime):
         """Coerces the timevalue into a best possible query time format"""
-        if isinstance(querytime, querytime):
+        if isinstance(querytime, datetime):
             if querytime.tzinfo is None:
                 # Format naive date times as a local time
                 return querytime.strftime('%Y-%m-%d %H:%M:%S.%f')
