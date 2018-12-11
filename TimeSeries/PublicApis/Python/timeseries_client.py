@@ -361,6 +361,8 @@ class timeseries_client:
     def getTimeSeriesData(self, timeSeriesIds, queryFrom=None, queryTo=None, outputUnitIds=None, includeGapMarkers=None):
         if isinstance(timeSeriesIds, list):
             timeSeriesIds = [self.getTimeSeriesUniqueId(ts) for ts in timeSeriesIds]
+        else:
+            timeSeriesIds = self.getTimeSeriesUniqueId(timeSeriesIds)
 
         return self.publish.get(
             "/GetTimeSeriesData",
