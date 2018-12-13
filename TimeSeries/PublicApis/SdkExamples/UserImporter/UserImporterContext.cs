@@ -94,10 +94,10 @@ namespace UserImporter
 
         private static string CreateSampleCsvOutput()
         {
-            return @"Username, FirstName, LastName, Email,            Active, CanLaunchRdt, AuthenticationType, Password, UserPrincipalName, SubjectIdentifier
-fredcred, fred,      cred,     fred@derf.com,    true,   true,         Credentials,        sekret,   ,
-fredwin,  fred,      win,      fred@win.com,     true,   true,         ActiveDirectory,    ,         fred@win.com,
-fredopen, fred,      openid,   ""fred@gmail.com"", true,   true,         OpenIdConnect,      ,         ,                  113611963171978735131";
+            return @"Username, FirstName, LastName, Email,            Active, CanLaunchRdt, AuthenticationType, Password, UserPrincipalName, SubjectIdentifier,     CanConfigureSystem
+fredcred, fred,      cred,     fred@derf.com,    true,   true,         Credentials,        sekret,   ,                  ,                      false
+fredwin,  fred,      win,      fred@win.com,     true,   true,         ActiveDirectory,    ,         fred@win.com,      ,                      false
+fredopen, fred,      openid,   ""fred@gmail.com"", true,   true,         OpenIdConnect,      ,         ,                  113611963171978735131, false";
         }
     }
 }

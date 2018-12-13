@@ -47,7 +47,7 @@ namespace UserImporter
                 }
                 
                 if (record.AuthenticationType == AuthenticationType.OpenIdConnect &&
-                           string.IsNullOrEmpty(record.SujectIdentifier))
+                           string.IsNullOrEmpty(record.SubjectIdentifier))
                 {
                     Log.Error($"User record for '{record.Username}' is {record.AuthenticationType}, but no SubjectIdentifier provided. Skipping.");
                     continue;
