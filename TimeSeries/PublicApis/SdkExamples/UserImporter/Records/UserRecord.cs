@@ -37,6 +37,9 @@ namespace UserImporter.Records
         [FieldTrim(TrimMode.Both), FieldQuoted(QuoteMode.OptionalForBoth, MultilineMode.NotAllow)]
         private string _subjectIdentifier;
 
+        [FieldTrim(TrimMode.Both), FieldQuoted(QuoteMode.OptionalForBoth, MultilineMode.NotAllow), FieldOptional, FieldNullValue(false), FieldConverter(typeof(CsvBoolConverter))]
+        private bool _canConfigureSystem;
+
         public string Username => _username;
 
         public string FirstName => _firstName;
@@ -55,6 +58,8 @@ namespace UserImporter.Records
 
         public string UserPrincipalName => _userPrincipalName;
 
-        public string SujectIdentifier => _subjectIdentifier;
+        public string SubjectIdentifier => _subjectIdentifier;
+
+        public bool CanConfigureSystem => _canConfigureSystem;
     }
 }

@@ -189,7 +189,7 @@ namespace UserImporter
                     {
                         AuthenticationType.OpenIdConnect, (userRecord, uniqueId) => new PutOpenIdConnectAuth
                         {
-                            SubjectIdentifier = userRecord.SujectIdentifier,
+                            SubjectIdentifier = userRecord.SubjectIdentifier,
                             UniqueId = uniqueId
                         }
                     },

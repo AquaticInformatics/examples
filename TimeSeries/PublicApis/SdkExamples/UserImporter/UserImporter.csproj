@@ -110,6 +110,7 @@
     </None>
     <EmbeddedResource Include="log4net.config" />
     <None Include="packages.config" />
+    <None Include="Readme.md" />
   </ItemGroup>
   <ItemGroup>
     <None Include="FodyWeavers.xml" />
