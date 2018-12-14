@@ -1,17 +1,12 @@
 # Sample python code to Public API course
 # Requires python 2.7+
 # Install required dependencies via: $ pip install requests pytz pyrfc3339
-import logging
 
 import requests
 from requests.exceptions import HTTPError
 import pyrfc3339
 from datetime import datetime
 import re
-
-
-logger = logging.getLogger(__name__)
-
 
 
 def create_endpoint(hostname, root_path):
