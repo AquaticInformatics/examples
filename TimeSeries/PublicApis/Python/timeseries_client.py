@@ -8,6 +8,7 @@ import pyrfc3339
 from datetime import datetime
 import re
 
+
 def create_endpoint(hostname, root_path):
     prefix = "http://"
     if hostname.startswith("http://") or hostname.startswith("https://"):
@@ -63,24 +64,25 @@ class TimeseriesSession(requests.sessions.Session):
     >>> session.get('/invalidroute') # Raises HTTPError (404)
     """
 
-    def __init__(self, hostname, root_path):
+    def __init__(self, hostname, root_path, verify=True):
         super(TimeseriesSession, self).__init__()
+        self.verify = verify
         self.base_url = create_endpoint(hostname, root_path)
 
     def get(self, url, **kwargs):
-        r = super(TimeseriesSession, self).get(self.base_url + url, **kwargs)
+        r = super(TimeseriesSession, self).get(self.base_url + url, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def post(self, url, data=None, json=None, **kwargs):
-        r = super(TimeseriesSession, self).post(self.base_url + url, data, json, **kwargs)
+        r = super(TimeseriesSession, self).post(self.base_url + url, data, json, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def put(self, url, data=None, **kwargs):
-        r = super(TimeseriesSession, self).put(self.base_url + url, data, **kwargs)
+        r = super(TimeseriesSession, self).put(self.base_url + url, data, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def delete(self, url, **kwargs):
-        r = super(TimeseriesSession, self).delete(self.base_url + url, **kwargs)
+        r = super(TimeseriesSession, self).delete(self.base_url + url, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def set_session_token(self, token):
@@ -144,16 +146,16 @@ class timeseries_client:
     >>> # The session will be disconnected now, even if an exception was thrown in the body of the WITH statement.
     """
 
-    def __init__(self, hostname, username, password):
+    def __init__(self, hostname, username, password, verify=True):
         # Create the three endpoint sessions
-        self.publish = TimeseriesSession(hostname, "/AQUARIUS/Publish/v2")
-        self.acquisition = TimeseriesSession(hostname, "/AQUARIUS/Acquisition/v2")
-        self.provisioning = TimeseriesSession(hostname, "/AQUARIUS/Provisioning/v1")
+        self.publish = TimeseriesSession(hostname, "/AQUARIUS/Publish/v2", verify=verify)
+        self.acquisition = TimeseriesSession(hostname, "/AQUARIUS/Acquisition/v2", verify=verify)
+        self.provisioning = TimeseriesSession(hostname, "/AQUARIUS/Provisioning/v1", verify=verify)
         # Authenticate once
         self.connect(username, password)
 
         # Cache the server version
-        versionSession = TimeseriesSession(hostname, "/AQUARIUS/apps/v1")
+        versionSession = TimeseriesSession(hostname, "/AQUARIUS/apps/v1", verify=verify)
         self.serverVersion = versionSession.get('/version').json()["ApiVersion"]
 
     def __enter__(self):
