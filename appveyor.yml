@@ -66,12 +66,16 @@ artifacts:
     name: SharpShooterReportsRunner
     type: zip
 
+  - path: TimeSeries\PublicApis\SdkExamples\WaterWatchPreProcessor\bin\Release\WaterWatchPreProcessor.exe
+    name: WaterWatchPreProcessor
+    type: file
+
 deploy:
   - provider: GitHub
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: Example utilities $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, SosExporter, SharpShooterReportsRunner
+    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true
