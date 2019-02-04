@@ -65,10 +65,25 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Context.cs" />
+    <Compile Include="Dtos\SavedState.cs" />
+    <Compile Include="Dtos\WaterWatch\Alarm.cs" />
+    <Compile Include="Dtos\WaterWatch\Config.cs" />
+    <Compile Include="Dtos\WaterWatch\DisplayInfo.cs" />
+    <Compile Include="Dtos\WaterWatch\GetMeasurementsRequest.cs" />
+    <Compile Include="Dtos\WaterWatch\GetMeasurementsResponse.cs" />
+    <Compile Include="Dtos\WaterWatch\GetSensorsRequest.cs" />
+    <Compile Include="Dtos\WaterWatch\LatestData.cs" />
+    <Compile Include="Dtos\WaterWatch\Measurement.cs" />
+    <Compile Include="Dtos\WaterWatch\ReferenceLine.cs" />
+    <Compile Include="Dtos\WaterWatch\Sensor.cs" />
     <Compile Include="EmbeddedResource.cs" />
     <Compile Include="ExpectedException.cs" />
     <Compile Include="Exporter.cs" />
+    <Compile Include="Filters\Filter.cs" />
+    <Compile Include="Filters\IFilter.cs" />
+    <Compile Include="Filters\RegexFilter.cs" />
     <Compile Include="Option.cs" />
+    <Compile Include="OutputMode.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -8,6 +9,8 @@ using System.Xml;
 using log4net;
 using ServiceStack;
 using ServiceStack.Logging.Log4Net;
+using ServiceStack.Text;
+using WaterWatchPreProcessor.Filters;
 
 namespace WaterWatchPreProcessor
 {
@@ -47,9 +50,7 @@ namespace WaterWatchPreProcessor
                 else
                     logAction($"{exception.Message}\n{exception.StackTrace}");
             }
-
         }
-
 
         private static void ConfigureLogging()
         {
@@ -69,6 +70,8 @@ namespace WaterWatchPreProcessor
 
         private static void ConfigureJson()
         {
+            JsConfig.EmitCamelCaseNames = true;
+            JsConfig.DateHandler = DateHandler.UnixTimeMs;
         }
 
         private static string GetProgramName()
@@ -86,10 +89,71 @@ namespace WaterWatchPreProcessor
 
             var options = new[]
             {
-                new Option {Key = nameof(context.WaterWaterOrgId), Setter = value => context.WaterWaterOrgId = value, Getter = () => context.WaterWaterOrgId, Description = "WaterWatch.io organisation Id"},
-                new Option {Key = nameof(context.WaterWaterApiKey), Setter = value => context.WaterWaterApiKey = value, Getter = () => context.WaterWaterApiKey, Description = "WaterWatch.io API key"},
-                new Option {Key = nameof(context.WaterWaterApiToken), Setter = value => context.WaterWaterApiToken = value, Getter = () => context.WaterWaterApiToken, Description = "WaterWatch.io API token"},
-                new Option {Key = nameof(context.SaveStatePath), Setter = value => context.SaveStatePath = value, Getter = () => context.SaveStatePath, Description = "Path to persisted state file"},
+                new Option {Description = "https://waterwatch.io credentials"},
+                new Option
+                {
+                    Key = nameof(context.WaterWatchOrgId),
+                    Description = "WaterWatch.io organisation Id",
+                    Setter = value => context.WaterWatchOrgId = value,
+                    Getter = () => context.WaterWatchOrgId,
+                },
+                new Option
+                {
+                    Key = nameof(context.WaterWatchApiKey),
+                    Description = "WaterWatch.io API key",
+                    Setter = value => context.WaterWatchApiKey = value,
+                    Getter = () => context.WaterWatchApiKey,
+                },
+                new Option
+                {
+                    Key = nameof(context.WaterWatchApiToken),
+                    Description = "WaterWatch.io API token",
+                    Setter = value => context.WaterWatchApiToken = value,
+                    Getter = () => context.WaterWatchApiToken,
+                },
+
+                new Option(), new Option {Description = "Configuration options"},
+                new Option
+                {
+                    Key = nameof(context.OutputMode),
+                    Description = $"Measurement value output mode. One of {string.Join(", ", Enum.GetNames(typeof(OutputMode)))}.",
+                    Setter = value => context.OutputMode = (OutputMode) Enum.Parse(typeof(OutputMode), value, true),
+                    Getter = () => context.OutputMode.ToString(),
+                },
+                new Option
+                {
+                    Key = nameof(context.SaveStatePath),
+                    Description = "Path to persisted state file",
+                    Setter = value => context.SaveStatePath = value,
+                    Getter = () => context.SaveStatePath,
+                },
+                new Option
+                {
+                    Key = nameof(context.SyncFromUtc),
+                    Description = "Optional UTC sync time. [default: last known sensor time]",
+                    Setter = value => context.SyncFromUtc = ParseDateTime(value),
+                },
+                new Option
+                {
+                    Key = nameof(context.NewSensorSyncDays),
+                    Description = "Number of days to sync data when a new sensor is detected.",
+                    Setter = value => context.NewSensorSyncDays = int.Parse(value),
+                    Getter = () => context.NewSensorSyncDays.ToString(),
+                }, 
+
+                new Option(), new Option {Description = "Sensor filtering options"},
+                new Option
+                {
+                    Key = "SensorName",
+                    Description = "Sensor name regular expression filter. Can be specified multiple times.",
+                    Setter = value => context.SensorNameFilters.Add(ParseRegexFilter(value))
+                },
+                new Option
+                {
+                    Key = "SensorSerial",
+                    Description = "Sensor serial number regular expression filter. Can be specified multiple times.",
+                    Setter = value => context.SensorSerialFilters.Add(ParseRegexFilter(value))
+                },
             };
 
             var usageMessage
@@ -98,6 +162,10 @@ namespace WaterWatchPreProcessor
                       + $"\nusage: {GetProgramName()} [-option=value] [@optionsFile] ..."
                       + $"\n"
                       + $"\nSupported -option=value settings (/option=value works too):\n\n  {string.Join("\n  ", options.Select(o => o.UsageText()))}"
+                      + $"\n"
+                      + $"\nSupported /{nameof(context.SyncFromUtc)} date formats:"
+                      + $"\n"
+                      + $"\n  {string.Join("\n  ", SupportedDateFormats)}"
                       + $"\n"
                       + $"\nUse the @optionsFile syntax to read more options from a file."
                       + $"\n"
@@ -132,9 +200,9 @@ namespace WaterWatchPreProcessor
                 option.Setter(value);
             }
 
-            if (string.IsNullOrWhiteSpace(context.WaterWaterOrgId)
-                || string.IsNullOrEmpty(context.WaterWaterApiKey)
-                || string.IsNullOrEmpty(context.WaterWaterApiToken))
+            if (string.IsNullOrWhiteSpace(context.WaterWatchOrgId)
+                || string.IsNullOrEmpty(context.WaterWatchApiKey)
+                || string.IsNullOrEmpty(context.WaterWatchApiToken))
                 throw new ExpectedException($"Ensure your WaterWatch account credentials are set.");
 
             return context;
@@ -165,5 +233,50 @@ namespace WaterWatchPreProcessor
                 .Where(s => !s.StartsWith("#") && !s.StartsWith("//"));
         }
 
+        private static RegexFilter ParseRegexFilter(string value)
+        {
+            var filter = ParseExclusionFiler(value);
+
+            return new RegexFilter
+            {
+                Exclude = filter.Exclude,
+                Regex = new Regex(filter.Text)
+            };
+        }
+
+        private static (bool Exclude, string Text) ParseExclusionFiler(string value)
+        {
+            var exclude = false;
+            var text = value;
+
+            if (value.StartsWith("+"))
+            {
+                text = value.Substring(1);
+            }
+            else if (value.StartsWith("-"))
+            {
+                exclude = true;
+                text = value.Substring(1);
+            }
+
+            return (exclude, text);
+        }
+
+        private static DateTime ParseDateTime(string value)
+        {
+            return DateTime.ParseExact(
+                value,
+                SupportedDateFormats,
+                CultureInfo.InvariantCulture, 
+                DateTimeStyles.AdjustToUniversal);
+        }
+
+        private static readonly string[] SupportedDateFormats =
+        {
+            "yyyy-MM-dd",
+            "yyyy-MM-ddTHH:mm",
+            "yyyy-MM-ddTHH:mm:ss",
+            "yyyy-MM-ddTHH:mm:ss.fff",
+        };
     }
 }
