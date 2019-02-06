@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using ServiceStack;
 using ServiceStack.Text;
 using WaterWatchPreProcessor.Dtos;
@@ -28,18 +29,28 @@ namespace WaterWatchPreProcessor
             var nameFilter = new Filter<RegexFilter>(Context.SensorNameFilters);
             var serialFilter = new Filter<RegexFilter>(Context.SensorSerialFilters);
 
+            Console.WriteLine("Iso8601UtcTime, SensorType, SensorSerial, Value");
+
             foreach (var sensor in sensors)
             {
                 if (nameFilter.IsFiltered(f => f.Regex.IsMatch(sensor.Name))
                     || serialFilter.IsFiltered(f => f.Regex.IsMatch(sensor.Serial)))
                     continue;
 
-                foreach (var measurement in GetSensorMeasurements(sensor))
+                var measurements = GetSensorMeasurements(sensor)
+                    .ToList();
+
+                var latestMeasurement = measurements.LastOrDefault();
+
+                if (latestMeasurement != null)
+                {
+                    SavedState.NextMeasurementTimeBySensorSerial[sensor.Serial] = latestMeasurement.Time.AddMilliseconds(1);
+                }
+
+                foreach (var measurement in measurements)
                 {
                     Console.WriteLine($"{measurement.Time:yyyy-MM-ddTHH:mm:ss.fffZ}, {sensor.SensorType}, {sensor.Serial}, {GetSensorValue(sensor, measurement.RawDistance)}");
                 }
-
-                SavedState.LastSeenBySensorSerial[sensor.Serial] = sensor.LatestData.LastSeen;
             }
 
             PersistSavedState();
@@ -78,7 +89,7 @@ namespace WaterWatchPreProcessor
 
         private IEnumerable<Measurement> GetSensorMeasurements(Sensor sensor)
         {
-            if (!SavedState.LastSeenBySensorSerial.TryGetValue(sensor.Serial, out var lastSeenTime))
+            if (!SavedState.NextMeasurementTimeBySensorSerial.TryGetValue(sensor.Serial, out var lastSeenTime))
             {
                 lastSeenTime = DateTime.UtcNow.Date.AddDays(-Context.NewSensorSyncDays);
             }
