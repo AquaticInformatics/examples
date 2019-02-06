@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using ServiceStack;
+using ServiceStack.Logging;
 using ServiceStack.Text;
 using WaterWatchPreProcessor.Dtos;
 using WaterWatchPreProcessor.Dtos.WaterWatch;
@@ -12,6 +14,8 @@ namespace WaterWatchPreProcessor
 {
     public class Exporter
     {
+        private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         public Context Context { get; set; }
 
         private JsonServiceClient Client { get; set; }
@@ -29,7 +33,9 @@ namespace WaterWatchPreProcessor
             var nameFilter = new Filter<RegexFilter>(Context.SensorNameFilters);
             var serialFilter = new Filter<RegexFilter>(Context.SensorSerialFilters);
 
-            Console.WriteLine("Iso8601UtcTime, SensorType, SensorSerial, Value");
+            WriteLine("Iso8601UtcTime, SensorType, SensorSerial, Value");
+
+            var measurementCount = 0;
 
             foreach (var sensor in sensors)
             {
@@ -49,11 +55,23 @@ namespace WaterWatchPreProcessor
 
                 foreach (var measurement in measurements)
                 {
-                    Console.WriteLine($"{measurement.Time:yyyy-MM-ddTHH:mm:ss.fffZ}, {sensor.SensorType}, {sensor.Serial}, {GetSensorValue(sensor, measurement.RawDistance)}");
+                    WriteLine($"{measurement.Time:yyyy-MM-ddTHH:mm:ss.fffZ}, {sensor.SensorType}, {sensor.Serial}, {GetSensorValue(sensor, measurement.RawDistance)}");
                 }
+
+                measurementCount += measurements.Count;
+
+                Log.Info($"Wrote {measurements.Count} measurements for sensor '{sensor.Serial}' until {sensor.LatestData?.LastMeasurement?.Time:O}");
             }
 
+            Log.Info($"Wrote {measurementCount} measurements for {sensors.Count} sensors.");
+
             PersistSavedState();
+        }
+
+        private void WriteLine(string message)
+        {
+            Console.WriteLine(message);
+            Log.Info(message);
         }
 
         private void RestoreSavedState()
