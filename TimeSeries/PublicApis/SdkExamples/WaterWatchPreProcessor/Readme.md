@@ -59,14 +59,12 @@ Use `/OutputMode=RawDistance` to always show the sensor's rawDistance value.
 
 Each time the tool runs, it queries the WatchWatch API for any new measurements.
 
-`Iso8601UtcTime, SensorType, SensorSerial, Value`
-
 Each new measurement will be output to standard out as the following CSV stream:
 
-
 ```csv
+Iso8601UtcTime, SensorType, SensorSerial, Value
 2018-12-31T14:35:00.000Z, LS1, 418892, 92.23456
-2018-12-31T15:35:00.000Z, LS1, 418892, 89.47586
+2018-12-31T14:37:00.000Z, LS1, 40AD1C, 289.47586
 ```
 
 ## `/help` screen

@@ -5,7 +5,7 @@ namespace WaterWatchPreProcessor.Dtos
 {
     public class SavedState
     {
-        public Dictionary<string, DateTime> LastSeenBySensorSerial { get; set; } =
+        public Dictionary<string, DateTime> NextMeasurementTimeBySensorSerial { get; set; } =
             new Dictionary<string, DateTime>(StringComparer.InvariantCultureIgnoreCase);
     }
 }
