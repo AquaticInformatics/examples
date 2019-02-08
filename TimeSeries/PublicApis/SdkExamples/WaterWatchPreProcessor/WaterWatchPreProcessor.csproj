@@ -96,6 +96,21 @@
   <ItemGroup>
     <None Include="FodyWeavers.xml" />
   </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <Content Include="images\ConnectConnector.png" />
+    <Content Include="images\ConnectDataSetRule.png" />
+    <Content Include="images\ConnectExportRuleProfile.png" />
+    <Content Include="images\ConnectInboundConnectionProcessing.png" />
+    <Content Include="images\ConnectInboundConnectionRule.png" />
+    <Content Include="images\ConnectLocation.png" />
+    <Content Include="images\ConnectSchedule.png" />
+    <Content Include="images\ConnectTextFileExtractionRule.png" />
+    <Content Include="images\ScadaDataloggerConfig.png" />
+    <Content Include="images\ScadaObjectTree.png" />
+    <Content Include="images\ScadaSensorConfig.png" />
+    <Content Include="images\ScadaSensorExport.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Fody.2.0.0\build\netstandard1.4\Fody.targets" Condition="Exists('..\packages\Fody.2.0.0\build\netstandard1.4\Fody.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
