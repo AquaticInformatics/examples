@@ -67,9 +67,159 @@ Iso8601UtcTime, SensorType, SensorSerial, Value
 2018-12-31T14:37:00.000Z, LS1, 40AD1C, 289.47586
 ```
 
+## Integrating with AQUARIUS Connect or AQUARIUS EnviroSCADA
+
+The integration for both AQUARIUS Connect and AQUARIUS EnviroSCADA share some common configuration.
+
+In this example, we will map 3 [WaterWatch LS1 Remote Water Level](https://www.waterwatch.io/ls1-features) sensors to 3 "Stage" time-series, each in a separate AQUARIUS Time-Series location, using a time-series identifier pattern of "Stage.Telemetry@WW-$Serial".
+
+| Sensor Serial | Sensor Name | AQUARIUS Time-Series identifier |
+| --- | --- | --- |
+| 40AD1C | Suncorp Stadium | Stage.Telemetry@WW-40AD1C |
+| 3F8961 | Bulimba | Stage.Telemetry@WW-3F8961 |
+| 416D19 | Flinders Pde | Stage.Telemetry@WW-416D19 |
+
+On the Connect/EnviroSCADA app-server, create a `C:\WaterWatch` folder containing the following files:
+
+| File | Description |
+| --- | --- |
+| `C:\WatchWatch\WaterWatchPreProcessor.exe` | The preprocessor executable. |
+| `C:\WatchWatch\Config.txt` | An [@options.txt](https://github.com/AquaticInformatics/examples/wiki/Common-command-line-options#use-the-filenameext-syntax-to-specify-options-in-a-text-file) file containing your WaterWatch.io credentials.<br/><br/>Connect and EnviroSCADA will set the preprocessor argument to `@C:\WatchWatch\Config.txt`, with a `@` at the start. |
+| `C:\WatchWatch\DummyFile.txt` | A simple file, whose contents don't matter. It can be empty or contain anything. The file just needs to exist. |
+
+The following 10-line `Config.txt` file is a good starting point for a WaterWatch integration.
+
+```
+# WaterWatch.io credentials (replace with your actual values)
+/WaterWatchOrgId=yourOrganisationId
+/WaterWatchApiKey=yourApiKey
+/WaterWatchApiToken=yourApiToken
+
+# Force the saved state to a known location in the C:\WaterWatch folder
+/SaveStatePath=C:\WaterWatch\NextMeasurementTimes.json
+
+# By default, all sensors in your organisation will be polled for changes.
+# Add /SensorName or /SensorSerial filters if you need something more precise.
+```
+
+### Configuring AQUARIUS Connect to consume the output stream
+
+This configuration works with AQUARIUS Connect 2019.1 and greater.
+
+1) Create a Connector with an Extraction Driver of "Text File Extraction Driver" and an Inbound Connection Driver of "File System Inbound Connection Driver".
+
+![Connector with Text File Extraction / File System Inbound Connection](images/ConnectConnector.png "A connector with a 'Text File' extraction driver and a 'File System' inbound connection driver")
+
+2) Configure the Extraction Rule, setting the rule's **Text parsing expression** to the [required regular expression](#The-regular-expression-matching-this-output-stream).
+
+![Text File Extraction Rule](images/ConnectTextFileExtractionRule.png "Extraction rule with regular expression")
+
+3) Configure the Inbound Connection Rule
+
+   - Set `C:\WaterWatch\DummyFile.txt` as the single **Source path** to monitor.
+
+![Inbound connection monitoring DummyFile.txt](images/ConnectInboundConnectionRule.png "Inbound connection monitoring DummyFile.txt")
+
+   - Configure the Pre-Extraction File Processing settings:
+       - Set the **Executable path** to `C:\WaterWatch\WaterWatchPreprocessor.exe` to run this preprocessor.
+       - Set the **Executable arguments** to `@C:\WaterWatch\Config.txt`. Note the leading `@` character right before the config file path.
+       - Set the **Executable timeout** to 5 minutes.
+
+![Inbound connection preprocessing](images/ConnectInboundConnectionProcessing.png "Inbound connection processing")
+
+4) Schedule the connector to run every 15 minutes, or at your desired frequency.
+
+![Connector schedule](images/ConnectSchedule.png "Connector schedule")
+
+Repeat steps 4 through 8 for each sensor to export into AQTS:
+
+5) In AQTS, create the location and the Stage time-series
+- Create a location, using the "WW-$Serial" pattern for the **Location identifier**
+- Create a time-series in that location, with a **Parameter** of "Stage", a **Label** of "Telemetry", and **Units** of "mm".
+
+6) In Connect, create a location for the sensor
+- Set the location's **Identifier** property to the same value as the AQTS location identifier.
+
+![Connect location](images/ConnectLocation.png "Connect location")
+
+7) Create a Data Set Rule for each WaterWatch sensor.
+- Set the data set rule's **DataSetIdentifier** to the sensor's serial number. This will allow the `$SensorP1` token to match the configured sensor.
+
+![Connect data set rule](images/ConnectDataSetRule.png "Connect data set rule")
+
+8) Create an Export Target for the data set which matches the AQTS location, parameter, and label of the target time-series.
+
+- The export target will use the "AQUARIUS Time-Series Export" and "HTTP Outbound Connection" drivers.
+- Set 4 common properties in the export rule profile, and make sure individual rules cannot override these values.
+    - Set the **Parameter identifier** to "Stage".
+    - Set the **Time-series label** to "Telemetry".
+    - Leave the **Location identifier** blank.
+    - Leave the **Write mode** as "Append without overwrite".
+- The export rule profile will only need to be configured when the first sensor is added.
+- All other sensors will be able to simply use this export rule profile without modification.
+
+![Connect export rule profile](images/ConnectExportRuleProfile.png "Connect export rule profile")
+
+Now your Connect system will be polling the WaterWatch.io system every 15 minutes, and appending any new measurements to the appropriate sensor time-series.
+
+### Configuring EnviroSCADA to consume the output stream
+
+This configuration works with AQUARIUS EnviroSCADA 2019.1 and greater.
+
+1) Add a new "WaterWatch" file format to the `[Device:TextFileReader]` section of `DriverDataLogger.ini`
+
+```ini
+[Device:TextFileReader]
+; ... existing file format settings ...
+WaterWatch.FileFormat=^\s*(?<Year>\d{4})-(?<Month>\d{2})-(?<Day>\d{2})T(?<Time>\d{2}:\d{2}:\d{2}\.\d{3})Z,\s*[^,]+,\s*$SensorP1,\s*(?<Value>.+)\s*$
+WaterWatch.PreProcessorExe=C:\WaterWatch\WaterWatchPreProcessor.exe
+WaterWatch.FolderPath=C:\WaterWatch
+WaterWatch.FileFilter=DummyFile.txt
+WaterWatch.CopyFilesLocally=false
+WaterWatch.IgnoreLastUnload=true
+```
+
+The `C:\Program Files\Schneider Electric\ClearSCADA\EnviroSCADA\DriverDataLogger.ini` file is only read once when the "DataLogger" module starts up.
+
+Once the INI file is updated, either restart the ClearSCADA server, or use the "ClearSCADA Server Status" tool to restart only the "DataLogger" driver.
+
+2) Launch ViewX to create one Datalogger object containing all the WaterWatch sensors
+
+In this example, we'll create a Group object named "Water Watch", containing:
+- One Datalogger object, which controls the schedule and invokes the preprocessor
+- A Group object named "Sensors", contain a hierarchy of location Groups and Analogue Point objects
+
+![ClearSCADA object tree](images/ScadaObjectTree.png "ClearSCADA object tree")
+
+3) Create the one Datalogger object to control the polling schedule
+
+- Set the **Scan Rate** to the desired frequency (eg. "15M" for a 15-minute polling schedule)
+- Set the **Device Type** to `TextFileReader`
+- Set the **Logger Setup** string to `Format=WaterWatch PreProc=@C:\WaterWatch\Config.txt`
+
+![Datalogger object configuration](images/ScadaDataloggerConfig.png "Datalogger object configuration")
+
+Repeat steps 4 and 5 for each sensor to export into AQTS:
+
+4) Create a Group object named after the AQTS location and add one Analogue Point object into the group.
+
+- Set the **DataLogger** to the Datalogger object created in step 3
+- Set the **Logger Sensor** to the serial number of the WaterWatch sensor
+
+![Sensor configuration](images/ScadaSensorConfig.png "Sensor configuration")
+
+5) Configure the Analogue Point to export values to the AQTS time-series
+
+- Set the **Target System** to "AQUARIUS"
+- Set the **Target Series ID** to the time-series identifier
+
+![Sensor export to AQTS](images/ScadaSensorExport.png "Sensor export to AQTS")
+
+Now your EnviroSCADA system will be exporting WaterSensor measurements into your AQUARIUS Time-Series system.
+
 ## The regular expression matching this output stream
 
-Use the following regular expression to parse the text output stream.
+Use the following regular expression to parse the text output stream of this preprocessor.
 
 ```regex
 ^\s*(?<Year>\d{4})-(?<Month>\d{2})-(?<Day>\d{2})T(?<Time>\d{2}:\d{2}:\d{2}\.\d{3})Z,\s*[^,]+,\s*$SensorP1,\s*(?<Value>.+)\s*$
@@ -95,52 +245,12 @@ That cryptic expression has the following meaning:
 | `[^,]*` | Sensor type field.<br/>Any character except a comma, zero or more repetitions. |
 | `,` | A literal comma. |
 | `\s*` | Whitespace, zero or more repetitions. |
-| `$SensorP1` | The special `$SensorP1` token is replaced with the Connect DataSetIdentifier property value, which should be configured to be the serial number of the WaterWatch sensor. This allows the regular expression to be run once per sensor, and only lines with measurements from the a specific sensor will be extracted.|
+| `$SensorP1` | The special `$SensorP1` token is replaced with the value of the Connect "DataSetIdentifier" or EnviroSCADA "Logger Sensor" property, which should be configured to be the serial number of the WaterWatch sensor. This allows the regular expression to be run once per sensor, and only lines with measurements from the a specific sensor will be extracted.|
 | `,` | A literal comma. |
 | `\s*` | Whitespace, zero or more repetitions. |
 | `(?<Value>.+)` | The named capture group "Value".<br/>The sensor value.<br/>One or more characters. |
 | `\s*` | Whitespace, zero or more repetitions. |
 | `$` | End of line. |
-
-## Configuring AQUARIUS Connect to consume the output stream
-
-This configuration works with AQUARIUS Connect 2019.1 and greater.
-
-- Create a folder `C:\WaterWatch` on your Connect app server.
-- Copy the `WaterWatchPreprocessor.exe` file to this folder.
-- Create a simple text file `C:\WaterWatch\Config.txt` in that folder to contain all the preprocessor options.
-- Create an empty text file `C:\WaterWatch\DummyFile.txt`. The content of this file doesn't matter. It can be empty. It just needs to exist.
-- Create a Connector with an Extraction Driver of "Text File Extraction Driver" and an Inbound Connection Driver of "File System Inbound Connection Driver".
-- Configure the Extraction Rule, setting the rule's "Text parsing expression" to the [required regular expression](#The-regular-expression-matching-this-output-stream).
-- Configure the Inbound Connection Rule:
-   - Set `C:\WaterWatch\DummyFile.txt` as the single source path to monitor.
-   - Configure the Pre-Extraction File Processing settings:
-       - Set the "Executable path" to `C:\WaterWatch\WaterWatchPreprocessor.exe` to run this preprocessor.
-       - Set the "Executable arguments" to `@C:\WaterWatch\Config.txt`. Note the leading `@` character right before the config file path.
-       - Set the "Executable timeout" to 5 minutes.
-- Schedule the connector to run every 15 minutes, or at your desired frequency.
-
-For each sensor to export into AQTS:
-- Create a Connector with one Data Set for each WaterWatch sensor. Set the data set rule's DataSetIndentifier to the sensor's serial number. This will allow the `$SensorP1` token to match the configured sensor.
-- Create an Export Target for the data set which matches the AQTS location, parameter, and label of the target time-series.
-
-The following 7-line text file is a good starting point for `C:\WaterWatch\Config.txt`. It will attempt to export all the measurements from all the sensors in your organisation:
-
-```
-# WaterWatch.io credentials
--WaterWatchOrgId=your-org-id
--WaterWatchApiKey=your-api-key
--WaterWatchApiToken=your-api-token
-
-# Save the state in this folder too
--SaveStatePath=C:\WaterWatch\NextMeasurementTimes.json
-```
-
-## Configuring EnviroSCADA to consume the output stream
-
-This configuration works with AQUARIUS EnviroSCADA 2019.1 and greater.
-
-TODO: Figure this out.
 
 ## `/help` screen
 
