@@ -55,7 +55,7 @@ namespace WaterWatchPreProcessor
 
                 foreach (var measurement in measurements)
                 {
-                    WriteLine($"{measurement.Time:yyyy-MM-ddTHH:mm:ss.fffZ}, {sensor.SensorType}, {sensor.Serial}, {GetSensorValue(sensor, measurement.RawDistance)}");
+                    WriteLine($"{measurement.Time:yyyy-MM-ddTHH:mm:ss.fffZ}, {sensor.SensorType}, {sensor.Serial}, {GetSensorValue(sensor, measurement.RawDistance) / Context.OutputDivisor}");
                 }
 
                 measurementCount += measurements.Count;

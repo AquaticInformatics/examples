@@ -55,6 +55,10 @@ The value reported for each sensor will be the [offset-corrected value](https://
 
 Use `/OutputMode=RawDistance` to always show the sensor's rawDistance value.
 
+## Value output is in meters by default
+
+The `/OutputDivisor=1000` option will convert WaterWatch sensor distances in millimeters into output values of meters.
+
 ## Output text stream format
 
 Each time the tool runs, it queries the WatchWatch API for any new measurements.
@@ -63,8 +67,8 @@ Each new measurement will be output to standard out as the following CSV stream:
 
 ```csv
 Iso8601UtcTime, SensorType, SensorSerial, Value
-2018-12-31T14:35:00.000Z, LS1, 418892, 92.23456
-2018-12-31T14:37:00.000Z, LS1, 40AD1C, 289.47586
+2018-12-31T14:35:00.000Z, LS1, 418892, 0.09223456
+2018-12-31T14:37:00.000Z, LS1, 40AD1C, 0.28947586
 ```
 
 ## Integrating with AQUARIUS Connect, or AQUARIUS EnviroSCADA, or AQUARIUS DAS
@@ -137,7 +141,7 @@ Repeat steps 4 through 8 for each sensor to export into AQTS:
 
 5) In AQTS, create the location and the Stage time-series
 - Create a location, using the "WW-$Serial" pattern for the **Location identifier**
-- Create a time-series in that location, with a **Parameter** of "Stage", a **Label** of "Telemetry", and **Units** of "mm".
+- Create a time-series in that location, with a **Parameter** of "Stage", a **Label** of "Telemetry", and **Units** of "m".
 
 6) In Connect, create a location for the sensor
 - Set the location's **Identifier** property to the same value as the AQTS location identifier.
@@ -222,23 +226,28 @@ In this example, we'll create a Group object named "Water Watch", containing:
 
 ![Datalogger object configuration](images/ScadaDataloggerConfig.png "Datalogger object configuration")
 
-Repeat steps 4 through 6 for each sensor to export into AQTS:
+Repeat steps 4 through 7 for each sensor to export into AQTS:
 
-4) Create a Group object named after the AQTS location and add one Analogue Point object into the group.
+4) In AQTS, create the location and the Stage time-series
+
+- Create a location, using the "WW-$Serial" pattern for the **Location identifier**
+- Create a time-series in that location, with a **Parameter** of "Stage", a **Label** of "Telemetry", and **Units** of "m".
+
+5) Create a Group object named after the AQTS location and add one Analogue Point object into the group.
 
 - Set the **DataLogger** to the Datalogger object created in step 3
 - Set the **Logger Sensor** to the serial number of the WaterWatch sensor
 
 ![Sensor configuration](images/ScadaSensorConfig.png "Sensor configuration")
 
-5) Configure the Analogue Point to export values to the AQTS time-series
+6) Configure the Analogue Point to export values to the AQTS time-series
 
 - Set the **Target System** to "AQUARIUS"
 - Set the **Target Series ID** to the time-series identifier
 
 ![Sensor export to AQTS](images/ScadaSensorExport.png "Sensor export to AQTS")
 
-6) Enable historic data for the Analogue Point
+7) Enable historic data for the Analogue Point
 
 - Be sure to enable ClearSCADA historic data for the new Analogue Point
 
@@ -297,6 +306,7 @@ Supported -option=value settings (/option=value works too):
 
   ===================== Configuration options
   -OutputMode           Measurement value output mode. One of OffsetCorrected, RawDistance. [default: OffsetCorrected]
+  -OutputDivisor        Divisor applied to all output values. [default: 1000]
   -SaveStatePath        Path to persisted state file [default: WaterWatchSaveState.json]
   -SyncFromUtc          Optional UTC sync time. [default: last known sensor time]
   -NewSensorSyncDays    Number of days to sync data when a new sensor is detected. [default: 5]

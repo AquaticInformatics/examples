@@ -11,6 +11,7 @@ namespace WaterWatchPreProcessor
         public string WaterWatchApiToken { get; set; }
         public string SaveStatePath { get; set; } = "WaterWatchSaveState.json";
         public OutputMode OutputMode { get; set; }
+        public double OutputDivisor { get; set; } = 1000;
         public List<RegexFilter> SensorSerialFilters { get; set; } = new List<RegexFilter>();
         public List<RegexFilter> SensorNameFilters { get; set; } = new List<RegexFilter>();
         public DateTime? SyncFromUtc { get; set; }

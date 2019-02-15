@@ -99,6 +99,15 @@ namespace WaterWatchPreProcessor
 
             ParseArgsIntoContext(context, resolvedArgs);
 
+            if (string.IsNullOrWhiteSpace(context.WaterWatchOrgId)
+                || string.IsNullOrEmpty(context.WaterWatchApiKey)
+                || string.IsNullOrEmpty(context.WaterWatchApiToken))
+                throw new ExpectedException($"Ensure your WaterWatch account credentials are set.");
+
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            if (context.OutputDivisor == 0)
+                throw new ExpectedException($".{nameof(context.OutputDivisor)} cannot be zero.");
+
             return context;
         }
 
@@ -137,6 +146,13 @@ namespace WaterWatchPreProcessor
                         $"Measurement value output mode. One of {string.Join(", ", Enum.GetNames(typeof(OutputMode)))}.",
                     Setter = value => context.OutputMode = (OutputMode) Enum.Parse(typeof(OutputMode), value, true),
                     Getter = () => context.OutputMode.ToString(),
+                },
+                new Option
+                {
+                    Key = nameof(context.OutputDivisor),
+                    Description = "Divisor applied to all output values.",
+                    Setter = value => context.OutputDivisor = double.Parse(value),
+                    Getter = () => context.OutputDivisor.ToString("G"),
                 },
                 new Option
                 {
@@ -228,11 +244,6 @@ namespace WaterWatchPreProcessor
 
                 option.Setter(value);
             }
-
-            if (string.IsNullOrWhiteSpace(context.WaterWatchOrgId)
-                || string.IsNullOrEmpty(context.WaterWatchApiKey)
-                || string.IsNullOrEmpty(context.WaterWatchApiToken))
-                throw new ExpectedException($"Ensure your WaterWatch account credentials are set.");
         }
 
         private static readonly Regex ArgRegex = new Regex(@"^([/-])(?<key>[^=]+)=(?<value>.*)$", RegexOptions.Compiled);
