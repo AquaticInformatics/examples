@@ -4,7 +4,7 @@ Download the latest version from [here](https://github.com/AquaticInformatics/ex
 
 The `WaterWatchPreProcessor.exe` is a console utility to extract time-series data from sensors in a [WaterWatch.io](https://www.waterwatch.io/) organisation account.
 
-The sensor data can be processed by [AQUARIUS EnviroSCADA](https://aquaticinformatics.com/products/aquarius-enviroscada/) or AQUARIUS Connect and appended to a time-series in [AQUARIUS Time-Series](https://aquaticinformatics.com/products/aquarius-time-series/).
+The sensor data can be processed by [AQUARIUS EnviroSCADA](https://aquaticinformatics.com/products/aquarius-enviroscada/), AQUARIUS DAS, or AQUARIUS Connect and appended to a time-series in [AQUARIUS Time-Series](https://aquaticinformatics.com/products/aquarius-time-series/).
 
 `WaterWatchPreProcessor.exe` is a stand-alone EXE. It requires no installer and can be run from any folder.
 
@@ -67,9 +67,9 @@ Iso8601UtcTime, SensorType, SensorSerial, Value
 2018-12-31T14:37:00.000Z, LS1, 40AD1C, 289.47586
 ```
 
-## Integrating with AQUARIUS Connect or AQUARIUS EnviroSCADA
+## Integrating with AQUARIUS Connect, or AQUARIUS EnviroSCADA, or AQUARIUS DAS
 
-The integration for both AQUARIUS Connect and AQUARIUS EnviroSCADA share some common configuration.
+The integration for the family of AQUARIUS data ingest products share some common configuration.
 
 In this example, we will map 3 [WaterWatch LS1 Remote Water Level](https://www.waterwatch.io/ls1-features) sensors to 3 "Stage" time-series, each in a separate AQUARIUS Time-Series location, using a time-series identifier pattern of "Stage.Telemetry@WW-$Serial".
 
@@ -79,13 +79,15 @@ In this example, we will map 3 [WaterWatch LS1 Remote Water Level](https://www.w
 | 3F8961 | Bulimba | Stage.Telemetry@WW-3F8961 |
 | 416D19 | Flinders Pde | Stage.Telemetry@WW-416D19 |
 
-On the Connect/EnviroSCADA app-server, create a `C:\WaterWatch` folder containing the following files:
+On the Connect/EnviroSCADA/DAS app-server, create a `C:\WaterWatch` folder containing the following files:
 
 | File | Description |
 | --- | --- |
 | `C:\WatchWatch\WaterWatchPreProcessor.exe` | The preprocessor executable. |
 | `C:\WatchWatch\Config.txt` | An [@options.txt](https://github.com/AquaticInformatics/examples/wiki/Common-command-line-options#use-the-filenameext-syntax-to-specify-options-in-a-text-file) file containing your WaterWatch.io credentials.<br/><br/>Connect and EnviroSCADA will set the preprocessor argument to `@C:\WatchWatch\Config.txt`, with a `@` at the start. |
 | `C:\WatchWatch\DummyFile.txt` | A simple file, whose contents don't matter. It can be empty or contain anything. The file just needs to exist. |
+
+- **Note:** - The containing folder (`C:\WaterWatch` in this example) should not contain any spaces. This will avoid problems trying interpret preprocessor arguments when the preprocessor executable is launched in a separate process.
 
 The following 10-line `Config.txt` file is a good starting point for a WaterWatch integration.
 
@@ -164,19 +166,35 @@ Now your Connect system will be polling the WaterWatch.io system every 15 minute
 
 ### Configuring EnviroSCADA to consume the output stream
 
-This configuration works with AQUARIUS EnviroSCADA 2019.1 and greater.
+This configuration works with AQUARIUS EnviroSCADA 2017.1 and greater.
 
 1) Add a new "WaterWatch" file format to the `[Device:TextFileReader]` section of `DriverDataLogger.ini`
+
+For EnviroSCADA 2019.1-or-newer:
 
 ```ini
 [Device:TextFileReader]
 ; ... existing file format settings ...
+; These settings are for EnviroSCADA 2019.1-or-newer
 WaterWatch.FileFormat=^\s*(?<Year>\d{4})-(?<Month>\d{2})-(?<Day>\d{2})T(?<Time>\d{2}:\d{2}:\d{2}\.\d{3})Z,\s*[^,]+,\s*$SensorP1,\s*(?<Value>.+)\s*$
 WaterWatch.PreProcessorExe=C:\WaterWatch\WaterWatchPreProcessor.exe
 WaterWatch.FolderPath=C:\WaterWatch
 WaterWatch.FileFilter=DummyFile.txt
 WaterWatch.CopyFilesLocally=false
 WaterWatch.IgnoreLastUnload=true
+```
+
+For EnviroSCADA 2018.1-or-earlier, the INI changes are slightly different:
+
+```ini
+[Device:TextFileReader]
+; ... existing file format settings ...
+; These settings are for EnviroSCADA 2018.1-or-earlier
+PreProcessorExe=C:\WaterWatch\WaterWatchPreProcessor.exe
+FileFormat.WaterWatch=^\s*(?<Year>\d{4})-(?<Month>\d{2})-(?<Day>\d{2})T(?<Time>\d{2}:\d{2}:\d{2}\.\d{3})Z,\s*[^,]+,\s*$SensorP1,\s*(?<Value>.+)\s*$
+HaltOnInvalidRows=true
+CopyFilesLocally=false
+IgnoreLastUnload.WaterWatch=true
 ```
 
 The `C:\Program Files\Schneider Electric\ClearSCADA\EnviroSCADA\DriverDataLogger.ini` file is only read once when the "DataLogger" module starts up.
@@ -195,11 +213,16 @@ In this example, we'll create a Group object named "Water Watch", containing:
 
 - Set the **Scan Rate** to the desired frequency (eg. "15M" for a 15-minute polling schedule)
 - Set the **Device Type** to `TextFileReader`
-- Set the **Logger Setup** string to `Format=WaterWatch PreProc=@C:\WaterWatch\Config.txt`
+- Set the **Logger Setup** string to a version-specific setup string:
+
+| EnviroSCADA version | **Logger Setup** value |
+| --- | --- |
+| 2019.1 and newer | `Format=WaterWatch PreProc=C:\WaterWatch\Config.txt` |
+| 2018.1 and earlier | `Format=WaterWatch PreProc=C:\WaterWatch\Config.txt MoveFile=False File=C:\WaterWatch\DummyFile.txt` |
 
 ![Datalogger object configuration](images/ScadaDataloggerConfig.png "Datalogger object configuration")
 
-Repeat steps 4 and 5 for each sensor to export into AQTS:
+Repeat steps 4 through 6 for each sensor to export into AQTS:
 
 4) Create a Group object named after the AQTS location and add one Analogue Point object into the group.
 
@@ -214,6 +237,12 @@ Repeat steps 4 and 5 for each sensor to export into AQTS:
 - Set the **Target Series ID** to the time-series identifier
 
 ![Sensor export to AQTS](images/ScadaSensorExport.png "Sensor export to AQTS")
+
+6) Enable historic data for the Analogue Point
+
+- Be sure to enable ClearSCADA historic data for the new Analogue Point
+
+![Sensor historic data](images/ScadaSensorHistoric.png "Sensor historic data")
 
 Now your EnviroSCADA system will be exporting WaterSensor measurements into your AQUARIUS Time-Series system.
 
