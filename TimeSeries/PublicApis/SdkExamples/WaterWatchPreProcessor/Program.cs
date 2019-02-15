@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -74,9 +75,18 @@ namespace WaterWatchPreProcessor
             JsConfig.DateHandler = DateHandler.UnixTimeMs;
         }
 
-        private static string GetProgramName()
+        public static string GetProgramName()
         {
             return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
+        }
+
+        public static string GetExecutingFileVersion()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
+
+            // ReSharper disable once PossibleNullReferenceException
+            return $"{MethodBase.GetCurrentMethod().DeclaringType.Namespace} v{fileVersionInfo.FileVersion}";
         }
 
         private static Context ParseArgs(string[] args)
@@ -87,6 +97,22 @@ namespace WaterWatchPreProcessor
                 .SelectMany(ResolveOptionsFromFile)
                 .ToArray();
 
+            ParseArgsIntoContext(context, resolvedArgs);
+
+            if (string.IsNullOrWhiteSpace(context.WaterWatchOrgId)
+                || string.IsNullOrEmpty(context.WaterWatchApiKey)
+                || string.IsNullOrEmpty(context.WaterWatchApiToken))
+                throw new ExpectedException($"Ensure your WaterWatch account credentials are set.");
+
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            if (context.OutputDivisor == 0)
+                throw new ExpectedException($".{nameof(context.OutputDivisor)} cannot be zero.");
+
+            return context;
+        }
+
+        private static void ParseArgsIntoContext(Context context, string[] resolvedArgs)
+        {
             var options = new[]
             {
                 new Option {Description = "https://waterwatch.io credentials"},
@@ -116,9 +142,17 @@ namespace WaterWatchPreProcessor
                 new Option
                 {
                     Key = nameof(context.OutputMode),
-                    Description = $"Measurement value output mode. One of {string.Join(", ", Enum.GetNames(typeof(OutputMode)))}.",
+                    Description =
+                        $"Measurement value output mode. One of {string.Join(", ", Enum.GetNames(typeof(OutputMode)))}.",
                     Setter = value => context.OutputMode = (OutputMode) Enum.Parse(typeof(OutputMode), value, true),
                     Getter = () => context.OutputMode.ToString(),
+                },
+                new Option
+                {
+                    Key = nameof(context.OutputDivisor),
+                    Description = "Divisor applied to all output values.",
+                    Setter = value => context.OutputDivisor = double.Parse(value),
+                    Getter = () => context.OutputDivisor.ToString("G"),
                 },
                 new Option
                 {
@@ -139,7 +173,7 @@ namespace WaterWatchPreProcessor
                     Description = "Number of days to sync data when a new sensor is detected.",
                     Setter = value => context.NewSensorSyncDays = int.Parse(value),
                     Getter = () => context.NewSensorSyncDays.ToString(),
-                }, 
+                },
 
                 new Option(), new Option {Description = "Sensor filtering options"},
                 new Option
@@ -183,6 +217,16 @@ namespace WaterWatchPreProcessor
                     if (HelpKeywords.Contains(arg))
                         throw new ExpectedException($"Showing help page\n\n{usageMessage}");
 
+                    if (File.Exists(arg))
+                    {
+                        // This is the magic which allows the preprocessor to be used in AQUARIUS DAS and EnviroSCADA 2018.1-or-earlier.
+                        // Those products require that a preprocessor has one and only one argument, which is a "script file".
+                        // This recursive call interprets any existing file as an @options.txt argument list.
+                        // This is not necessary for EnviroSCADA 2019.1+ or Connect, since both of those allow arbitrary preprocessor command line arguments.
+                        ParseArgsIntoContext(context, LoadArgsFromFile(arg).ToArray());
+                        continue;
+                    }
+
                     throw new ExpectedException($"Unknown command line argument: {arg}");
                 }
 
@@ -190,7 +234,8 @@ namespace WaterWatchPreProcessor
                 var value = match.Groups["value"].Value;
 
                 var option =
-                    options.FirstOrDefault(o => o.Key != null && o.Key.Equals(key, StringComparison.InvariantCultureIgnoreCase));
+                    options.FirstOrDefault(o =>
+                        o.Key != null && o.Key.Equals(key, StringComparison.InvariantCultureIgnoreCase));
 
                 if (option == null)
                 {
@@ -199,13 +244,6 @@ namespace WaterWatchPreProcessor
 
                 option.Setter(value);
             }
-
-            if (string.IsNullOrWhiteSpace(context.WaterWatchOrgId)
-                || string.IsNullOrEmpty(context.WaterWatchApiKey)
-                || string.IsNullOrEmpty(context.WaterWatchApiToken))
-                throw new ExpectedException($"Ensure your WaterWatch account credentials are set.");
-
-            return context;
         }
 
         private static readonly Regex ArgRegex = new Regex(@"^([/-])(?<key>[^=]+)=(?<value>.*)$", RegexOptions.Compiled);
@@ -224,6 +262,11 @@ namespace WaterWatchPreProcessor
 
             var path = arg.Substring(1);
 
+            return LoadArgsFromFile(path);
+        }
+
+        private static IEnumerable<string> LoadArgsFromFile(string path)
+        {
             if (!File.Exists(path))
                 throw new ExpectedException($"Options file '{path}' does not exist.");
 

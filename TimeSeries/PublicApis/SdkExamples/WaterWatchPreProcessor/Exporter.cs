@@ -55,7 +55,7 @@ namespace WaterWatchPreProcessor
 
                 foreach (var measurement in measurements)
                 {
-                    WriteLine($"{measurement.Time:yyyy-MM-ddTHH:mm:ss.fffZ}, {sensor.SensorType}, {sensor.Serial}, {GetSensorValue(sensor, measurement.RawDistance)}");
+                    WriteLine($"{measurement.Time:yyyy-MM-ddTHH:mm:ss.fffZ}, {sensor.SensorType}, {sensor.Serial}, {GetSensorValue(sensor, measurement.RawDistance) / Context.OutputDivisor}");
                 }
 
                 measurementCount += measurements.Count;
@@ -89,7 +89,11 @@ namespace WaterWatchPreProcessor
 
         private void CreateConnectedClient()
         {
-            Client = new JsonServiceClient("https://api.waterwatch.io/v1")
+            var uri = "https://api.waterwatch.io/v1";
+
+            Log.Info($"{Program.GetProgramName()} v{Program.GetExecutingFileVersion()} connecting to {uri} ...");
+
+            Client = new JsonServiceClient(uri)
             {
                 AlwaysSendBasicAuthHeader = true,
                 UserName = Context.WaterWatchApiKey,
