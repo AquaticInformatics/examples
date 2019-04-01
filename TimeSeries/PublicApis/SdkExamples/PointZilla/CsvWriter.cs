@@ -144,7 +144,7 @@ namespace PointZilla
 
         private static string FormatQualifiers(List<string> qualifiers)
         {
-            if (!qualifiers.Any())
+            if (qualifiers == null || !qualifiers.Any())
                 return string.Empty;
 
             if (qualifiers.Count == 1)
