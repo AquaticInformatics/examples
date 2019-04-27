@@ -82,6 +82,35 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation 12.5
 - Each generated point will be spaced one `/PointInterval` duration apart (defaults to 1-minute)
 - Use the `/StartTime=yyyy-mm-ddThh:mm:ssZ` option to change where the generated points will start.
 
+## Append an explicit Gap in between points
+
+AQTS 2019.1 adds the ability to explicitly append a gap between two points from an external source (like PointZilla!). Explicit gaps can be appended to basic time-series or reflected time-series.
+
+The constraints for appending a gap between two points are:
+- The app server must be running AQTS 2019.1-or-higher
+- A point with `point.Type = Gap` must exist between two points with valid timestamps. The gap will be inserted at the midpoint of the two timestamps.
+- The target timeseries must have a gap tolerance of `NoGaps` at the point where the explicit gap will be inserted.
+
+An explicit gap can be specified in two ways:
+#### 1) Add an explicit gap on the command line
+
+Use the case-insensitive positional keyword `Gap` instead of a numeric value to represent a gap.
+
+This example inserts a gap between the values 12.5 and 15.3.
+
+```
+$ ./PointZilla.exe -server=myserver Stage.Label@MyLocation 12.5 Gap 15.3
+
+17:05:34.827 INFO  - Connecting to myserver ...
+17:05:35.449 INFO  - Connected to myserver (2019.1.110.0)
+17:05:35.723 INFO  - Appending 3 points [2019-04-27T00:05:34Z to 2019-04-27T00:06:34Z] to Stage.Label@MyLocation (ProcessorBasic) ...
+17:05:44.897 INFO  - Appended 2 points (deleting 0 points) in 9.2 seconds.
+```
+
+#### 2) Use the `Gap` keyword instead of a timestamp in a CSV file
+
+When reading data from a CSV file, use the case-insensitive keyword `Gap` in a timestamp or value column to represent an explicit gap.
+
 ## Append values from a CSV file
 
 `PointZilla` can also read times, values, grade codes, and qualifiers from a CSV file.

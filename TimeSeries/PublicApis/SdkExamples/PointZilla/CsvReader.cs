@@ -89,7 +89,9 @@ namespace PointZilla
                 points.Add(point);
             }
 
-            if (Context.CsvRemoveDuplicatePoints)
+            var anyGapPoints = points.Any(p => p.Type == PointType.Gap);
+
+            if (Context.CsvRemoveDuplicatePoints && !anyGapPoints)
             {
                 points = points
                     .OrderBy(p => p.Time)
@@ -119,7 +121,7 @@ namespace PointZilla
                 }
             }
 
-            if (Context.CsvRealign)
+            if (Context.CsvRealign && !anyGapPoints)
             {
                 points = points
                     .OrderBy(p => p.Time)
@@ -149,10 +151,26 @@ namespace PointZilla
             double? value = null;
             int? gradeCode = null;
             List<string> qualifiers = null;
+            PointType? pointType = null;
 
-            ParseField(fields, Context.CsvTimeField, text => time = ParseTime(text));
+            ParseField(fields, Context.CsvTimeField, text =>
+            {
+                if (Enum.TryParse<PointType>(text, true, out var pType))
+                {
+                    pointType = pType;
+                    return;
+                }
+
+                time = ParseTime(text);
+            });
             ParseField(fields, Context.CsvValueField, text =>
             {
+                if (Enum.TryParse<PointType>(text, true, out var pType))
+                {
+                    pointType = pType;
+                    return;
+                }
+
                 if (double.TryParse(text, out var numericValue))
                     value = numericValue;
             });
@@ -163,11 +181,15 @@ namespace PointZilla
             });
             ParseField(fields, Context.CsvQualifiersField, text => qualifiers = text.Split(QualifierDelimiters, StringSplitOptions.RemoveEmptyEntries).ToList());
 
-            if (time == null)
+            if ((pointType == null || pointType == PointType.Unknown) && time == null)
                 return null;
+
+            if (pointType != PointType.Gap)
+                pointType = null;
 
             return new ReflectedTimeSeriesPoint
             {
+                Type = pointType,
                 Time = time,
                 Value = value,
                 GradeCode = gradeCode,

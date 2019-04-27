@@ -229,6 +229,16 @@ namespace PointZilla
                         continue;
                     }
 
+                    if (Enum.TryParse<PointType>(arg, true, out var pointType))
+                    {
+                        if (pointType == PointType.Gap)
+                        {
+                            ParseManualGap(context);
+                        }
+
+                        continue;
+                    }
+
                     if (File.Exists(arg))
                     {
                         context.CsvFiles.Add(arg);
@@ -379,6 +389,11 @@ namespace PointZilla
             });
 
             context.StartTime = context.StartTime.Plus(Duration.FromTimeSpan(context.PointInterval));
+        }
+
+        private static void ParseManualGap(Context context)
+        {
+            context.ManualPoints.Add(new ReflectedTimeSeriesPoint{Type = PointType.Gap});
         }
 
         private static Interval ParseInterval(string text)
