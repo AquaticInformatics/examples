@@ -28,9 +28,16 @@ namespace PointZilla
         {
             Log.Info(Context.ExecutingFileVersion);
 
-            Points = GetPoints()
-                .OrderBy(p => p.Time)
-                .ToList();
+            Points = GetPoints();
+
+            if (Points.All(p => p.Type != PointType.Gap))
+            {
+                Points = Points
+                    .OrderBy(p => p.Time)
+                    .ToList();
+            }
+
+            ThrowIfInvalidGapInterval();
 
             if (!string.IsNullOrEmpty(Context.SaveCsvPath))
             {
@@ -46,6 +53,8 @@ namespace PointZilla
             using (var client = AquariusClient.CreateConnectedClient(Context.Server, Context.Username, Context.Password))
             {
                 Log.Info($"Connected to {Context.Server} ({client.ServerVersion})");
+
+                ThrowIfGapsNotSupported(client);
 
                 if (Context.CreateMode != CreateMode.Never)
                 {
@@ -105,6 +114,20 @@ namespace PointZilla
             }
         }
 
+        private void ThrowIfInvalidGapInterval()
+        {
+            if (Points.Any() && (Points.First().Type == PointType.Gap || Points.Last().Type == PointType.Gap))
+                throw new ExpectedException($"You can only insert manual {nameof(PointType.Gap)} points in between valid timestamps.");
+        }
+
+        private void ThrowIfGapsNotSupported(IAquariusClient client)
+        {
+            if (Points.Any(p => p.Type == PointType.Gap) && client.ServerVersion.IsLessThan(MinimumGapVersion))
+                throw new ExpectedException($"You can't insert manual {nameof(PointType.Gap)} points before AQTS v{MinimumGapVersion}");
+        }
+
+        private static readonly AquariusServerVersion MinimumGapVersion = AquariusServerVersion.Create("19.1");
+
         private TimeSeriesAppendStatus AppendPointBatch(IAquariusClient client, TimeSeries timeSeries, List<ReflectedTimeSeriesPoint> points, Interval timeRange, bool isReflected, bool hasTimeRange)
         {
             AppendResponse appendResponse;
@@ -123,6 +146,7 @@ namespace PointZilla
                 var basicPoints = points
                     .Select(p => new TimeSeriesPoint
                     {
+                        Type = p.Type,
                         Time = p.Time,
                         Value = p.Value
                     })
