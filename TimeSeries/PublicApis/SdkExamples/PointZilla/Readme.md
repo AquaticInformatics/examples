@@ -1,6 +1,6 @@
 ﻿# PointZilla
 
-`PointZilla` is a console tool for quickly appending points to a time-series in an AQTS 201x system.
+`PointZilla` is a console tool for quickly appending points to a time-series in an AQTS 201x system. You can also use `PointZilla` to [delete all points](#deleting-all-points-in-a-time-series) or [delete a range of existing points](#deleting-a-range-of-points-in-a-time-series) from a time-series.
 
 Download the [latest PointZilla.exe release here](../../../../../../releases/latest)
  
