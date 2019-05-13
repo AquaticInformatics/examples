@@ -40,7 +40,7 @@ The actions performed by `LocationDeleter` are permanent, so if you lose somethi
 
 ## Logged output
 
-All activity is logged in `LocationDelete.log` files, created in the same directory as the EXE.
+All activity is logged in `LocationDeleter.log` files, created in the same directory as the EXE.
 Log output from previous runs is also retained, so this log should serve as a useful reference for what was deleted.
 
 ## Use the `/DryRun=True` or `/N` option so see what would get deleted

@@ -58,6 +58,10 @@ artifacts:
     name: UserImporter
     type: file
 
+  - path: TimeSeries\PublicApis\SdkExamples\ChangeVisitApprovals\bin\Release\ChangeVisitApprovals.exe
+    name: ChangeVisitApprovals
+    type: file
+
   - path: TimeSeries\PublicApis\SdkExamples\SosExporter\bin\Release\SosExporter.exe
     name: SosExporter
     type: file
@@ -75,7 +79,7 @@ deploy:
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: Example utilities $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor
+    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true
