@@ -183,6 +183,12 @@ namespace LocationDeleter.PrivateApis
             public string LocationIdentifier { get; set; }
         }
 
+        [Route("/location/id/{LocationId}", HttpMethods.Delete)]
+        public class DeleteLocationByIdRequest : IReturnVoid
+        {
+            public Int64 LocationId { get; set; }
+        }
+
         [Route("/location/{LocationId}/timeseries", HttpMethods.Get)]
         public class GetTimeSeriesForLocationRequest : IReturn<List<TimeSeriesInfo>>
         {
