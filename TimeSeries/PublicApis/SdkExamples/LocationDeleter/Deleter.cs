@@ -939,7 +939,21 @@ namespace LocationDeleter
 
             try
             {
-                _processor.Delete(new DeleteMigrationLocationByIdentifier {LocationIdentifier = locationInfo.Identifier});
+                try
+                {
+                    _processor.Delete(new DeleteMigrationLocationByIdentifier { LocationIdentifier = locationInfo.Identifier });
+                }
+                catch (WebServiceException exception)
+                {
+                    if (exception.StatusCode != 400) throw;
+
+                    Log.Warn($"Trying alternative API to delete '{locationInfo.Identifier}' ...");
+
+                    var siteVisitLocation = GetSiteVisitLocation(locationInfo);
+
+                    // Try the other API (not quite as robust)
+                    _processor.Delete(new DeleteLocationByIdRequest {LocationId = siteVisitLocation.Id});
+                }
             }
             catch (WebServiceException exception)
             {
