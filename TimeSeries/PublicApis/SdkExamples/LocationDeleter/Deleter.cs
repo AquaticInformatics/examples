@@ -672,7 +672,9 @@ namespace LocationDeleter
                 locations.AddRange(resolvedLocations);
             }
 
-            return locations;
+            return locations
+                .OrderBy(l => l.Identifier)
+                .ToList();
         }
 
         private int DeleteLocation(LocationInfo locationInfo)
