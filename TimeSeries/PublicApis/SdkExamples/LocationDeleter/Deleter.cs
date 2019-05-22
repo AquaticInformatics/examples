@@ -945,7 +945,7 @@ namespace LocationDeleter
                 }
                 catch (WebServiceException exception)
                 {
-                    if (exception.StatusCode != 400) throw;
+                    if (exception.StatusCode != 400 && exception.StatusCode != 404) throw;
 
                     Log.Warn($"Trying alternative API to delete '{locationInfo.Identifier}' ...");
 
