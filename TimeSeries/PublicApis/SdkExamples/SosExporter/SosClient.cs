@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Aquarius.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using log4net;
 using ServiceStack;
@@ -41,6 +42,7 @@ namespace SosExporter
         private string Username { get; }
         private string Password { get; }
         private JsonServiceClient JsonClient { get; set; }
+        private string UserAgent { get; set; }
         private GetCapabilitiesResponse Capabilities { get; set; }
 
         private SosClient(string hostUrl, string username, string password)
@@ -81,7 +83,9 @@ namespace SosExporter
         {
             JsonClient?.Dispose();
 
-            JsonClient = new JsonServiceClient(HostUrl);
+            JsonClient = new SdkServiceClient(HostUrl);
+
+            UserAgent = JsonClient.UserAgent;
 
             GetCapabilities();
 
@@ -98,6 +102,7 @@ namespace SosExporter
 
         private Action<HttpWebRequest> UseJsonClientCookies => req =>
         {
+            req.UserAgent = UserAgent;
             req.Timeout = TimeoutMilliseconds;
             req.CookieContainer = JsonClient.CookieContainer;
         };
