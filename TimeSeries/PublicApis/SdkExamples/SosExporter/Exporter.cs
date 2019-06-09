@@ -668,6 +668,22 @@ namespace SosExporter
                 .Where(p => p.Timestamp.DateTimeOffset >= earliestDayToUpload)
                 .ToList();
 
+            if (RoughDailyPointCount.TryGetValue(period, out var expectedDailyPointCount))
+            {
+                var roughPointLimit = Convert.ToInt32(maximumDaysToExport * expectedDailyPointCount * 1.5);
+
+                if (remainingPoints.Count > roughPointLimit)
+                {
+                    var limitExceededCount = remainingPoints.Count - roughPointLimit;
+
+                    Log.Warn($"Upper limit of {roughPointLimit} points exceeded by {limitExceededCount} points for Frequency={period} and MaximumPointDays={maximumDaysToExport} in '{timeSeriesDescription.Identifier}'.");
+
+                    remainingPoints = remainingPoints
+                        .Skip(limitExceededCount)
+                        .ToList();
+                }
+            }
+
             var trimmedPointCount = timeSeries.NumPoints - remainingPoints.Count;
 
             Log.Info(
@@ -676,6 +692,18 @@ namespace SosExporter
             timeSeries.Points = remainingPoints;
             timeSeries.NumPoints = timeSeries.Points.Count;
         }
+
+        private static readonly Dictionary<ComputationPeriod, double> RoughDailyPointCount = new Dictionary<ComputationPeriod, double>
+        {
+            {ComputationPeriod.WaterYear, 1.0 / 365 },
+            {ComputationPeriod.Annual, 1.0 / 365 },
+            {ComputationPeriod.Monthly, 1.0 / 30 },
+            {ComputationPeriod.Weekly, 1.0 / 7 },
+            {ComputationPeriod.Daily, 1.0 },
+            {ComputationPeriod.Hourly, 24 },
+            {ComputationPeriod.QuarterHourly, 24 * 4 },
+            {ComputationPeriod.Minutes, 24 * 60 },
+        };
 
         private (LocationDescription LocationDescription, LocationDataServiceResponse LocationData) GetLocationInfo(string locationIdentifier)
         {
