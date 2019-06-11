@@ -142,6 +142,14 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/ExportedFro
 13:45:51.143 INFO  - Appended 250 points (deleting 0 points) in 1.2 seconds.
 ```
 
+## Appending values from an Excel spreadsheet
+
+All the CSV parsing options also apply to parsing Excel workbooks.
+
+By default, the first sheet in the workbook will be parsed according to the CSV parsing rules.
+
+You can use the `/ExcelSheetNumber=integer` or `/ExcelSheetName=name` options to parse a different sheet in the workbook.
+
 ## Realigning CSV points with the `/StartTime` value
 
 When `/CsvRealign=true` is set, all the imported CSV rows will be realigned to the `/StartTime` option.
@@ -335,7 +343,9 @@ Supported -option=value settings (/option=value works too):
   -CsvRealign               Realign imported CSV points to the /StartTime value [default: False]
   -CsvRemoveDuplicatePoints Remove duplicate points in the CSV before appending. [default: True]
   -CsvFormat                Shortcut for known CSV formats. One of 'NG', '3X', or 'PointZilla'. [default: NG]
-  
+  -ExcelSheetNumber         Excel worksheet number to parse [default to first sheet]
+  -ExcelSheetName           Excel worksheet name to parse [default to first sheet]
+
   ========================= CSV saving options:
   -SaveCsvPath              When set, saves the extracted/generated points to a CSV file. If only a directory is specified, an appropriate filename will be generated.
   -StopAfterSavingCsv       When true, stop after saving a CSV file, before appending any points. [default: False]

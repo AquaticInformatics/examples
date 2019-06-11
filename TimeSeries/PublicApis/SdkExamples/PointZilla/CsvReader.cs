@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
+using ExcelDataReader;
+using ExcelDataReader.Exceptions;
 using Microsoft.VisualBasic.FileIO;
 using NodaTime;
 using NodaTime.Text;
@@ -48,46 +51,7 @@ namespace PointZilla
             if (!File.Exists(path))
                 throw new ExpectedException($"CSV file '{path}' does not exist.");
 
-            var points = new List<ReflectedTimeSeriesPoint>();
-
-            var parser = new TextFieldParser(path)
-            {
-                TextFieldType = FieldType.Delimited,
-                Delimiters = new[] {","},
-                TrimWhiteSpace = true
-            };
-
-            if (!string.IsNullOrWhiteSpace(Context.CsvComment))
-            {
-                parser.CommentTokens = new[] {Context.CsvComment};
-            }
-
-            var skipCount = Context.CsvSkipRows;
-
-            while (!parser.EndOfData)
-            {
-                if (skipCount > 0)
-                {
-                    --skipCount;
-                    continue;
-                }
-
-                var lineNumber = parser.LineNumber;
-
-                var fields = parser.ReadFields();
-                if (fields == null) continue;
-
-                var point = ParsePoint(fields);
-
-                if (point == null)
-                {
-                    if (Context.CsvIgnoreInvalidRows) continue;
-
-                    throw new ExpectedException($"Can't parse '{path}' ({lineNumber}): {string.Join(", ", fields)}");
-                }
-
-                points.Add(point);
-            }
+            var points = LoadExcelPoints(path) ?? LoadCsvPoints(path);
 
             var anyGapPoints = points.Any(p => p.Type == PointType.Gap);
 
@@ -145,6 +109,172 @@ namespace PointZilla
             return points;
         }
 
+        private List<ReflectedTimeSeriesPoint> LoadExcelPoints(string path)
+        {
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var excelReader = LoadExcelReader(stream))
+            {
+                return excelReader == null ? null : LoadPoints(excelReader);
+            }
+        }
+
+        private IExcelDataReader LoadExcelReader(Stream stream)
+        {
+            try
+            {
+                return ExcelReaderFactory.CreateReader(stream);
+            }
+            catch (HeaderException)
+            {
+                return null;
+            }
+        }
+
+        private List<ReflectedTimeSeriesPoint> LoadPoints(IExcelDataReader excelReader)
+        {
+            var skipRows = Context.CsvSkipRows - 1;
+
+            var dataSet = excelReader.AsDataSet(new ExcelDataSetConfiguration
+            {
+                FilterSheet = (tableReader, sheetIndex) =>
+                {
+                    if (Context.ExcelSheetNumber.HasValue)
+                        return sheetIndex == Context.ExcelSheetNumber.Value - 1;
+
+                    if (!string.IsNullOrEmpty(Context.ExcelSheetName))
+                        return tableReader.Name.Equals(Context.ExcelSheetName, StringComparison.InvariantCultureIgnoreCase);
+
+                    // Load the first sheet by default
+                    return sheetIndex == 0;
+                },
+                ConfigureDataTable = tableReader => new ExcelDataTableConfiguration
+                {
+                    UseHeaderRow = true,
+
+                    ReadHeaderRow = rowReader =>
+                    {
+                        for (; skipRows > 0; --skipRows)
+                        {
+                            rowReader.Read();
+                        }
+                    }
+                }
+            });
+
+            if (dataSet.Tables.Count < 1)
+            {
+                if (!string.IsNullOrEmpty(Context.ExcelSheetName))
+                    throw new ExpectedException($"Can't find Excel worksheet '{Context.ExcelSheetName}'");
+
+                throw new ExpectedException($"Can't find Excel worksheet number {Context.ExcelSheetNumber ?? 1}");
+            }
+
+            var table = dataSet.Tables[0];
+
+            return table
+                .Rows
+                .Cast<DataRow>()
+                .Select(ParseExcelRow)
+                .Where(p => p != null)
+                .ToList();
+        }
+
+        private ReflectedTimeSeriesPoint ParseExcelRow(DataRow row)
+        {
+            Instant? time = null;
+            double? value = null;
+            int? gradeCode = null;
+            List<string> qualifiers = null;
+
+            if (!string.IsNullOrEmpty(Context.CsvComment) && ((row[0] as string)?.StartsWith(Context.CsvComment) ?? false))
+                return null;
+
+            ParseColumn<DateTime>(row, Context.CsvTimeField,
+                dateTime => time = Instant.FromDateTimeOffset(new DateTimeOffset(dateTime, (Context.UtcOffset ?? Offset.Zero).ToTimeSpan())));
+
+            ParseColumn<double>(row, Context.CsvValueField, number => value = number);
+            ParseColumn<double>(row, Context.CsvGradeField, number => gradeCode = (int)number);
+            ParseStringColumn(row, Context.CsvQualifiersField, text => qualifiers = ParseQualifiers(text));
+
+            return new ReflectedTimeSeriesPoint
+            {
+                Time = time,
+                Value = value,
+                GradeCode = gradeCode,
+                Qualifiers = qualifiers
+            };
+        }
+
+        private static void ParseColumn<T>(DataRow row, int fieldIndex, Action<T> parseAction) where T : struct
+        {
+            if (fieldIndex > 0 && row.Table.Columns.Count > fieldIndex - 1)
+            {
+                var item = row[fieldIndex - 1];
+
+                if (item != null)
+                {
+                    parseAction((T) item);
+                }
+            }
+        }
+
+        private static void ParseStringColumn(DataRow row, int fieldIndex, Action<string> parseAction)
+        {
+            if (fieldIndex > 0 && row.Table.Columns.Count > fieldIndex - 1)
+            {
+                if (row[fieldIndex - 1] is string item && !string.IsNullOrWhiteSpace(item))
+                {
+                    parseAction(item);
+                }
+            }
+        }
+
+        private List<ReflectedTimeSeriesPoint> LoadCsvPoints(string path)
+        {
+            var points = new List<ReflectedTimeSeriesPoint>();
+
+            var parser = new TextFieldParser(path)
+            {
+                TextFieldType = FieldType.Delimited,
+                Delimiters = new[] { "," },
+                TrimWhiteSpace = true
+            };
+
+            if (!string.IsNullOrWhiteSpace(Context.CsvComment))
+            {
+                parser.CommentTokens = new[] { Context.CsvComment };
+            }
+
+            var skipCount = Context.CsvSkipRows;
+
+            while (!parser.EndOfData)
+            {
+                if (skipCount > 0)
+                {
+                    --skipCount;
+                    continue;
+                }
+
+                var lineNumber = parser.LineNumber;
+
+                var fields = parser.ReadFields();
+                if (fields == null) continue;
+
+                var point = ParsePoint(fields);
+
+                if (point == null)
+                {
+                    if (Context.CsvIgnoreInvalidRows) continue;
+
+                    throw new ExpectedException($"Can't parse '{path}' ({lineNumber}): {string.Join(", ", fields)}");
+                }
+
+                points.Add(point);
+            }
+
+            return points;
+        }
+
         private ReflectedTimeSeriesPoint ParsePoint(string[] fields)
         {
             Instant? time = null;
@@ -179,7 +309,7 @@ namespace PointZilla
                 if (int.TryParse(text, out var grade))
                     gradeCode = grade;
             });
-            ParseField(fields, Context.CsvQualifiersField, text => qualifiers = text.Split(QualifierDelimiters, StringSplitOptions.RemoveEmptyEntries).ToList());
+            ParseField(fields, Context.CsvQualifiersField, text => qualifiers = ParseQualifiers(text));
 
             if ((pointType == null || pointType == PointType.Unknown) && time == null)
                 return null;
@@ -195,6 +325,13 @@ namespace PointZilla
                 GradeCode = gradeCode,
                 Qualifiers = qualifiers
             };
+        }
+
+        private static List<string> ParseQualifiers(string text)
+        {
+            return text
+                .Split(QualifierDelimiters, StringSplitOptions.RemoveEmptyEntries)
+                .ToList();
         }
 
         private static readonly char[] QualifierDelimiters = {','};
