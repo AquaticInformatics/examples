@@ -78,6 +78,7 @@ namespace PointZilla
 
         private static string GetProgramName()
         {
+            // ReSharper disable once PossibleNullReferenceException
             return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
         }
 
@@ -184,6 +185,8 @@ namespace PointZilla
                             throw new ExpectedException($"'{value}' is an unknown CSV format.");
                         }
                     }},
+                new Option {Key = nameof(context.ExcelSheetNumber), Setter = value => context.ExcelSheetNumber = int.Parse(value), Getter = () => context.ExcelSheetNumber.ToString(), Description = $"Excel worksheet number to parse [default to first sheet]"},
+                new Option {Key = nameof(context.ExcelSheetName), Setter = value => context.ExcelSheetName = value, Getter = () => context.ExcelSheetName, Description = $"Excel worksheet name to parse [default to first sheet]"},
 
                 new Option(), new Option {Description = "CSV saving options:"},
                 new Option {Key = nameof(context.SaveCsvPath), Setter = value => context.SaveCsvPath = value, Getter = () => context.SaveCsvPath, Description = "When set, saves the extracted/generated points to a CSV file. If only a directory is specified, an appropriate filename will be generated."},

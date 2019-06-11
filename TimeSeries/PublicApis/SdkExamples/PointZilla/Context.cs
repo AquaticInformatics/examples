@@ -70,5 +70,7 @@ namespace PointZilla
         public bool CsvIgnoreInvalidRows { get; set; }
         public bool CsvRealign { get; set; }
         public bool CsvRemoveDuplicatePoints { get; set; } = true;
+        public int? ExcelSheetNumber { get; set; }
+        public string ExcelSheetName { get; set; }
     }
 }
