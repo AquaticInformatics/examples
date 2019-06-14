@@ -285,7 +285,7 @@ namespace PointZilla
 
             ParseField(fields, Context.CsvTimeField, text =>
             {
-                if (Enum.TryParse<PointType>(text, true, out var pType))
+                if (TryParsePointType(text, out var pType))
                 {
                     pointType = pType;
                     return;
@@ -295,7 +295,7 @@ namespace PointZilla
             });
             ParseField(fields, Context.CsvValueField, text =>
             {
-                if (Enum.TryParse<PointType>(text, true, out var pType))
+                if (TryParsePointType(text, out var pType))
                 {
                     pointType = pType;
                     return;
@@ -327,10 +327,23 @@ namespace PointZilla
             };
         }
 
+        private bool TryParsePointType(string text, out PointType pointType)
+        {
+            return PointTypes.TryGetValue(text, out pointType);
+        }
+
+        private static readonly Dictionary<string, PointType> PointTypes =
+            new Dictionary<string, PointType>(StringComparer.InvariantCultureIgnoreCase)
+            {
+                {PointType.Gap.ToString(), PointType.Gap},
+            };
+
         private static List<string> ParseQualifiers(string text)
         {
             return text
                 .Split(QualifierDelimiters, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
                 .ToList();
         }
 
