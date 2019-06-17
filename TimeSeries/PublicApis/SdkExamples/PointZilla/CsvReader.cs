@@ -189,20 +189,30 @@ namespace PointZilla
             if (!string.IsNullOrEmpty(Context.CsvComment) && ((row[0] as string)?.StartsWith(Context.CsvComment) ?? false))
                 return null;
 
-            ParseColumn<DateTime>(row, Context.CsvTimeField,
-                dateTime => time = Instant.FromDateTimeOffset(new DateTimeOffset(dateTime, (Context.UtcOffset ?? Offset.Zero).ToTimeSpan())));
-
-            ParseColumn<double>(row, Context.CsvValueField, number => value = number);
-            ParseColumn<double>(row, Context.CsvGradeField, number => gradeCode = (int)number);
-            ParseStringColumn(row, Context.CsvQualifiersField, text => qualifiers = ParseQualifiers(text));
-
-            return new ReflectedTimeSeriesPoint
+            try
             {
-                Time = time,
-                Value = value,
-                GradeCode = gradeCode,
-                Qualifiers = qualifiers
-            };
+                ParseColumn<DateTime>(row, Context.CsvTimeField,
+                    dateTime => time = Instant.FromDateTimeOffset(new DateTimeOffset(dateTime, (Context.UtcOffset ?? Offset.Zero).ToTimeSpan())));
+
+                ParseColumn<double>(row, Context.CsvValueField, number => value = number);
+                ParseColumn<double>(row, Context.CsvGradeField, number => gradeCode = (int)number);
+                ParseStringColumn(row, Context.CsvQualifiersField, text => qualifiers = ParseQualifiers(text));
+
+                return new ReflectedTimeSeriesPoint
+                {
+                    Time = time,
+                    Value = value,
+                    GradeCode = gradeCode,
+                    Qualifiers = qualifiers
+                };
+            }
+            catch (Exception)
+            {
+                if (Context.CsvIgnoreInvalidRows)
+                    return null;
+
+                throw;
+            }
         }
 
         private static void ParseColumn<T>(DataRow row, int fieldIndex, Action<T> parseAction) where T : struct
