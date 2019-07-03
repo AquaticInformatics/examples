@@ -668,20 +668,22 @@ namespace SosExporter
                 .Where(p => p.Timestamp.DateTimeOffset >= earliestDayToUpload)
                 .ToList();
 
-            if (RoughDailyPointCount.TryGetValue(period, out var expectedDailyPointCount))
+            if (!RoughDailyPointCount.TryGetValue(period, out var expectedDailyPointCount))
             {
-                var roughPointLimit = Convert.ToInt32(maximumDaysToExport * expectedDailyPointCount * 1.5);
+                expectedDailyPointCount = 1.0;
+            }
 
-                if (remainingPoints.Count > roughPointLimit)
-                {
-                    var limitExceededCount = remainingPoints.Count - roughPointLimit;
+            var roughPointLimit = Convert.ToInt32(maximumDaysToExport * expectedDailyPointCount * 1.5);
 
-                    Log.Warn($"Upper limit of {roughPointLimit} points exceeded by {limitExceededCount} points for Frequency={period} and MaximumPointDays={maximumDaysToExport} in '{timeSeriesDescription.Identifier}'.");
+            if (remainingPoints.Count > roughPointLimit)
+            {
+                var limitExceededCount = remainingPoints.Count - roughPointLimit;
 
-                    remainingPoints = remainingPoints
-                        .Skip(limitExceededCount)
-                        .ToList();
-                }
+                Log.Warn($"Upper limit of {roughPointLimit} points exceeded by {limitExceededCount} points for Frequency={period} and MaximumPointDays={maximumDaysToExport} in '{timeSeriesDescription.Identifier}'.");
+
+                remainingPoints = remainingPoints
+                    .Skip(limitExceededCount)
+                    .ToList();
             }
 
             var trimmedPointCount = timeSeries.NumPoints - remainingPoints.Count;
@@ -695,8 +697,6 @@ namespace SosExporter
 
         private static readonly Dictionary<ComputationPeriod, double> RoughDailyPointCount = new Dictionary<ComputationPeriod, double>
         {
-            {ComputationPeriod.WaterYear, 1.0 / 365 },
-            {ComputationPeriod.Annual, 1.0 / 365 },
             {ComputationPeriod.Monthly, 1.0 / 30 },
             {ComputationPeriod.Weekly, 1.0 / 7 },
             {ComputationPeriod.Daily, 1.0 },
