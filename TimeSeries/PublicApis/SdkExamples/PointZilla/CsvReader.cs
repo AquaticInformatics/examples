@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -20,17 +21,28 @@ namespace PointZilla
 
         private Context Context { get; }
         private InstantPattern TimePattern { get; }
+        private TimeSpan DefaultTimeOfDay { get; }
 
         public CsvReader(Context context)
         {
             Context = context;
 
-            TimePattern = string.IsNullOrWhiteSpace(Context.CsvTimeFormat)
+            ValidateConfiguration();
+
+            DefaultTimeOfDay = ParseTimeOnly(Context.CsvDefaultTimeOfDay, Context.CsvTimeOnlyFormat);
+
+            TimePattern = string.IsNullOrWhiteSpace(Context.CsvDateTimeFormat)
                 ? InstantPattern.ExtendedIsoPattern
-                : InstantPattern.CreateWithInvariantCulture(Context.CsvTimeFormat);
+                : InstantPattern.CreateWithInvariantCulture(Context.CsvDateTimeFormat);
         }
 
-        private Instant? ParseTime(string text)
+        private void ValidateConfiguration()
+        {
+            if (Context.CsvDateOnlyField <= 0 && Context.CsvTimeOnlyField > 0)
+                throw new ExpectedException($"You can't mix the /{nameof(Context.CsvDateTimeField)} option with the /{nameof(Context.CsvTimeOnlyField)} option.");
+        }
+
+        private Instant? ParseInstant(string text)
         {
             var result = TimePattern.Parse(text);
 
@@ -49,7 +61,7 @@ namespace PointZilla
         private List<ReflectedTimeSeriesPoint> LoadPoints(string path)
         {
             if (!File.Exists(path))
-                throw new ExpectedException($"CSV file '{path}' does not exist.");
+                throw new ExpectedException($"File '{path}' does not exist.");
 
             var points = LoadExcelPoints(path) ?? LoadCsvPoints(path);
 
@@ -191,8 +203,24 @@ namespace PointZilla
 
             try
             {
-                ParseColumn<DateTime>(row, Context.CsvTimeField,
-                    dateTime => time = Instant.FromDateTimeOffset(new DateTimeOffset(dateTime, (Context.UtcOffset ?? Offset.Zero).ToTimeSpan())));
+                if (Context.CsvDateOnlyField > 0)
+                {
+                    var dateOnly = DateTime.MinValue;
+                    var timeOnly = DefaultTimeOfDay;
+
+                    ParseColumn<DateTime>(row, Context.CsvDateOnlyField, dateTime => dateOnly = dateTime.Date);
+
+                    if (Context.CsvTimeOnlyField > 0)
+                    {
+                        ParseColumn<DateTime>(row, Context.CsvTimeOnlyField, dateTime => timeOnly = dateTime.TimeOfDay);
+                    }
+
+                    time = InstantFromDateTime(dateOnly.Add(timeOnly));
+                }
+                else
+                {
+                    ParseColumn<DateTime>(row, Context.CsvDateTimeField, dateTime => time = InstantFromDateTime(dateTime));
+                }
 
                 ParseColumn<double>(row, Context.CsvValueField, number => value = number);
                 ParseColumn<double>(row, Context.CsvGradeField, number => gradeCode = (int)number);
@@ -293,16 +321,43 @@ namespace PointZilla
             List<string> qualifiers = null;
             PointType? pointType = null;
 
-            ParseField(fields, Context.CsvTimeField, text =>
+            if (Context.CsvDateOnlyField > 0)
             {
-                if (TryParsePointType(text, out var pType))
+                var dateOnly = DateTime.MinValue;
+                var timeOnly = DefaultTimeOfDay;
+
+                ParseField(fields, Context.CsvDateOnlyField, text =>
                 {
-                    pointType = pType;
-                    return;
+                    if (TryParsePointType(text, out var pType))
+                    {
+                        pointType = pType;
+                        return;
+                    }
+
+                    dateOnly = ParseDateOnly(text, Context.CsvDateOnlyFormat);
+                });
+
+                if (Context.CsvTimeOnlyField > 0)
+                {
+                    ParseField(fields, Context.CsvTimeOnlyField, text => timeOnly = ParseTimeOnly(text, Context.CsvTimeOnlyFormat));
                 }
 
-                time = ParseTime(text);
-            });
+                time = InstantFromDateTime(dateOnly.Add(timeOnly));
+            }
+            else
+            {
+                ParseField(fields, Context.CsvDateTimeField, text =>
+                {
+                    if (TryParsePointType(text, out var pType))
+                    {
+                        pointType = pType;
+                        return;
+                    }
+
+                    time = ParseInstant(text);
+                });
+            }
+
             ParseField(fields, Context.CsvValueField, text =>
             {
                 if (TryParsePointType(text, out var pType))
@@ -335,6 +390,30 @@ namespace PointZilla
                 GradeCode = gradeCode,
                 Qualifiers = qualifiers
             };
+        }
+
+        private static DateTime ParseDateOnly(string text, string format)
+        {
+            var dateTime = string.IsNullOrEmpty(format)
+                ? DateTime.Parse(text)
+                : DateTime.ParseExact(text, format, CultureInfo.InvariantCulture);
+
+            return dateTime.Date;
+        }
+
+        private static TimeSpan ParseTimeOnly(string text, string format)
+        {
+            var dateTime = string.IsNullOrEmpty(format)
+                ? DateTime.Parse(text)
+                : DateTime.ParseExact(text, format, CultureInfo.InvariantCulture);
+
+            return dateTime.TimeOfDay;
+        }
+
+        private Instant InstantFromDateTime(DateTime dateTime)
+        {
+            return Instant.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified),
+                (Context.UtcOffset ?? Offset.Zero).ToTimeSpan()));
         }
 
         private bool TryParsePointType(string text, out PointType pointType)

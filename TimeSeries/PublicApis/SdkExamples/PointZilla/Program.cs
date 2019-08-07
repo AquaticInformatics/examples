@@ -155,11 +155,16 @@ namespace PointZilla
 
                 new Option(), new Option {Description = "CSV parsing options:"},
                 new Option {Key = "CSV", Setter = value => context.CsvFiles.Add(value), Getter = () => string.Join(", ", context.CsvFiles), Description = "Parse the CSV file"},
-                new Option {Key = nameof(context.CsvTimeField), Setter = value => context.CsvTimeField = int.Parse(value), Getter = () => context.CsvTimeField.ToString(), Description = "CSV column index for timestamps"},
+                new Option {Key = nameof(context.CsvDateTimeField), Setter = value => context.CsvDateTimeField = int.Parse(value), Getter = () => context.CsvDateTimeField.ToString(), Description = "CSV column index for combined date+time timestamps"},
+                new Option {Key = nameof(context.CsvDateTimeFormat), Setter = value => context.CsvDateTimeFormat = value, Getter = () => context.CsvDateTimeFormat, Description = "Format of CSV date+time fields [default: ISO8601 format]"},
+                new Option {Key = nameof(context.CsvDateOnlyField), Setter = value => context.CsvDateOnlyField = int.Parse(value), Getter = () => context.CsvDateOnlyField.ToString(), Description = "CSV column index for date-only timestamps"},
+                new Option {Key = nameof(context.CsvDateOnlyFormat), Setter = value => context.CsvDateOnlyFormat = value, Getter = () => context.CsvDateOnlyFormat, Description = "Format of CSV date-only fields"},
+                new Option {Key = nameof(context.CsvTimeOnlyField), Setter = value => context.CsvTimeOnlyField = int.Parse(value), Getter = () => context.CsvTimeOnlyField.ToString(), Description = "CSV column index for time-only timestamps"},
+                new Option {Key = nameof(context.CsvTimeOnlyFormat), Setter = value => context.CsvTimeOnlyFormat = value, Getter = () => context.CsvTimeOnlyFormat, Description = "Format of CSV time-only fields"},
+                new Option {Key = nameof(context.CsvDefaultTimeOfDay), Setter = value => context.CsvDefaultTimeOfDay = value, Getter = () => context.CsvDefaultTimeOfDay, Description = "Time of day value when no time field is used"},
                 new Option {Key = nameof(context.CsvValueField), Setter = value => context.CsvValueField = int.Parse(value), Getter = () => context.CsvValueField.ToString(), Description = "CSV column index for values"},
                 new Option {Key = nameof(context.CsvGradeField), Setter = value => context.CsvGradeField = int.Parse(value), Getter = () => context.CsvGradeField.ToString(), Description = "CSV column index for grade codes"},
                 new Option {Key = nameof(context.CsvQualifiersField), Setter = value => context.CsvQualifiersField = int.Parse(value), Getter = () => context.CsvQualifiersField.ToString(), Description = "CSV column index for qualifiers"},
-                new Option {Key = nameof(context.CsvTimeFormat), Setter = value => context.CsvTimeFormat = value, Getter = () => context.CsvTimeFormat, Description = "Format of CSV time fields (defaults to ISO8601)"},
                 new Option {Key = nameof(context.CsvComment), Setter = value => context.CsvComment = value, Getter = () => context.CsvComment, Description = "CSV comment lines begin with this prefix"},
                 new Option {Key = nameof(context.CsvSkipRows), Setter = value => context.CsvSkipRows = int.Parse(value), Getter = () => context.CsvSkipRows.ToString(), Description = "Number of CSV rows to skip before parsing"},
                 new Option {Key = nameof(context.CsvIgnoreInvalidRows), Setter = value => context.CsvIgnoreInvalidRows = bool.Parse(value), Getter = () => context.CsvIgnoreInvalidRows.ToString(), Description = "Ignore CSV rows that can't be parsed"},
@@ -207,6 +212,8 @@ namespace PointZilla
                       + $"\n  Comment lines begin with a # or // marker."
                 ;
 
+            var helpGuidance = "See /help screen for details.";
+
             var knownCommands = new Dictionary<string, CommandType>(StringComparer.InvariantCultureIgnoreCase);
             foreach (var commandType in Enum.GetValues(typeof(CommandType)).Cast<CommandType>())
             {
@@ -219,6 +226,9 @@ namespace PointZilla
 
                 if (!match.Success)
                 {
+                    if (HelpKeyWords.Contains(arg))
+                        throw new ExpectedException(usageMessage);
+
                     // Try positional arguments: [command] [identifierOrGuid] [value] [csvFile]
                     if (knownCommands.TryGetValue(arg, out var command))
                     {
@@ -260,7 +270,7 @@ namespace PointZilla
                         continue;
                     }
 
-                    throw new ExpectedException($"Unknown argument: {arg}\n\n{usageMessage}");
+                    throw new ExpectedException($"Unknown argument: {arg}\n\n{helpGuidance}");
                 }
 
                 var key = match.Groups["key"].Value.ToLower();
@@ -271,7 +281,7 @@ namespace PointZilla
 
                 if (option == null)
                 {
-                    throw new ExpectedException($"Unknown -option=value: {arg}\n\n{usageMessage}");
+                    throw new ExpectedException($"Unknown -option=value: {arg}\n\n{helpGuidance}");
                 }
 
                 option.Setter(value);
@@ -281,21 +291,27 @@ namespace PointZilla
                 context.StopAfterSavingCsv = true;
 
             if (context.SourceTimeSeries != null && string.IsNullOrEmpty(context.SourceTimeSeries.Server) && string.IsNullOrEmpty(context.Server))
-                throw new ExpectedException($"A /{nameof(context.Server)} option is required to load the source time-series.\n\n{usageMessage}");
+                throw new ExpectedException($"A /{nameof(context.Server)} option is required to load the source time-series.\n\n{helpGuidance}");
 
             if (!context.StopAfterSavingCsv)
             {
                 if (string.IsNullOrWhiteSpace(context.Server))
-                    throw new ExpectedException($"A /{nameof(context.Server)} option is required.\n\n{usageMessage}");
+                    throw new ExpectedException($"A /{nameof(context.Server)} option is required.\n\n{helpGuidance}");
 
                 if (string.IsNullOrWhiteSpace(context.TimeSeries))
-                    throw new ExpectedException($"A /{nameof(context.TimeSeries)} option is required.\n\n{usageMessage}");
+                    throw new ExpectedException($"A /{nameof(context.TimeSeries)} option is required.\n\n{helpGuidance}");
             }
 
             return context;
         }
 
         private static readonly Regex ArgRegex = new Regex(@"^([/-])(?<key>[^=]+)=(?<value>.*)$", RegexOptions.Compiled);
+
+        private static readonly HashSet<string> HelpKeyWords =
+            new HashSet<string>(
+                new[] {"?", "h", "help"}
+                    .SelectMany(keyword => new[] {"/", "-", "--"}.Select(prefix => prefix + keyword)),
+                StringComparer.InvariantCultureIgnoreCase);
         
         private static IEnumerable<string> ResolveOptionsFromFile(string arg)
         {
@@ -336,13 +352,15 @@ namespace PointZilla
             // 2013-07-02T11:59:59Z,2013-07-02 23:59:59,966.15,Raw - yet to be review,200,
             // 2013-07-03T11:59:59Z,2013-07-03 23:59:59,966.15,Raw - yet to be review,200,
 
-            context.CsvTimeField = 1;
+            context.CsvDateTimeField = 1;
+            context.CsvDateTimeFormat = null;
+            context.CsvDateOnlyField = 0;
+            context.CsvTimeOnlyField = 0;
             context.CsvValueField = 3;
             context.CsvGradeField = 5;
             context.CsvQualifiersField = 6;
             context.CsvComment = "#";
             context.CsvSkipRows = 0;
-            context.CsvTimeFormat = null;
             context.CsvIgnoreInvalidRows = true;
             context.CsvRealign = false;
         }
@@ -357,13 +375,15 @@ namespace PointZilla
             // 07/01/2013 23:59:59,966.15,200,1,6
             // 07/02/2013 23:59:59,966.15,200,1,6
 
-            context.CsvTimeField = 1;
+            context.CsvDateTimeField = 1;
+            context.CsvDateTimeFormat = "MM/dd/yyyy HH:mm:ss";
+            context.CsvDateOnlyField = 0;
+            context.CsvTimeOnlyField = 0;
             context.CsvValueField = 2;
             context.CsvGradeField = 3;
             context.CsvQualifiersField = 0;
             context.CsvComment = null;
             context.CsvSkipRows = 2;
-            context.CsvTimeFormat = "MM/dd/yyyy HH:mm:ss";
             context.CsvIgnoreInvalidRows = true;
             context.CsvRealign = false;
         }
