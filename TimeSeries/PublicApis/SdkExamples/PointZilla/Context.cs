@@ -60,13 +60,18 @@ namespace PointZilla
 
         public List<string> CsvFiles { get; set; } = new List<string>();
 
-        public int CsvTimeField { get; set; }
+        public int CsvDateTimeField { get; set; }
+        public string CsvDateTimeFormat { get; set; }
+        public int CsvDateOnlyField { get; set; }
+        public string CsvDateOnlyFormat { get; set; }
+        public int CsvTimeOnlyField { get; set; }
+        public string CsvTimeOnlyFormat { get; set; }
+        public string CsvDefaultTimeOfDay { get; set; } = "00:00";
         public int CsvValueField { get; set; }
         public int CsvGradeField { get; set; }
         public int CsvQualifiersField { get; set; }
         public string CsvComment { get; set; }
         public int CsvSkipRows { get; set; }
-        public string CsvTimeFormat { get; set; }
         public bool CsvIgnoreInvalidRows { get; set; }
         public bool CsvRealign { get; set; }
         public bool CsvRemoveDuplicatePoints { get; set; } = true;

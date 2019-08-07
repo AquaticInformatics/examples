@@ -117,10 +117,11 @@ When reading data from a CSV file, use the case-insensitive keyword `Gap` in a t
 
 All the CSV parsing options are configurable, but will default to values which match the CSV files exported from AQTS Springboard from 201x systems.
 
-The `-csvFormat=` option supports two prefconfigured formats:
+The `-csvFormat=` option supports three prefconfigured formats:
 
-- `-csvFormat=NG` is equivalent to `-csvTimeField=1 -csvValueField=3 -csvGradeField=5 -csvQualifiersField=6 -csvSkipRows=0 -csvComment="#"`
-- `-csvFormat=3X` is equivalent to `-csvTimeField=1 -csvValueField=2 -csvGradeField=3 -csvQualifiersField=0 -csvSkipRows=2 -csvTimeFormat="MM/dd/yyyy HH:mm:ss"`
+- `-csvFormat=NG` is equivalent to `-csvDateTimeField=1 -csvValueField=3 -csvGradeField=5 -csvQualifiersField=6 -csvSkipRows=0 -csvComment="#"`
+- `-csvFormat=3X` is equivalent to `-csvDateTimeField=1 -csvValueField=2 -csvGradeField=3 -csvQualifiersField=0 -csvSkipRows=2 -csvDateTimeFormat="MM/dd/yyyy HH:mm:ss"`
+- `-csvFormat=PointZilla` is equivalent to `-csvDateTimeField=1 -csvValueField=2 -csvGradeField=3 -csvQualifiersField=4 -csvSkipRows=0 -csvComment="#"`
 
 ```sh
 $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/Stage.Historical@A001002.EntireRecord.csv
@@ -141,6 +142,15 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/ExportedFro
 13:45:49.944 INFO  - Appending 250 points to Stage.Label@MyLocation (ProcessorBasic) ...
 13:45:51.143 INFO  - Appended 250 points (deleting 0 points) in 1.2 seconds.
 ```
+
+### Reading timestamps from CSV files
+
+Timestamps can be extracted in a few ways:
+- **DateTime** - From a single column, using the `/CsvDateTimeField` and `/CsvDateTimeFormat` options. This is the default behaviour.
+- **DateOnly** and **TimeOnly** - From separate date and time columns, using the `/CsvDateOnlyField`, `/CsvDateOnlyFormat`, `/CsvTimeOnlyField`, and `/CsvTimeOnlyFormat` options.
+- When `/CsvDateOnlyField` is used, but no `/CsvTimeOnlyField` option is set, the `/CsvDefaultTimeOfDay` value is used for the time component. (defaulting to midnight at the start of the day).
+- When `/CsvDateOnlyField` is used, the `/UtcOffset` option will determine the UTC offset of the timestamp.
+- You cannot combine the DateTime options with DateOnly or TimeOnly options.
 
 ## Appending values from an Excel spreadsheet
 
@@ -332,11 +342,16 @@ Supported -option=value settings (/option=value works too):
   
   ========================= CSV parsing options:
   -CSV                      Parse the CSV file
-  -CsvTimeField             CSV column index for timestamps [default: 1]
+  -CsvDateTimeField         CSV column index for combined date+time timestamps [default: 1]
+  -CsvDateTimeFormat        Format of CSV date+time fields [default: ISO8601 format]
+  -CsvDateOnlyField         CSV column index for date-only timestamps [default: 0]
+  -CsvDateOnlyFormat        Format of CSV date-only fields
+  -CsvTimeOnlyField         CSV column index for time-only timestamps [default: 0]
+  -CsvTimeOnlyFormat        Format of CSV time-only fields
+  -CsvDefaultTimeOfDay      Time of day value when no time field is used [default: 00:00:00]
   -CsvValueField            CSV column index for values [default: 3]
   -CsvGradeField            CSV column index for grade codes [default: 5]
   -CsvQualifiersField       CSV column index for qualifiers [default: 6]
-  -CsvTimeFormat            Format of CSV time fields (defaults to ISO8601)
   -CsvComment               CSV comment lines begin with this prefix [default: #]
   -CsvSkipRows              Number of CSV rows to skip before parsing [default: 0]
   -CsvIgnoreInvalidRows     Ignore CSV rows that can't be parsed [default: True]
