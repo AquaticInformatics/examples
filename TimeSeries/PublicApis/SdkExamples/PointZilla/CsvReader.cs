@@ -52,13 +52,13 @@ namespace PointZilla
             return null;
         }
 
-        public List<ReflectedTimeSeriesPoint> LoadPoints()
+        public List<TimeSeriesPoint> LoadPoints()
         {
             return Context.CsvFiles.SelectMany(LoadPoints)
                 .ToList();
         }
 
-        private List<ReflectedTimeSeriesPoint> LoadPoints(string path)
+        private List<TimeSeriesPoint> LoadPoints(string path)
         {
             if (!File.Exists(path))
                 throw new ExpectedException($"File '{path}' does not exist.");
@@ -121,7 +121,7 @@ namespace PointZilla
             return points;
         }
 
-        private List<ReflectedTimeSeriesPoint> LoadExcelPoints(string path)
+        private List<TimeSeriesPoint> LoadExcelPoints(string path)
         {
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var excelReader = LoadExcelReader(stream))
@@ -142,7 +142,7 @@ namespace PointZilla
             }
         }
 
-        private List<ReflectedTimeSeriesPoint> LoadPoints(IExcelDataReader excelReader)
+        private List<TimeSeriesPoint> LoadPoints(IExcelDataReader excelReader)
         {
             var skipRows = Context.CsvSkipRows - 1;
 
@@ -191,7 +191,7 @@ namespace PointZilla
                 .ToList();
         }
 
-        private ReflectedTimeSeriesPoint ParseExcelRow(DataRow row)
+        private TimeSeriesPoint ParseExcelRow(DataRow row)
         {
             Instant? time = null;
             double? value = null;
@@ -226,7 +226,7 @@ namespace PointZilla
                 ParseColumn<double>(row, Context.CsvGradeField, number => gradeCode = (int)number);
                 ParseStringColumn(row, Context.CsvQualifiersField, text => qualifiers = ParseQualifiers(text));
 
-                return new ReflectedTimeSeriesPoint
+                return new TimeSeriesPoint
                 {
                     Time = time,
                     Value = value,
@@ -267,9 +267,9 @@ namespace PointZilla
             }
         }
 
-        private List<ReflectedTimeSeriesPoint> LoadCsvPoints(string path)
+        private List<TimeSeriesPoint> LoadCsvPoints(string path)
         {
-            var points = new List<ReflectedTimeSeriesPoint>();
+            var points = new List<TimeSeriesPoint>();
 
             var parser = new TextFieldParser(path)
             {
@@ -313,7 +313,7 @@ namespace PointZilla
             return points;
         }
 
-        private ReflectedTimeSeriesPoint ParsePoint(string[] fields)
+        private TimeSeriesPoint ParsePoint(string[] fields)
         {
             Instant? time = null;
             double? value = null;
@@ -382,7 +382,7 @@ namespace PointZilla
             if (pointType != PointType.Gap)
                 pointType = null;
 
-            return new ReflectedTimeSeriesPoint
+            return new TimeSeriesPoint
             {
                 Type = pointType,
                 Time = time,

@@ -20,7 +20,7 @@ namespace PointZilla
             Context = context;
         }
 
-        public void WritePoints(List<ReflectedTimeSeriesPoint> points)
+        public void WritePoints(List<TimeSeriesPoint> points)
         {
             var timeSeriesIdentifier = CreateTimeSeriesIdentifier();
 

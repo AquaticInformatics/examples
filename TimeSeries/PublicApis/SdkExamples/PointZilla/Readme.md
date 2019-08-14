@@ -198,11 +198,14 @@ If your PointZilla command-line creates a time-series incorrectly, just use `Loc
 
 ## Appending grades and qualifiers
 
-When the target time-series is a reflected time-series, any grade codes or qualifiers imported from CSV rows or manually set via the `/GradeCode` or `/Qualifiers` options will be appended along with the core timestamp and values.
+- AQTS reflected time-series have always been able to append grade codes and qualifiers along with point values.
+- Starting with AQTS 2019.2 Update 1 (build 19.2.185), you can also append grade codes and qualifiers to basic time-series.
+
+Any grade codes or qualifiers imported from CSV rows or manually set via the `/GradeCode` or `/Qualifiers` options will be appended along with the core timestamp and values.
 
 When specifying point values on the command line, you must specify the `/GradeCode` or `/Qualifiers` option before specifying the numeric value.
 
-Grade codes and qualifiers will not be appended to basic time-series.
+Grade codes and qualifiers will not be appended to basic time-series before AQTS 19.2.185.
 
 ## Copying points from another time-series
 

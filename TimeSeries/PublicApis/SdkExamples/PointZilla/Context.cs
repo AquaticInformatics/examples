@@ -45,7 +45,7 @@ namespace PointZilla
         public string SaveCsvPath { get; set; }
         public bool StopAfterSavingCsv { get; set; }
 
-        public List<ReflectedTimeSeriesPoint> ManualPoints { get; set; } = new List<ReflectedTimeSeriesPoint>();
+        public List<TimeSeriesPoint> ManualPoints { get; set; } = new List<TimeSeriesPoint>();
 
         public Instant StartTime { get; set; } = Instant.FromDateTimeUtc(DateTime.UtcNow);
         public TimeSpan PointInterval { get; set; } = TimeSpan.FromMinutes(1);

@@ -403,7 +403,7 @@ namespace PointZilla
 
         private static void ParseManualPoints(Context context, double numericValue)
         {
-            context.ManualPoints.Add(new ReflectedTimeSeriesPoint
+            context.ManualPoints.Add(new TimeSeriesPoint
             {
                 Time = context.StartTime,
                 Value = numericValue,
@@ -416,7 +416,7 @@ namespace PointZilla
 
         private static void ParseManualGap(Context context)
         {
-            context.ManualPoints.Add(new ReflectedTimeSeriesPoint{Type = PointType.Gap});
+            context.ManualPoints.Add(new TimeSeriesPoint{Type = PointType.Gap});
         }
 
         private static Interval ParseInterval(string text)
