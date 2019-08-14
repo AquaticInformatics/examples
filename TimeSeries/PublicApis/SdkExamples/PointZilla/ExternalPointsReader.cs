@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.Helpers;
-using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Get3xCorrectedData = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.TimeSeriesDataCorrectedServiceRequest;
@@ -14,6 +13,7 @@ using ServiceStack.Logging;
 using InterpolationType = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.InterpolationType;
 using TimeRange = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeRange;
 using TimeSeriesDataCorrectedServiceRequest = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeSeriesDataCorrectedServiceRequest;
+using TimeSeriesPoint = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.TimeSeriesPoint;
 
 namespace PointZilla
 {
@@ -28,7 +28,7 @@ namespace PointZilla
             Context = context;
         }
 
-        public List<ReflectedTimeSeriesPoint> LoadPoints()
+        public List<TimeSeriesPoint> LoadPoints()
         {
             var server = !string.IsNullOrEmpty(Context.SourceTimeSeries.Server) ? Context.SourceTimeSeries.Server : Context.Server;
             var username = !string.IsNullOrEmpty(Context.SourceTimeSeries.Username) ? Context.SourceTimeSeries.Username : Context.Username;
@@ -46,7 +46,7 @@ namespace PointZilla
 
         private static readonly AquariusServerVersion MinimumNgVersion = AquariusServerVersion.Create("14");
 
-        private List<ReflectedTimeSeriesPoint> LoadPointsFromNg(IAquariusClient client)
+        private List<TimeSeriesPoint> LoadPointsFromNg(IAquariusClient client)
         {
             var timeSeriesInfo = client.GetTimeSeriesInfo(Context.SourceTimeSeries.Identifier);
 
@@ -61,7 +61,7 @@ namespace PointZilla
 
             var points = timeSeriesData
                 .Points
-                .Select(p => new ReflectedTimeSeriesPoint
+                .Select(p => new TimeSeriesPoint
                 {
                     Time = Instant.FromDateTimeOffset(p.Timestamp.DateTimeOffset),
                     Value = p.Value.Numeric,
@@ -137,7 +137,7 @@ namespace PointZilla
         }
 
 
-        private List<ReflectedTimeSeriesPoint> LoadPointsFrom3X(IAquariusClient client)
+        private List<TimeSeriesPoint> LoadPointsFrom3X(IAquariusClient client)
         {
             var timeSeriesDescription = client.Publish.Get(new Get3xTimeSeriesDescription
                 {
@@ -161,7 +161,7 @@ namespace PointZilla
 
             var points = correctedData
                 .Points
-                .Select(p => new ReflectedTimeSeriesPoint
+                .Select(p => new TimeSeriesPoint
                 {
                     Time = Instant.FromDateTimeOffset(p.Timestamp),
                     Value = p.Value,
@@ -214,11 +214,11 @@ namespace PointZilla
             new Dictionary<AtomType, TimeSeriesType>
             {
                 { AtomType.TimeSeries_Basic, TimeSeriesType.ProcessorBasic},
-                { AtomType.TimeSeries_Field_Visit, TimeSeriesType.External},
+                { AtomType.TimeSeries_Field_Visit, TimeSeriesType.Reflected},
                 { AtomType.TimeSeries_Composite, TimeSeriesType.ProcessorDerived},
                 { AtomType.TimeSeries_Rating_Curve_Derived, TimeSeriesType.ProcessorDerived},
                 { AtomType.TimeSeries_Calculated_Derived, TimeSeriesType.ProcessorDerived},
-                { AtomType.TimeSeries_External, TimeSeriesType.External},
+                { AtomType.TimeSeries_External, TimeSeriesType.Reflected},
                 { AtomType.TimeSeries_Statistical_Derived, TimeSeriesType.ProcessorDerived},
                 { AtomType.TimeSeries_ProcessorBasic, TimeSeriesType.ProcessorBasic},
                 { AtomType.TimeSeries_ProcessorDerived, TimeSeriesType.ProcessorDerived},

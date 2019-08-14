@@ -17,7 +17,7 @@ namespace PointZilla
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private Context Context { get; }
-        private List<ReflectedTimeSeriesPoint> Points { get; set; }
+        private List<TimeSeriesPoint> Points { get; set; }
 
         public PointsAppender(Context context)
         {
@@ -128,7 +128,7 @@ namespace PointZilla
 
         private static readonly AquariusServerVersion MinimumGapVersion = AquariusServerVersion.Create("19.1");
 
-        private TimeSeriesAppendStatus AppendPointBatch(IAquariusClient client, TimeSeries timeSeries, List<ReflectedTimeSeriesPoint> points, Interval timeRange, bool isReflected, bool hasTimeRange)
+        private TimeSeriesAppendStatus AppendPointBatch(IAquariusClient client, TimeSeries timeSeries, List<TimeSeriesPoint> points, Interval timeRange, bool isReflected, bool hasTimeRange)
         {
             AppendResponse appendResponse;
 
@@ -143,22 +143,13 @@ namespace PointZilla
             }
             else
             {
-                var basicPoints = points
-                    .Select(p => new TimeSeriesPoint
-                    {
-                        Type = p.Type,
-                        Time = p.Time,
-                        Value = p.Value
-                    })
-                    .ToList();
-
                 if (hasTimeRange)
                 {
                     appendResponse = client.Acquisition.Post(new PostTimeSeriesOverwriteAppend
                     {
                         UniqueId = timeSeries.UniqueId,
                         TimeRange = timeRange,
-                        Points = basicPoints
+                        Points = points
                     });
                 }
                 else
@@ -166,7 +157,7 @@ namespace PointZilla
                     appendResponse = client.Acquisition.Post(new PostTimeSeriesAppend
                     {
                         UniqueId = timeSeries.UniqueId,
-                        Points = basicPoints
+                        Points = points
                     });
                 }
             }
@@ -179,8 +170,8 @@ namespace PointZilla
                 Context.AppendTimeout);
         }
 
-        private IEnumerable<(List<ReflectedTimeSeriesPoint> Points, Interval TimeRange)> GetPointBatches(
-            List<ReflectedTimeSeriesPoint> points)
+        private IEnumerable<(List<TimeSeriesPoint> Points, Interval TimeRange)> GetPointBatches(
+            List<TimeSeriesPoint> points)
         {
             var remainingTimeRange = GetTimeRange();
 
@@ -199,10 +190,10 @@ namespace PointZilla
             yield return (points.Skip(index).ToList(), remainingTimeRange);
         }
 
-        private List<ReflectedTimeSeriesPoint> GetPoints()
+        private List<TimeSeriesPoint> GetPoints()
         {
             if (Context.Command == CommandType.DeleteAllPoints)
-                return new List<ReflectedTimeSeriesPoint>();
+                return new List<TimeSeriesPoint>();
 
             if (Context.ManualPoints.Any())
                 return Context.ManualPoints;

@@ -18,9 +18,9 @@ namespace PointZilla
             Context = context;
         }
 
-        public List<ReflectedTimeSeriesPoint> GeneratePoints()
+        public List<TimeSeriesPoint> GeneratePoints()
         {
-            var points = new List<ReflectedTimeSeriesPoint>();
+            var points = new List<TimeSeriesPoint>();
 
             var pointCount = Context.NumberOfPoints > 0
                 ? Context.NumberOfPoints
@@ -28,7 +28,7 @@ namespace PointZilla
 
             for (var i = 0; i < pointCount; ++i)
             {
-                points.Add(new ReflectedTimeSeriesPoint
+                points.Add(new TimeSeriesPoint
                 {
                     Time = Context.StartTime.PlusTicks(i * Duration.FromTimeSpan(Context.PointInterval).Ticks),
                     Value = Context.WaveformOffset + Context.WaveformScalar
