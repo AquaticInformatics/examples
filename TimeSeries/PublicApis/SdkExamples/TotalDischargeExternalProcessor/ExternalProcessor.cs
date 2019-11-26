@@ -24,6 +24,11 @@ namespace TotalDischargeExternalProcessor
             using (Client = CreateConnectedClient())
             {
                 LoadConfiguration();
+
+                foreach (var processor in Processors)
+                {
+                    Calculate(processor);
+                }
             }
         }
 
@@ -74,6 +79,8 @@ namespace TotalDischargeExternalProcessor
             Processors = Context
                 .Processors
                 .Select(Resolve)
+                .OrderBy(p => p.DischargeTotalTimeSeries.LocationIdentifier)
+                .ThenBy(p => p.DischargeTotalTimeSeries.Identifier)
                 .ToList();
 
             Log.Info($"Resolved {Processors.Count} external processor configurations.");
@@ -155,6 +162,46 @@ namespace TotalDischargeExternalProcessor
                 return;
 
             throw new ExpectedException($"{name} '{timeSeries.Identifier}' ({timeSeries.TimeSeriesType}) is not the expected '{timeSeriesType}' time-series type.");
+        }
+
+        private void Calculate(ProcessorConfiguration processor)
+        {
+            Log.Info($"Re-calculating '{processor.DischargeTotalTimeSeries.Identifier}' ...");
+
+            Log.Info($"Loading '{processor.EventTimeSeries.Identifier}' ...");
+
+            var eventPoints = Client.Publish.Get(new TimeSeriesDataCorrectedServiceRequest
+            {
+                TimeSeriesUniqueId = processor.EventTimeSeries.UniqueId,
+                GetParts = "PointsOnly"
+            }).Points;
+
+            if (!eventPoints.Any())
+            {
+                Log.Warn($"No {nameof(processor.EventTimeSeries)} points found in '{processor.EventTimeSeries.Identifier}'. Skipping external calculation.");
+                return;
+            }
+
+            var queryFrom = eventPoints.First().Timestamp.DateTimeOffset;
+            var queryTo = eventPoints.Last().Timestamp.DateTimeOffset;
+
+            Log.Info($"Loaded {eventPoints.Count} points from '{processor.EventTimeSeries.Identifier}' Start={queryFrom:O} End={queryTo:O}");
+
+            var dischargePoints = Client.Publish.Get(new TimeSeriesDataCorrectedServiceRequest
+            {
+                TimeSeriesUniqueId = processor.DischargeTimeSeries.UniqueId,
+                GetParts = "PointsOnly",
+                ReturnFullCoverage = true,
+                Unit = null // TODO: Apply correct unit conversion so that integration is simpler
+            }).Points;
+
+            if (!dischargePoints.Any())
+            {
+                Log.Warn($"No {nameof(processor.DischargeTimeSeries)} points found in '{processor.DischargeTimeSeries.Identifier}'. Skipping external calculation.");
+                return;
+            }
+
+            Log.Info($"Loaded {dischargePoints.Count} points from '{processor.DischargeTimeSeries.Identifier}' Start={queryFrom:O} End={queryTo:O}");
         }
     }
 }
