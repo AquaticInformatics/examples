@@ -3,7 +3,7 @@ using ServiceStack.Logging;
 
 namespace TotalDischargeExternalProcessor
 {
-    public class Processor
+    public class ExternalProcessor
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 

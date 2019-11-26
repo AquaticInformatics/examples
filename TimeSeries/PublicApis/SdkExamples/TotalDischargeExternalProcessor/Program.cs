@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
+using Humanizer;
 using log4net;
 using ServiceStack;
 using ServiceStack.Logging.Log4Net;
@@ -28,6 +29,10 @@ namespace TotalDischargeExternalProcessor
                 new Program(context).Run();
 
                 Environment.ExitCode = 0;
+            }
+            catch (WebServiceException exception)
+            {
+                _log.Error($"{exception.ErrorCode} {exception.ErrorMessage}");
             }
             catch (ExpectedException exception)
             {
@@ -96,18 +101,31 @@ namespace TotalDischargeExternalProcessor
             {
                 new Option
                 {
-                    Key = nameof(context.Server), Setter = value => context.Server = value,
-                    Getter = () => context.Server, Description = "AQTS server name"
+                    Key = nameof(context.Server),
+                    Setter = value => context.Server = value,
+                    Getter = () => context.Server,
+                    Description = "AQTS server name"
                 },
                 new Option
                 {
-                    Key = nameof(context.Username), Setter = value => context.Username = value,
-                    Getter = () => context.Username, Description = "AQTS username"
+                    Key = nameof(context.Username),
+                    Setter = value => context.Username = value,
+                    Getter = () => context.Username,
+                    Description = "AQTS username"
                 },
                 new Option
                 {
-                    Key = nameof(context.Password), Setter = value => context.Password = value,
-                    Getter = () => context.Password, Description = "AQTS password"
+                    Key = nameof(context.Password),
+                    Setter = value => context.Password = value,
+                    Getter = () => context.Password,
+                    Description = "AQTS password"
+                },
+                new Option
+                {
+                    Key = nameof(context.MinimumEventDuration),
+                    Setter = value => context.MinimumEventDuration = ParseTimeSpan(value),
+                    Getter = () => $"{context.MinimumEventDuration.Humanize()}",
+                    Description = "Minimum event duration"
                 },
             };
 
@@ -154,10 +172,16 @@ namespace TotalDischargeExternalProcessor
             }
 
             return context;
-    }
+        }
 
+        private static TimeSpan ParseTimeSpan(string value)
+        {
+            return TimeSpan.TryParse(value, out var timeSpan)
+                ? timeSpan
+                : throw new ExpectedException($"'{value}' is not a valid .NET TimeSpan.");
+        }
 
-    private static readonly Regex ArgRegex = new Regex(@"^([/-])(?<key>[^=]+)=(?<value>.*)$", RegexOptions.Compiled);
+        private static readonly Regex ArgRegex = new Regex(@"^([/-])(?<key>[^=]+)=(?<value>.*)$", RegexOptions.Compiled);
 
         private static readonly HashSet<string> HelpKeyWords =
             new HashSet<string>(
@@ -193,7 +217,7 @@ namespace TotalDischargeExternalProcessor
         {
             _log.Info(GetExecutingFileVersion());
 
-            new Processor
+            new ExternalProcessor
             {
                 Context = _context
             }.Run();
