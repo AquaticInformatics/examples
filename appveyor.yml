@@ -74,12 +74,16 @@ artifacts:
     name: WaterWatchPreProcessor
     type: file
 
+  - path: TimeSeries\PublicApis\SdkExamples\TotalDischargeExternalProcessor\bin\Release\TotalDischargeExternalProcessor.exe
+    name: TotalDischargeExternalProcessor
+    type: file
+
 deploy:
   - provider: GitHub
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: Example utilities $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor
+    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true

@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaterWatchPreProcessor", "W
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChangeVisitApprovals", "ChangeVisitApprovals\ChangeVisitApprovals.csproj", "{6BFEA908-117F-42AE-9FE7-35BD5724417F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TotalDischargeExternalProcessor", "TotalDischargeExternalProcessor\TotalDischargeExternalProcessor.csproj", "{C598046C-4E2E-4C49-8437-5C897BA9C7AD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,6 +77,10 @@ Global
 		{6BFEA908-117F-42AE-9FE7-35BD5724417F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6BFEA908-117F-42AE-9FE7-35BD5724417F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6BFEA908-117F-42AE-9FE7-35BD5724417F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C598046C-4E2E-4C49-8437-5C897BA9C7AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C598046C-4E2E-4C49-8437-5C897BA9C7AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C598046C-4E2E-4C49-8437-5C897BA9C7AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C598046C-4E2E-4C49-8437-5C897BA9C7AD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
