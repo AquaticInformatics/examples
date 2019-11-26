@@ -127,6 +127,13 @@ namespace TotalDischargeExternalProcessor
                     Getter = () => $"{context.MinimumEventDuration.Humanize()}",
                     Description = "Minimum event duration"
                 },
+                new Option
+                {
+                    Key = nameof(context.Processors),
+                    Setter = value => ParseProcessor(context, value),
+                    Getter = () => string.Empty,
+                    Description = "Processor configurations. Can be specified more than once."
+                },
             };
 
             var usageMessage
@@ -154,6 +161,12 @@ namespace TotalDischargeExternalProcessor
                     if (HelpKeyWords.Contains(arg))
                         throw new ExpectedException(usageMessage);
 
+                    if (TryParseProcessor(arg, out var processor))
+                    {
+                        context.Processors.Add(processor);
+                        continue;
+                    }
+
                     throw new ExpectedException($"Unknown argument: {arg}\n\n{helpGuidance}");
                 }
 
@@ -172,13 +185,6 @@ namespace TotalDischargeExternalProcessor
             }
 
             return context;
-        }
-
-        private static TimeSpan ParseTimeSpan(string value)
-        {
-            return TimeSpan.TryParse(value, out var timeSpan)
-                ? timeSpan
-                : throw new ExpectedException($"'{value}' is not a valid .NET TimeSpan.");
         }
 
         private static readonly Regex ArgRegex = new Regex(@"^([/-])(?<key>[^=]+)=(?<value>.*)$", RegexOptions.Compiled);
@@ -205,6 +211,61 @@ namespace TotalDischargeExternalProcessor
                 .Where(s => !s.StartsWith("#") && !s.StartsWith("//"));
         }
 
+        private static TimeSpan ParseTimeSpan(string value)
+        {
+            return TryParseTimeSpan(value, out var timeSpan)
+                ? timeSpan
+                : throw new ExpectedException($"'{value}' is not a valid .NET TimeSpan.");
+        }
+
+        private static bool TryParseTimeSpan(string value, out TimeSpan timeSpan)
+        {
+            return TimeSpan.TryParse(value, out timeSpan);
+        }
+
+        private static void ParseProcessor(Context context, string value)
+        {
+            if (TryParseProcessor(value, out var processor))
+            {
+                context.Processors.Add(processor);
+                return;
+            }
+
+            throw new ExpectedException($"'{value}' does not match the processor configuration syntax.");
+        }
+
+        private static bool TryParseProcessor(string value, out Processor processor)
+        {
+            processor = null;
+
+            var parts = value
+                .Split(SeparatorChars)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
+                .ToList();
+
+            if (parts.Count < 3 || parts.Count > 4)
+                return false;
+
+            var minimumEventDuration = (TimeSpan?) null;
+
+            if (parts.Count == 4)
+            {
+                minimumEventDuration = TryParseTimeSpan(parts[3], out var timeSpan) ? (TimeSpan?)timeSpan : null;
+            }
+
+            processor = new Processor
+            {
+                EventTimeSeries = parts[0],
+                DischargeTimeSeries = parts[1],
+                DischargeTotalTimeSeries = parts[2],
+                MinimumEventDuration = minimumEventDuration
+            };
+
+            return true;
+        }
+
+        private static readonly char[] SeparatorChars = {','};
 
         private readonly Context _context;
 

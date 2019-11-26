@@ -89,6 +89,7 @@
     <Compile Include="ExpectedException.cs" />
     <Compile Include="Option.cs" />
     <Compile Include="ExternalProcessor.cs" />
+    <Compile Include="Processor.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

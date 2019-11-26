@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Linq;
+using System.Reflection;
 using ServiceStack.Logging;
 
 namespace TotalDischargeExternalProcessor
@@ -11,7 +12,13 @@ namespace TotalDischargeExternalProcessor
 
         public void Run()
         {
+            Validate();
+        }
 
+        private void Validate()
+        {
+            if (!Context.Processors.Any())
+                throw new ExpectedException($"No processors configured. Nothing to do. Add a /{nameof(Context.Processors)}= option or positional argument.");
         }
     }
 }
