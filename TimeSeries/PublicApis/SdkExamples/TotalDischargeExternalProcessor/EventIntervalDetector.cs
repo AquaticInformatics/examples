@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using NodaTime;
 
 namespace TotalDischargeExternalProcessor
 {
     public class EventIntervalDetector
     {
-        private List<TimeSeriesPoint> Points { get; }
+        private List<Point> Points { get; }
         private Duration MinimumDuration { get; }
 
-        public EventIntervalDetector(List<TimeSeriesPoint> points, TimeSpan minimumEventDuration)
+        public EventIntervalDetector(List<Point> points, TimeSpan minimumEventDuration)
         {
             if (points == null || !points.Any())
                 throw new ArgumentException("No points in range", nameof(points));
@@ -29,11 +28,8 @@ namespace TotalDischargeExternalProcessor
 
             foreach (var point in Points)
             {
-                if (!point.Value.HasValue || !point.Time.HasValue)
-                    continue; // Just skip over any event gaps
-
                 var time = point.Time;
-                var value = point.Value.Value;
+                var value = point.Value;
 
                 if (value < prevValue)
                 {

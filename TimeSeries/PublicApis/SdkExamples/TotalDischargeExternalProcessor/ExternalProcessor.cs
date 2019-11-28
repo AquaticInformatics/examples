@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Aquarius.TimeSeries.Client;
+using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using Humanizer;
 using NodaTime;
 using ServiceStack.Logging;
-
+using PostReflectedTimeSeries = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.PostReflectedTimeSeries;
 using TimeSeriesPoint = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.TimeSeriesPoint;
 
 namespace TotalDischargeExternalProcessor
@@ -90,21 +92,23 @@ namespace TotalDischargeExternalProcessor
             Log.Info($"Resolved {Processors.Count} external processor configurations.");
         }
 
-        private Processor Resolve(ProcessorConfig processor)
+        private Processor Resolve(ProcessorConfig processorConfig)
         {
-            var processorConfiguration = new Processor
+            var processor = new Processor
             {
-                EventTimeSeries = GetTimeSeries(FindTimeSeries(nameof(processor.EventTimeSeries), processor.EventTimeSeries)),
-                DischargeTimeSeries = GetTimeSeries(FindTimeSeries(nameof(processor.DischargeTimeSeries), processor.DischargeTimeSeries)),
-                DischargeTotalTimeSeries = GetTimeSeries(FindTimeSeries(nameof(processor.DischargeTotalTimeSeries), processor.DischargeTotalTimeSeries)),
-                MinimumEventDuration = processor.MinimumEventDuration ?? Context.MinimumEventDuration
+                EventTimeSeries = GetTimeSeries(FindTimeSeries(nameof(processorConfig.EventTimeSeries), processorConfig.EventTimeSeries)),
+                DischargeTimeSeries = GetTimeSeries(FindTimeSeries(nameof(processorConfig.DischargeTimeSeries), processorConfig.DischargeTimeSeries)),
+                DischargeTotalTimeSeries = GetTimeSeries(FindTimeSeries(nameof(processorConfig.DischargeTotalTimeSeries), processorConfig.DischargeTotalTimeSeries)),
+                MinimumEventDuration = processorConfig.MinimumEventDuration ?? Context.MinimumEventDuration
             };
 
-            ThrowIfWrongParameter("QR", nameof(processorConfiguration.DischargeTimeSeries), processorConfiguration.DischargeTimeSeries);
-            ThrowIfWrongParameter("QV", nameof(processorConfiguration.DischargeTotalTimeSeries), processorConfiguration.DischargeTotalTimeSeries);
-            ThrowIfWrongTimeSeriesType(TimeSeriesType.Reflected, nameof(processorConfiguration.DischargeTotalTimeSeries), processorConfiguration.DischargeTotalTimeSeries);
+            ThrowIfWrongParameter("QR", nameof(processor.DischargeTimeSeries), processor.DischargeTimeSeries);
+            ThrowIfWrongParameter("QV", nameof(processor.DischargeTotalTimeSeries), processor.DischargeTotalTimeSeries);
+            ThrowIfWrongTimeSeriesType(TimeSeriesType.Reflected, nameof(processor.DischargeTotalTimeSeries), processor.DischargeTotalTimeSeries);
 
-            return processorConfiguration;
+            DecomposeVolumetricFlowUnits(processor.DischargeTimeSeries);
+
+            return processor;
         }
 
         private TimeSeries GetTimeSeries(TimeSeriesDescription timeSeries)
@@ -160,6 +164,52 @@ namespace TotalDischargeExternalProcessor
             throw new ExpectedException($"{name} '{timeSeries.Identifier}' ({timeSeries.TimeSeriesType}) is not the expected '{timeSeriesType}' time-series type.");
         }
 
+        private (Unit VolumeUnit, Unit TimeUnit) DecomposeVolumetricFlowUnits(TimeSeries timeSeries)
+        {
+            var parts = timeSeries.Unit.Split(TimeSeparatorChars, 2);
+
+            if (parts.Length != 2)
+                throw new ExpectedException($"The '{timeSeries.Unit}' unit of '{timeSeries.Identifier}' is not a supported volumetric flow unit");
+
+            var volumeUnitId = parts[0];
+            var timeUnitId = parts[1];
+
+            var volumeUnit = GetVolumeUnit(volumeUnitId);
+            var timeUnit = GetTimeUnit(timeUnitId);
+
+            return (volumeUnit, timeUnit);
+        }
+
+        private static readonly char[] TimeSeparatorChars = {'/'};
+
+        private Unit GetTimeUnit(string unitId)
+        {
+            return GetUnit("Time", unitId);
+        }
+
+        private Unit GetVolumeUnit(string unitId)
+        {
+            return GetUnit("Volume", unitId);
+        }
+
+        private Unit GetUnit(string unitGroupId, string unitId)
+        {
+            var unitGroup = UnitGroups
+                .FirstOrDefault(ug => ug.GroupIdentifier == unitGroupId);
+
+            if (unitGroup == null)
+                throw new ExpectedException($"'{unitGroupId}' is not a known unit group.");
+
+            var unit = unitGroup
+                .Units
+                .FirstOrDefault(u => u.UnitIdentifier == unitId);
+
+            if (unit == null)
+                throw new ExpectedException($"'{unitId}' is not part of the '{unitGroup.GroupIdentifier}' unit group.");
+
+            return unit;
+        }
+
         private void Calculate(Processor processor)
         {
             Log.Info($"Re-calculating '{processor.DischargeTotalTimeSeries.Identifier}' from '{processor.DischargeTimeSeries.Identifier}' gated by '{processor.EventTimeSeries.Identifier}' ...");
@@ -193,15 +243,67 @@ namespace TotalDischargeExternalProcessor
 
             Log.Info($"Detected {eventIntervals.Count} intervals in {nameof(processor.EventTimeSeries)} '{processor.EventTimeSeries.Identifier}'");
 
+            var pointsToAppend = new List<TimeSeriesPoint>();
+
             foreach (var interval in eventIntervals)
             {
                 var start = GetZonedTime(processor.EventTimeSeries, interval.Start);
                 var end = GetZonedTime(processor.EventTimeSeries, interval.End);
 
-                var eventDischarge = CalculateEventDischarge(interval, dischargePoints);
+                var eventDischarge = CalculateEventTotalDischarge(
+                    processor.DischargeTotalTimeSeries,
+                    interval,
+                    processor.DischargeTimeSeries,
+                    dischargePoints);
 
-                Log.Info($"Event Discharge = {eventDischarge:F3} {start:O} - {end:O} ({interval.Duration.ToTimeSpan().Humanize()})");
+                if (pointsToAppend.Any())
+                {
+                    // Insert an explicit gap
+                    pointsToAppend.Add(new TimeSeriesPoint
+                    {
+                        Type = PointType.Gap
+                    });
+                }
+
+                pointsToAppend.Add(new TimeSeriesPoint
+                {
+                    Time = interval.Start,
+                    Value = eventDischarge
+                });
+
+                pointsToAppend.Add(new TimeSeriesPoint
+                {
+                    Time = interval.End,
+                    Value = eventDischarge
+                });
+
+                Log.Info($"Event Discharge = {eventDischarge:F3} ({processor.DischargeTotalTimeSeries.Unit}) {start:O} - {end:O} ({interval.Duration.ToTimeSpan().Humanize()})");
             }
+
+            Log.Info($"Appending {pointsToAppend.Count} points to {nameof(processor.DischargeTotalTimeSeries)} '{processor.DischargeTotalTimeSeries.Identifier}' ...");
+
+            var stopwatch = Stopwatch.StartNew();
+
+            var result = Client.Acquisition.RequestAndPollUntilComplete(
+                client => client.Post(new PostReflectedTimeSeries
+                {
+                    UniqueId = processor.DischargeTotalTimeSeries.UniqueId,
+                    Points = pointsToAppend,
+                    TimeRange =
+                        new Interval( // Apply a 1-day margin, to workaround the AQ-23146 OverflowException crash
+                            Instant.FromDateTimeOffset(DateTimeOffset.MinValue).Plus(Duration.FromStandardDays(1)),
+                            Instant.FromDateTimeOffset(DateTimeOffset.MaxValue).Minus(Duration.FromStandardDays(1)))
+                }),
+                (client, response) => client.Get(new GetTimeSeriesAppendStatus
+                {
+                    AppendRequestIdentifier = response.AppendRequestIdentifier
+                }),
+                polledStatus => polledStatus.AppendStatus != AppendStatusCode.Pending);
+
+            if (result.AppendStatus != AppendStatusCode.Completed)
+                throw new ExpectedException($"Unexpected append status={result.AppendStatus}");
+
+            Log.Info($"Appended {result.NumberOfPointsAppended} points (deleting {result.NumberOfPointsDeleted} points) in {stopwatch.Elapsed.Humanize()}");
         }
 
         private static DateTimeOffset GetZonedTime(TimeSeries timeSeries, Instant? instant)
@@ -212,7 +314,7 @@ namespace TotalDischargeExternalProcessor
             return instant.Value.InZone(DateTimeZone.ForOffset(timeSeries.UtcOffset)).ToDateTimeOffset();
         }
 
-        private List<TimeSeriesPoint> LoadPoints(string name, TimeSeries timeSeries, DateTimeOffset? queryFrom = null, DateTimeOffset? queryTo = null)
+        private List<Point> LoadPoints(string name, TimeSeries timeSeries, DateTimeOffset? queryFrom = null, DateTimeOffset? queryTo = null)
         {
             var message = string.Join(" ", new[]
                 {
@@ -234,10 +336,11 @@ namespace TotalDischargeExternalProcessor
                     ReturnFullCoverage = queryFrom.HasValue || queryTo.HasValue,
                     IncludeGapMarkers = false
                 }).Points
-                .Select(p => new TimeSeriesPoint
+                .Where(p => p.Value.Numeric.HasValue)
+                .Select(p => new Point
                 {
                     Time = Instant.FromDateTimeOffset(p.Timestamp.DateTimeOffset),
-                    Value = p.Value.Numeric
+                    Value = p.Value.Numeric.Value
                 })
                 .ToList();
 
@@ -256,9 +359,74 @@ namespace TotalDischargeExternalProcessor
             return points;
         }
 
-        private double CalculateEventDischarge(Interval interval, List<TimeSeriesPoint> points)
+        private double CalculateEventTotalDischarge(
+            TimeSeries dischargeTotalSeries,
+            Interval eventInterval,
+            TimeSeries dischargeSeries,
+            List<Point> dischargePoints)
         {
-            return 0;
+            var totalDischarge = 0.0;
+
+            Point prevPoint = null;
+
+            var secondsUnit = GetTimeUnit("s");
+            var outputVolumeUnit = GetVolumeUnit(dischargeTotalSeries.Unit);
+
+            var (volumeUnit, timeUnit) = DecomposeVolumetricFlowUnits(dischargeSeries);
+
+            foreach (var point in dischargePoints)
+            {
+                if (point.Time < eventInterval.Start)
+                {
+                    prevPoint = point;
+                    continue;
+                }
+
+                if (prevPoint != null)
+                {
+                    var interpolationTime = prevPoint.Time.Plus((point.Time - prevPoint.Time) / 2);
+                    var duration = point.Time - prevPoint.Time;
+                    var durationSeconds = duration.ToTimeSpan().TotalSeconds;
+
+                    var interpolatedFlow = (prevPoint.Value + point.Value) / 2;
+                    var timeUnitsPerSecond = ConvertUnits(1, timeUnit, secondsUnit);
+                    var pointVolume = interpolatedFlow * durationSeconds / timeUnitsPerSecond;
+
+                    var contribution = ConvertUnits(pointVolume, volumeUnit, outputVolumeUnit);
+
+                    if (interpolationTime < eventInterval.Start)
+                    {
+                        // Only take the portion within the event
+                        var portion = (point.Time - eventInterval.Start).ToTimeSpan().TotalSeconds / durationSeconds;
+                        contribution *= portion;
+                    }
+                    else if (interpolationTime > eventInterval.End)
+                    {
+                        // Only take the porting within the event
+                        var portion = (eventInterval.End - prevPoint.Time).ToTimeSpan().TotalSeconds / durationSeconds;
+                        contribution *= portion;
+                    }
+
+                    totalDischarge += contribution;
+                }
+
+                if (point.Time >= eventInterval.End)
+                    break;
+
+                prevPoint = point;
+            }
+
+            return totalDischarge;
+        }
+
+        private double ConvertUnits(double sourceValue, Unit sourceUnit, Unit targetUnit)
+        {
+            if (double.IsNaN(sourceValue) || sourceUnit.UnitIdentifier == targetUnit.UnitIdentifier)
+                return sourceValue;
+
+            var valueInBaseUnit = (sourceValue + sourceUnit.BaseOffset) * sourceUnit.BaseMultiplier;
+
+            return valueInBaseUnit / targetUnit.BaseMultiplier - targetUnit.BaseOffset;
         }
     }
 }

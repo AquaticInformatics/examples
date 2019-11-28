@@ -90,6 +90,7 @@
     <Compile Include="ExpectedException.cs" />
     <Compile Include="Option.cs" />
     <Compile Include="ExternalProcessor.cs" />
+    <Compile Include="Point.cs" />
     <Compile Include="Processor.cs" />
     <Compile Include="ProcessorConfig.cs" />
     <Compile Include="Program.cs" />
