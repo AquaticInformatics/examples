@@ -9,6 +9,8 @@ using Humanizer;
 using NodaTime;
 using ServiceStack.Logging;
 
+using TimeSeriesPoint = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.TimeSeriesPoint;
+
 namespace TotalDischargeExternalProcessor
 {
     public class ExternalProcessor
@@ -66,7 +68,7 @@ namespace TotalDischargeExternalProcessor
         private List<Parameter> Parameters { get; set; }
         private List<PopulatedUnitGroup> UnitGroups { get; set; }
         private List<TimeSeriesDescription> TimeSeriesDescriptions { get; set; }
-        private List<ProcessorConfiguration> Processors { get; set; }
+        private List<Processor> Processors { get; set; }
 
         private void LoadConfiguration()
         {
@@ -88,17 +90,9 @@ namespace TotalDischargeExternalProcessor
             Log.Info($"Resolved {Processors.Count} external processor configurations.");
         }
 
-        public class ProcessorConfiguration
+        private Processor Resolve(ProcessorConfig processor)
         {
-            public TimeSeries EventTimeSeries { get; set; }
-            public TimeSeries DischargeTimeSeries { get; set; }
-            public TimeSeries DischargeTotalTimeSeries { get; set; }
-            public TimeSpan MinimumEventDuration { get; set; }
-        }
-
-        private ProcessorConfiguration Resolve(Processor processor)
-        {
-            var processorConfiguration = new ProcessorConfiguration
+            var processorConfiguration = new Processor
             {
                 EventTimeSeries = GetTimeSeries(FindTimeSeries(nameof(processor.EventTimeSeries), processor.EventTimeSeries)),
                 DischargeTimeSeries = GetTimeSeries(FindTimeSeries(nameof(processor.DischargeTimeSeries), processor.DischargeTimeSeries)),
@@ -166,43 +160,32 @@ namespace TotalDischargeExternalProcessor
             throw new ExpectedException($"{name} '{timeSeries.Identifier}' ({timeSeries.TimeSeriesType}) is not the expected '{timeSeriesType}' time-series type.");
         }
 
-        private void Calculate(ProcessorConfiguration processor)
+        private void Calculate(Processor processor)
         {
-            Log.Info($"Re-calculating '{processor.DischargeTotalTimeSeries.Identifier}' ...");
+            Log.Info($"Re-calculating '{processor.DischargeTotalTimeSeries.Identifier}' from '{processor.DischargeTimeSeries.Identifier}' gated by '{processor.EventTimeSeries.Identifier}' ...");
 
-            Log.Info($"Loading '{processor.EventTimeSeries.Identifier}' ...");
-
-            var eventPoints = Client.Publish.Get(new TimeSeriesDataCorrectedServiceRequest
-            {
-                TimeSeriesUniqueId = processor.EventTimeSeries.UniqueId,
-                GetParts = "PointsOnly"
-            }).Points;
+            var eventPoints = LoadPoints(
+                nameof(processor.EventTimeSeries),
+                processor.EventTimeSeries);
 
             if (!eventPoints.Any())
             {
-                Log.Warn($"No {nameof(processor.EventTimeSeries)} points found in '{processor.EventTimeSeries.Identifier}'. Skipping external calculation.");
                 return;
             }
 
-            var queryFrom = eventPoints.First().Timestamp.DateTimeOffset;
-            var queryTo = eventPoints.Last().Timestamp.DateTimeOffset;
+            var queryFrom = GetZonedTime(processor.EventTimeSeries, eventPoints.First().Time);
+            var queryTo = GetZonedTime(processor.EventTimeSeries, eventPoints.Last().Time);
 
-            Log.Info($"Loaded {eventPoints.Count} points from '{processor.EventTimeSeries.Identifier}' Start={queryFrom:O} End={queryTo:O}");
-
-            var dischargePoints = Client.Publish.Get(new TimeSeriesDataCorrectedServiceRequest
-            {
-                TimeSeriesUniqueId = processor.DischargeTimeSeries.UniqueId,
-                GetParts = "PointsOnly",
-                ReturnFullCoverage = true,
-            }).Points;
+            var dischargePoints = LoadPoints(
+                nameof(processor.DischargeTimeSeries),
+                processor.DischargeTimeSeries,
+                queryFrom,
+                queryTo);
 
             if (!dischargePoints.Any())
             {
-                Log.Warn($"No {nameof(processor.DischargeTimeSeries)} points found in '{processor.DischargeTimeSeries.Identifier}'. Skipping external calculation.");
                 return;
             }
-
-            Log.Info($"Loaded {dischargePoints.Count} points from '{processor.DischargeTimeSeries.Identifier}' Start={queryFrom:O} End={queryTo:O}");
 
             var eventIntervals = new EventIntervalDetector(eventPoints, processor.MinimumEventDuration)
                 .Detect()
@@ -210,15 +193,72 @@ namespace TotalDischargeExternalProcessor
 
             Log.Info($"Detected {eventIntervals.Count} intervals in {nameof(processor.EventTimeSeries)} '{processor.EventTimeSeries.Identifier}'");
 
-            var zone = DateTimeZone.ForOffset(processor.EventTimeSeries.UtcOffset);
-
             foreach (var interval in eventIntervals)
             {
-                var start = interval.Start.InZone(zone).ToDateTimeOffset();
-                var end = interval.End.InZone(zone).ToDateTimeOffset();
+                var start = GetZonedTime(processor.EventTimeSeries, interval.Start);
+                var end = GetZonedTime(processor.EventTimeSeries, interval.End);
 
-                Log.Info($"{start:O} - {end:O} ({interval.Duration.ToTimeSpan().Humanize()})");
+                var eventDischarge = CalculateEventDischarge(interval, dischargePoints);
+
+                Log.Info($"Event Discharge = {eventDischarge:F3} {start:O} - {end:O} ({interval.Duration.ToTimeSpan().Humanize()})");
             }
+        }
+
+        private static DateTimeOffset GetZonedTime(TimeSeries timeSeries, Instant? instant)
+        {
+            if (!instant.HasValue)
+                throw new ArgumentNullException(nameof(instant));
+
+            return instant.Value.InZone(DateTimeZone.ForOffset(timeSeries.UtcOffset)).ToDateTimeOffset();
+        }
+
+        private List<TimeSeriesPoint> LoadPoints(string name, TimeSeries timeSeries, DateTimeOffset? queryFrom = null, DateTimeOffset? queryTo = null)
+        {
+            var message = string.Join(" ", new[]
+                {
+                    name,
+                    $"'{timeSeries.Identifier}'",
+                    queryFrom.HasValue ? $" from {queryFrom:O}" : null,
+                    queryTo.HasValue ? $" to {queryTo:O}" : null,
+                }
+                .Where(s => !string.IsNullOrEmpty(s)));
+
+            Log.Info($"Loading {message} ...");
+
+            var points = Client.Publish.Get(new TimeSeriesDataCorrectedServiceRequest
+                {
+                    TimeSeriesUniqueId = timeSeries.UniqueId,
+                    GetParts = "PointsOnly",
+                    QueryFrom = queryFrom,
+                    QueryTo = queryTo,
+                    ReturnFullCoverage = queryFrom.HasValue || queryTo.HasValue,
+                    IncludeGapMarkers = false
+                }).Points
+                .Select(p => new TimeSeriesPoint
+                {
+                    Time = Instant.FromDateTimeOffset(p.Timestamp.DateTimeOffset),
+                    Value = p.Value.Numeric
+                })
+                .ToList();
+
+            if (!points.Any())
+            {
+                Log.Warn($"No {name} points found in '{timeSeries.Identifier}'. Skipping calculation.");
+            }
+            else
+            {
+                var start = GetZonedTime(timeSeries, points.First().Time);
+                var end = GetZonedTime(timeSeries, points.Last().Time);
+
+                Log.Info($"Loaded {points.Count} points from {name} '{timeSeries.Identifier}' Start={start:O} End={end:O}");
+            }
+
+            return points;
+        }
+
+        private double CalculateEventDischarge(Interval interval, List<TimeSeriesPoint> points)
+        {
+            return 0;
         }
     }
 }

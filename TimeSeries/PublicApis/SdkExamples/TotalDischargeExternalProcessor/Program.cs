@@ -234,7 +234,7 @@ namespace TotalDischargeExternalProcessor
             throw new ExpectedException($"'{value}' does not match the processor configuration syntax.");
         }
 
-        private static bool TryParseProcessor(string value, out Processor processor)
+        private static bool TryParseProcessor(string value, out ProcessorConfig processor)
         {
             processor = null;
 
@@ -254,7 +254,7 @@ namespace TotalDischargeExternalProcessor
                 minimumEventDuration = TryParseTimeSpan(parts[3], out var timeSpan) ? (TimeSpan?)timeSpan : null;
             }
 
-            processor = new Processor
+            processor = new ProcessorConfig
             {
                 EventTimeSeries = parts[0],
                 DischargeTimeSeries = parts[1],

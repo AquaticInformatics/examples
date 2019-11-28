@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Aquarius.TimeSeries.Client.ServiceModels.Publish;
+using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using NodaTime;
 
 namespace TotalDischargeExternalProcessor
@@ -29,11 +29,11 @@ namespace TotalDischargeExternalProcessor
 
             foreach (var point in Points)
             {
-                if (!point.Value.Numeric.HasValue)
+                if (!point.Value.HasValue || !point.Time.HasValue)
                     continue; // Just skip over any event gaps
 
-                var time = Instant.FromDateTimeOffset(point.Timestamp.DateTimeOffset);
-                var value = point.Value.Numeric.Value;
+                var time = point.Time;
+                var value = point.Value.Value;
 
                 if (value < prevValue)
                 {
