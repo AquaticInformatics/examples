@@ -34,7 +34,7 @@ These examples will get you through most of the heavy lifting to get some points
 
 All command line options are case-insensitive, and support both common shell syntaxes: either `/Name=value` (for CMD.EXE) or `-Name=value` (for bash and PowerShell).
 
-In addition, the `@options.txt` syntax is supported, to read options from a text file. You can mix and match individual `/name=value` and `@somefile.txt` on the same command line.
+In addition, the [`@options.txt` syntax](https://github.com/AquaticInformatics/examples/wiki/Common-command-line-options) is supported, to read options from a text file. You can mix and match individual `/name=value` and `@somefile.txt` on the same command line.
 
 Try the `/help` option for a detailed list of options and their default values.
 

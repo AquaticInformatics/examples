@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -74,26 +73,11 @@ namespace TotalDischargeExternalProcessor
             }
         }
 
-        private static string GetProgramName()
-        {
-            // ReSharper disable once PossibleNullReferenceException
-            return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
-        }
-
-        private static string GetExecutingFileVersion()
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-            var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
-
-            // ReSharper disable once PossibleNullReferenceException
-            return $"{MethodBase.GetCurrentMethod().DeclaringType.Namespace} v{fileVersionInfo.FileVersion}";
-        }
-
         private static Context ParseArgs(string[] args)
         {
             var context = new Context();
 
-            var resolvedArgs = args
+            var resolvedArgs = InjectOptionsFileByDefault(args)
                 .SelectMany(ResolveOptionsFromFile)
                 .ToArray();
 
@@ -139,9 +123,22 @@ namespace TotalDischargeExternalProcessor
             var usageMessage
                     = $"An external processor for calculating total discharge for arbitrary-length events."
                       + $"\n"
-                      + $"\nusage: {GetProgramName()} [-option=value] [@optionsFile] ..."
+                      + $"\nusage: {ExeHelper.ExeName} [-option=value] [@optionsFile] processor ..."
                       + $"\n"
                       + $"\nSupported -option=value settings (/option=value works too):\n\n  {string.Join("\n  ", options.Select(o => o.UsageText()))}"
+                      + $"\n"
+                      + $"\nConfiguring processors:"
+                      + $"\n======================="
+                      + $"\nProcessor configurations are a comma-separated list of 3 or 4 values:"
+                      + $"\n"
+                      + $"\n/{nameof(context.Processors)}=EventTimeSeries,DischargeTimeSeries,DischargeTotalTimeSeries[,MinimumEventDuration]"
+                      + $"\n"
+                      + $"\n- Either time-series identifier strings or uniqueIds can be used."
+                      + $"\n- The /{nameof(context.Processors)}= prefix is optional. "
+                      + $"\n- Processor configurations are best set in an @optionsFile, for easier editing."
+                      + $"\n"
+                      + $"\nWhen no other command line options are given, the Options.txt file in"
+                      + $"\nsame folder as the EXE will be used if it exists."
                       + $"\n"
                       + $"\nUse the @optionsFile syntax to read more options from a file."
                       + $"\n"
@@ -194,6 +191,23 @@ namespace TotalDischargeExternalProcessor
                 new[] { "?", "h", "help" }
                     .SelectMany(keyword => new[] { "/", "-", "--" }.Select(prefix => prefix + keyword)),
                 StringComparer.InvariantCultureIgnoreCase);
+
+        private static string[] InjectOptionsFileByDefault(string[] args)
+        {
+            if (args.Any())
+                return args;
+
+            var defaultOptionsFile = Path.Combine(ExeHelper.ExeDirectory, "Options.txt");
+
+            if (File.Exists(defaultOptionsFile))
+            {
+                _log.Info($"Using '@{defaultOptionsFile}' configuration by default.");
+
+                return new[] { "@" + defaultOptionsFile };
+            }
+
+            return args;
+        }
 
         private static IEnumerable<string> ResolveOptionsFromFile(string arg)
         {
@@ -276,7 +290,7 @@ namespace TotalDischargeExternalProcessor
 
         private void Run()
         {
-            _log.Info(GetExecutingFileVersion());
+            _log.Info(ExeHelper.ExeNameAndVersion);
 
             new ExternalProcessor
             {
