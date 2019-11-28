@@ -5,6 +5,8 @@ using System.Reflection;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
+using Humanizer;
+using NodaTime;
 using ServiceStack.Logging;
 
 namespace TotalDischargeExternalProcessor
@@ -192,7 +194,6 @@ namespace TotalDischargeExternalProcessor
                 TimeSeriesUniqueId = processor.DischargeTimeSeries.UniqueId,
                 GetParts = "PointsOnly",
                 ReturnFullCoverage = true,
-                Unit = null // TODO: Apply correct unit conversion so that integration is simpler
             }).Points;
 
             if (!dischargePoints.Any())
@@ -202,6 +203,22 @@ namespace TotalDischargeExternalProcessor
             }
 
             Log.Info($"Loaded {dischargePoints.Count} points from '{processor.DischargeTimeSeries.Identifier}' Start={queryFrom:O} End={queryTo:O}");
+
+            var eventIntervals = new EventIntervalDetector(eventPoints, processor.MinimumEventDuration)
+                .Detect()
+                .ToList();
+
+            Log.Info($"Detected {eventIntervals.Count} intervals in {nameof(processor.EventTimeSeries)} '{processor.EventTimeSeries.Identifier}'");
+
+            var zone = DateTimeZone.ForOffset(processor.EventTimeSeries.UtcOffset);
+
+            foreach (var interval in eventIntervals)
+            {
+                var start = interval.Start.InZone(zone).ToDateTimeOffset();
+                var end = interval.End.InZone(zone).ToDateTimeOffset();
+
+                Log.Info($"{start:O} - {end:O} ({interval.Duration.ToTimeSpan().Humanize()})");
+            }
         }
     }
 }

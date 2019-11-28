@@ -86,6 +86,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Context.cs" />
+    <Compile Include="EventIntervalDetector.cs" />
     <Compile Include="ExpectedException.cs" />
     <Compile Include="Option.cs" />
     <Compile Include="ExternalProcessor.cs" />
