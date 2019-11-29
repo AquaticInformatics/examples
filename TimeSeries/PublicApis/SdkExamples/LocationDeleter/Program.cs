@@ -89,6 +89,7 @@ namespace LocationDeleter
                 new Option {Key = "Location", Setter = value => context.LocationsToDelete.Add(value), Getter = () => string.Join(", ", context.LocationsToDelete), Description = "Locations to delete."},
                 new Option {Key = "TimeSeries", Setter = value => context.TimeSeriesToDelete.Add(value), Getter = () => string.Join(", ", context.TimeSeriesToDelete), Description = "Time-series to delete."},
                 new Option {Key = "RatingModel", Setter = value => context.RatingModelsToDelete.Add(value), Getter = () => string.Join(", ", context.RatingModelsToDelete), Description = "Rating models to delete."},
+                new Option {Key = "Visit", Setter = value => context.VisitsToDelete.Add(value), Getter = () => string.Join(", ", context.VisitsToDelete), Description = "Visits to delete."},
                 new Option {Key = nameof(context.VisitsBefore), Setter = value => context.VisitsBefore = ParseDateTime(value), Getter = () => context.VisitsBefore?.ToString("O"), Description = "Delete all visits in matching locations before and including this date."},
                 new Option {Key = nameof(context.VisitsAfter), Setter = value => context.VisitsAfter = ParseDateTime(value), Getter = () => context.VisitsAfter?.ToString("O"), Description = "Delete all visits in matching locations after and including this date."},
             };
@@ -96,7 +97,7 @@ namespace LocationDeleter
             var usageMessage
                     = $"Deletes locations, time-series, rating models, and/or field visits from an AQTS server."
                       + $"\n"
-                      + $"\nusage: {GetProgramName()} [-option=value] [@optionsFile] [location] [time-series] [rating model] ..."
+                      + $"\nusage: {GetProgramName()} [-option=value] [@optionsFile] [location] [time-series] [rating model] [specific-visit] ..."
                       + $"\n"
                       + $"\nSupported -option=value settings (/option=value works too):\n\n  -{string.Join("\n  -", options.Select(o => o.UsageText()))}"
                       + $"\n"
@@ -122,6 +123,11 @@ namespace LocationDeleter
                       + $"\n"
                       + $"\nField-visit deletion:"
                       + $"\n====================="
+                      + $"\nVisits can be specified by locationIdentifier@date, or locationIdentifier@dateAndTime."
+                      + $"\n"
+                      + $"\nWhen locationIdentifier@date is used, all visits starting on the date will be deleted."
+                      + $"\nWhen locationIdentifier@dateAndTime is used, only visits starting at the exact date and time will be deleted."
+                      + $"\n"
                       + $"\nWhen the /{nameof(context.VisitsBefore)}= or /{nameof(context.VisitsAfter)}= options are given, all the visits falling within the time-range will be deleted."
                       + $"\nIf no locations are specified when deleting field visits, visits from all locations will be considered."
                 ;
@@ -163,6 +169,12 @@ namespace LocationDeleter
                         continue;
                     }
 
+                    if (VisitIdentifier.TryParse(arg, out _))
+                    {
+                        context.VisitsToDelete.Add(arg);
+                        continue;
+                    }
+
                     // Otherwise assume it is a location to delete
                     context.LocationsToDelete.Add(arg);
                     continue;
@@ -187,7 +199,12 @@ namespace LocationDeleter
             if (string.IsNullOrWhiteSpace(context.Username) || string.IsNullOrWhiteSpace(context.Password))
                 throw new ExpectedException("Valid AQTS credentials must be supplied.");
 
-            if (!context.LocationsToDelete.Any() && !context.TimeSeriesToDelete.Any() && !context.RatingModelsToDelete.Any() && !context.VisitsAfter.HasValue && !context.VisitsBefore.HasValue)
+            if (!context.LocationsToDelete.Any()
+                && !context.TimeSeriesToDelete.Any()
+                && !context.RatingModelsToDelete.Any()
+                && !context.VisitsToDelete.Any()
+                && !context.VisitsAfter.HasValue
+                && !context.VisitsBefore.HasValue)
                 throw new ExpectedException($"You must specify something to delete. See /help or -help for details.");
 
             return context;

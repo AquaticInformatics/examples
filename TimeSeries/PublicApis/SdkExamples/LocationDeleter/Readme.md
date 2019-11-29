@@ -13,7 +13,7 @@ The `LocationDeleter` tool is not intended to be used on production systems. Thi
 - Can delete locations by identifier (case-insensitive) or by unique ID (for 201x app servers only). Publish API wildcard pattern matching is supported.
 - Can delete time-series by identifier or by unique ID.
 - Can delete rating models by identifier.
-- Can delete field visits before or after a given date.
+- Can delete field visits before or after a given date. Can also delete a specific list of visits.
 - Everything gets logged to `LocationDeleter.log`
 - Can delete multiple locations in one command.
 - The tools tells you how many time-series, rating models, and/or field visits will be deleted if you proceed with the delete operation.
@@ -100,9 +100,9 @@ You can combine many `/option=value`, `-option=value`, and `@optionsFile` option
 The full `/help` screen is shown below:
 
 ```
-Deletes locations, time-series, and/or field visits from an AQTS server.
+Deletes locations, time-series, rating models, and/or field visits from an AQTS server.
 
-usage: LocationDeleter [-option=value] [@optionsFile] [location] [time-series] [rating model] ...
+usage: LocationDeleter [-option=value] [@optionsFile] [location] [time-series] [rating model] [specific-visit] ...
 
 Supported -option=value settings (/option=value works too):
 
@@ -115,6 +115,7 @@ Supported -option=value settings (/option=value works too):
   -Location             Locations to delete.
   -TimeSeries           Time-series to delete.
   -RatingModel          Rating models to delete.
+  -Visit                Visits to delete.
   -VisitsBefore         Delete all visits in matching locations before and including this date.
   -VisitsAfter          Delete all visits in matching locations after and including this date.
 
@@ -140,6 +141,11 @@ Rating models can specified by identifier.
 
 Field-visit deletion:
 =====================
+Visits can be specified by locationIdentifier@date, or locationIdentifier@dateAndTime.
+
+When locationIdentifier@date is used, all visits starting on the date will be deleted.
+When locationIdentifier@dateAndTime is used, only visits starting at the exact date and time will be deleted.
+
 When the /VisitsBefore= or /VisitsAfter= options are given, all the visits falling within the time-range will be deleted.
 If no locations are specified when deleting field visits, visits from all locations will be considered.
 ```
@@ -311,6 +317,29 @@ $ ./LocationDeleter.exe -Server=doug-vm2012r2 -VisitsAfter=2017-04 -n
 ```
 
 Deleting visits and deleting locations are mutually exclusive operations. You can't do both in one run of the tool. When either `/VisitsBefore=` or `/VisitsAfter=` is specified, the tool switches into "only delete visits" mode.
+
+## Deleting specific field-visits
+
+The tool can also be used to delete a specific list of field visits, using the `/Visit=location@date` option. This option can be specified more than once to delete many specific visits.
+
+The same ISO 8601 timestamp rules apply to the `/Visit=location@date` option as the `/VisitBefore=` and `/VisitsAfter=` options.
+
+When no specific time is given, all visits at the location with a start date will be deleted.
+When a specific time is included in the `date` value, only visits with the exact start time will be deleted.
+
+Here is a dry run asking to delete all the field visits from April 2017 onwards:
+
+```sh
+$ ./LocationDeleter.exe -Server=doug-vm2012r2 -VisitsAfter=2017-04 -n
+10:40:26.701 INFO  - Connecting LocationDeleter v1.0.0.0 to doug-vm2012r2 ...
+10:40:27.525 INFO  - Connected to doug-vm2012r2 (2018.1.98.0)
+10:40:27.879 INFO  - Inspecting 136 locations for field visits after 2017-04-01T00:00:00.0000000-07:00 ...
+10:40:29.027 INFO  - DryRun: 3 field visits at location 'SchmidtKits' from 7/1/2017 8:00:00 AM to 9/20/2017 6:00:00 PM
+10:40:29.053 INFO  - No field visits to delete in location 'RiverSchmiver'.
+10:40:29.074 INFO  - No field visits to delete in location '10KA009'.
+...
+10:40:32.133 INFO  - Dry run completed. 4 field visits would have been deleted from 136 locations.
+```
 
 ## Delete requests which might be denied.
 
