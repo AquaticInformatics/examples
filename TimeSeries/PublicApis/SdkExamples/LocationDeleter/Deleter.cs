@@ -76,10 +76,17 @@ namespace LocationDeleter
                 // Delete field visits from all locations
                 Context.LocationsToDelete = new List<string>{"*"};
 
+                ResolveLocationsFromSpecificVisits();
+
                 ResolvedLocations = GetResolvedLocations();
             }
 
             var timeRange = new List<string>();
+
+            if (Context.VisitsToDelete.Any())
+            {
+                timeRange.Add($"with {"specific visit".ToQuantity(Context.VisitsToDelete.Count)}");
+            }
 
             if (Context.VisitsBefore.HasValue)
             {
@@ -95,13 +102,23 @@ namespace LocationDeleter
 
             Log.Info($"Inspecting {locationQuantity} for field visits {string.Join(" and ", timeRange)} ...");
 
+            var visitIdentifiers = Context
+                .VisitsToDelete
+                .Select(VisitIdentifierParser.ParseIdentifier)
+                .OrderBy(v => v.StartDateTime)
+                .ToList();
+
             LockedVisitCount = 0;
 
             var deletedVisitCount = 0;
 
             foreach (var locationInfo in ResolvedLocations)
             {
-                deletedVisitCount += DeleteVisitsAtLocation(locationInfo);
+                var locationSpecificVisits = visitIdentifiers
+                    .Where(v => v.Location.Equals(locationInfo.Identifier, StringComparison.InvariantCultureIgnoreCase))
+                    .ToList();
+
+                deletedVisitCount += DeleteVisitsAtLocation(locationInfo, locationSpecificVisits);
             }
 
             var lockedVisitSummary = string.Empty;
@@ -119,10 +136,21 @@ namespace LocationDeleter
 
         private bool IsFieldVisitDeletionEnabled()
         {
-            return Context.VisitsBefore.HasValue || Context.VisitsAfter.HasValue;
+            return Context.VisitsBefore.HasValue || Context.VisitsAfter.HasValue || Context.VisitsToDelete.Any();
         }
 
-        private int DeleteVisitsAtLocation(LocationInfo locationInfo)
+        private void ResolveLocationsFromSpecificVisits()
+        {
+            if (!Context.VisitsToDelete.Any())
+                return;
+
+            Context.LocationsToDelete = Context
+                .VisitsToDelete
+                .Select(VisitIdentifierParser.ParseLocationIdentifier)
+                .ToList();
+        }
+
+        private int DeleteVisitsAtLocation(LocationInfo locationInfo, List<VisitIdentifier> specificVisits)
         {
             var siteVisitLocation = GetSiteVisitLocation(locationInfo);
 
@@ -132,6 +160,7 @@ namespace LocationDeleter
                     StartTime = Context.VisitsAfter?.UtcDateTime,
                     EndTime = Context.VisitsBefore?.UtcDateTime
                 })
+                .Where(v => ShouldSpecificVisitBeDeleted(specificVisits, v))
                 .OrderBy(v => v.StartDate)
                 .ToList();
 
@@ -197,6 +226,22 @@ namespace LocationDeleter
             Log.Info($"Deleted {visitSummary} successfully.");
 
             return visits.Count;
+        }
+
+        private bool ShouldSpecificVisitBeDeleted(List<VisitIdentifier> specificVisits, Visit visit)
+        {
+            if (!specificVisits.Any())
+                return true;
+
+            return specificVisits.Any(v => DoesSpecificVisitMatch(v, visit));
+        }
+
+        private bool DoesSpecificVisitMatch(VisitIdentifier specificVisit, Visit visit)
+        {
+            if (specificVisit.StartDateTime.TimeOfDay == TimeSpan.Zero)
+                return visit.StartDate.Date == specificVisit.StartDateTime.Date;
+
+            return visit.StartDate == specificVisit.StartDateTime;
         }
 
         private void UnlockVisits(long locationId, List<Visit> visits)

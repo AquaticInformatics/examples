@@ -14,6 +14,7 @@ namespace LocationDeleter
         public List<string> LocationsToDelete { get; set; } = new List<string>();
         public List<string> TimeSeriesToDelete { get; set; } = new List<string>();
         public List<string> RatingModelsToDelete { get; set; } = new List<string>();
+        public List<string> VisitsToDelete { get; set; } = new List<string>();
         public DateTimeOffset? VisitsBefore { get; set; }
         public DateTimeOffset? VisitsAfter { get; set; }
     }

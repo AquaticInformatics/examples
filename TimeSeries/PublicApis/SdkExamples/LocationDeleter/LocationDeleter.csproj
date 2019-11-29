@@ -102,6 +102,8 @@
     <Compile Include="RatingModelIdentifierParser.cs" />
     <Compile Include="TimeSeriesIdentifier.cs" />
     <Compile Include="TimeSeriesIdentifierParser.cs" />
+    <Compile Include="VisitIdentifier.cs" />
+    <Compile Include="VisitIdentifierParser.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
