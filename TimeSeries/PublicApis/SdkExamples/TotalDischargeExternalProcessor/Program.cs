@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
-using Humanizer;
 using log4net;
 using ServiceStack;
 using ServiceStack.Logging.Log4Net;
@@ -106,36 +105,26 @@ namespace TotalDischargeExternalProcessor
                 },
                 new Option
                 {
-                    Key = nameof(context.MinimumEventDuration),
-                    Setter = value => context.MinimumEventDuration = ParseTimeSpan(value),
-                    Getter = () => $"{context.MinimumEventDuration.Humanize()}",
-                    Description = "Minimum event duration"
+                    Key = nameof(context.ConfigPath),
+                    Setter = value => context.ConfigPath = value,
+                    Getter = () => context.ConfigPath,
+                    Description = $"Path to the JSON configuration file. [default: '{nameof(Config)}.json' in the same folder as the EXE]"
                 },
                 new Option
                 {
-                    Key = nameof(context.Processors),
-                    Setter = value => ParseProcessor(context, value),
-                    Getter = () => string.Empty,
-                    Description = "Processor configurations. Can be specified more than once."
+                    Key = nameof(context.CreateMissingTimeSeries),
+                    Setter = value => context.CreateMissingTimeSeries = bool.Parse(value),
+                    Getter = () => $"{context.CreateMissingTimeSeries}",
+                    Description = "When true, any missing time-series will be created."
                 },
             };
 
             var usageMessage
                     = $"An external processor for calculating total discharge for arbitrary-length events."
                       + $"\n"
-                      + $"\nusage: {ExeHelper.ExeName} [-option=value] [@optionsFile] processor ..."
+                      + $"\nusage: {ExeHelper.ExeName} [-option=value] [@optionsFile] ..."
                       + $"\n"
                       + $"\nSupported -option=value settings (/option=value works too):\n\n  {string.Join("\n  ", options.Select(o => o.UsageText()))}"
-                      + $"\n"
-                      + $"\nConfiguring processors:"
-                      + $"\n======================="
-                      + $"\nProcessor configurations are a comma-separated list of 3 or 4 values:"
-                      + $"\n"
-                      + $"\n/{nameof(context.Processors)}=EventTimeSeries,DischargeTimeSeries,DischargeTotalTimeSeries[,MinimumEventDuration]"
-                      + $"\n"
-                      + $"\n- Either time-series identifier strings or uniqueIds can be used."
-                      + $"\n- The /{nameof(context.Processors)}= prefix is optional. "
-                      + $"\n- Processor configurations are best set in an @optionsFile, for easier editing."
                       + $"\n"
                       + $"\nWhen no other command line options are given, the Options.txt file in"
                       + $"\nsame folder as the EXE will be used if it exists."
@@ -157,12 +146,6 @@ namespace TotalDischargeExternalProcessor
                 {
                     if (HelpKeyWords.Contains(arg))
                         throw new ExpectedException(usageMessage);
-
-                    if (TryParseProcessor(arg, out var processor))
-                    {
-                        context.Processors.Add(processor);
-                        continue;
-                    }
 
                     throw new ExpectedException($"Unknown argument: {arg}\n\n{helpGuidance}");
                 }
@@ -224,62 +207,6 @@ namespace TotalDischargeExternalProcessor
                 .Select(s => s.Trim())
                 .Where(s => !s.StartsWith("#") && !s.StartsWith("//"));
         }
-
-        private static TimeSpan ParseTimeSpan(string value)
-        {
-            return TryParseTimeSpan(value, out var timeSpan)
-                ? timeSpan
-                : throw new ExpectedException($"'{value}' is not a valid .NET TimeSpan.");
-        }
-
-        private static bool TryParseTimeSpan(string value, out TimeSpan timeSpan)
-        {
-            return TimeSpan.TryParse(value, out timeSpan);
-        }
-
-        private static void ParseProcessor(Context context, string value)
-        {
-            if (TryParseProcessor(value, out var processor))
-            {
-                context.Processors.Add(processor);
-                return;
-            }
-
-            throw new ExpectedException($"'{value}' does not match the processor configuration syntax.");
-        }
-
-        private static bool TryParseProcessor(string value, out ProcessorConfig processor)
-        {
-            processor = null;
-
-            var parts = value
-                .Split(SeparatorChars)
-                .Select(s => s.Trim())
-                .Where(s => !string.IsNullOrEmpty(s))
-                .ToList();
-
-            if (parts.Count < 3 || parts.Count > 4)
-                return false;
-
-            var minimumEventDuration = (TimeSpan?) null;
-
-            if (parts.Count == 4)
-            {
-                minimumEventDuration = TryParseTimeSpan(parts[3], out var timeSpan) ? (TimeSpan?)timeSpan : null;
-            }
-
-            processor = new ProcessorConfig
-            {
-                EventTimeSeries = parts[0],
-                DischargeTimeSeries = parts[1],
-                DischargeTotalTimeSeries = parts[2],
-                MinimumEventDuration = minimumEventDuration
-            };
-
-            return true;
-        }
-
-        private static readonly char[] SeparatorChars = {','};
 
         private readonly Context _context;
 

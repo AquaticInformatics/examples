@@ -85,6 +85,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Config.cs" />
+    <Compile Include="ConfigLoader.cs" />
     <Compile Include="Context.cs" />
     <Compile Include="EventIntervalDetector.cs" />
     <Compile Include="ExpectedException.cs" />
@@ -93,13 +95,17 @@
     <Compile Include="ExternalProcessor.cs" />
     <Compile Include="Point.cs" />
     <Compile Include="Processor.cs" />
-    <Compile Include="ProcessorConfig.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TimeSeriesIdentifier.cs" />
+    <Compile Include="TimeSeriesIdentifierParser.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <EmbeddedResource Include="log4net.config" />
+    <None Include="Config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
     <None Include="Readme.md" />
   </ItemGroup>

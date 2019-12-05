@@ -1,0 +1,13 @@
+﻿{
+  "Processors": [
+    {
+      "Location": "DougDelete",
+      "Calculations": [
+        {
+          "SamplingSeries": "Cl (Dis)",
+          "TotalLoadingSeries": "Total Chloride"
+        }
+      ]
+    }
+  ]
+}

@@ -1,15 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Aquarius.TimeSeries.Client;
+using Aquarius.TimeSeries.Client.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using Humanizer;
 using NodaTime;
 using ServiceStack.Logging;
+using InterpolationType = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.InterpolationType;
 using PostReflectedTimeSeries = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.PostReflectedTimeSeries;
 using TimeSeriesPoint = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.TimeSeriesPoint;
 
@@ -44,8 +47,12 @@ namespace TotalDischargeExternalProcessor
             ThrowIfEmpty(nameof(Context.Username), Context.Username);
             ThrowIfEmpty(nameof(Context.Password), Context.Password);
 
-            if (!Context.Processors.Any())
-                throw new ExpectedException($"No processors configured. Nothing to do. Add a /{nameof(Context.Processors)}= option or positional argument.");
+            if (string.IsNullOrEmpty(Context.ConfigPath))
+            {
+                Context.ConfigPath = Path.Combine(ExeHelper.ExeDirectory, $"{nameof(Config)}.json");
+            }
+
+            ThrowIfFileMissing(nameof(Context.ConfigPath), Context.ConfigPath);
         }
 
         private void ThrowIfEmpty(string name, string value)
@@ -54,6 +61,14 @@ namespace TotalDischargeExternalProcessor
                 return;
 
             throw new ExpectedException($"/{name}= value is required.");
+        }
+
+        private void ThrowIfFileMissing(string name, string path)
+        {
+            if (File.Exists(path))
+                return;
+
+            throw new ExpectedException($"'{path}' not found. Set the /{name}= option to a valid file.");
         }
 
         private IAquariusClient CreateConnectedClient()
@@ -70,6 +85,7 @@ namespace TotalDischargeExternalProcessor
         private List<Parameter> Parameters { get; set; }
         private List<PopulatedUnitGroup> UnitGroups { get; set; }
         private List<TimeSeriesDescription> TimeSeriesDescriptions { get; set; }
+        private List<LocationDescription> LocationDescriptions { get; set; }
         private List<Processor> Processors { get; set; }
 
         private void LoadConfiguration()
@@ -79,67 +95,348 @@ namespace TotalDischargeExternalProcessor
             UnitGroups = Client.Provisioning.Get(new GetUnits()).Results;
 
             TimeSeriesDescriptions = Client.Publish.Get(new TimeSeriesDescriptionServiceRequest()).TimeSeriesDescriptions;
+            LocationDescriptions = Client.Publish.Get(new LocationDescriptionListServiceRequest()).LocationDescriptions;
 
-            Log.Info($"{Parameters.Count} parameters, {UnitGroups.Count} unit groups, and {TimeSeriesDescriptions.Count} time-series.");
+            Log.Info($"{Parameters.Count} parameters, {UnitGroups.Count} unit groups, {TimeSeriesDescriptions.Count} time-series, and {LocationDescriptions.Count} locations.");
 
-            Processors = Context
+            var config = new ConfigLoader()
+                .Load(Context.ConfigPath);
+
+            Processors = config
                 .Processors
-                .Select(Resolve)
+                .Select(p => Resolve(config.Defaults, p))
                 .OrderBy(p => p.DischargeTotalTimeSeries.LocationIdentifier)
-                .ThenBy(p => p.DischargeTotalTimeSeries.Identifier)
                 .ToList();
 
             Log.Info($"Resolved {Processors.Count} external processor configurations.");
         }
 
-        private Processor Resolve(ProcessorConfig processorConfig)
+        private const string DischargeParameterId = "QR";
+        private const string DischargeTotalParameterId = "QV";
+
+        private Processor Resolve(Defaults defaults, ProcessorConfig processorConfig)
         {
+            var eventIdentifier = !string.IsNullOrEmpty(processorConfig.EventTimeSeries)
+                ? processorConfig.EventTimeSeries
+                : defaults.EventParameterAndLabel;
+
+            var eventTimeSeries = FindTimeSeries(
+                nameof(processorConfig.EventTimeSeries),
+                eventIdentifier,
+                processorConfig.Location,
+                defaults.EventLabel);
+
+            var dischargeIdentifier =
+                ResolveDefaultIdentifier(processorConfig.DischargeTimeSeries, DischargeParameterId, defaults.DischargeLabel);
+
+            var dischargeTimeSeries = FindTimeSeries(
+                nameof(processorConfig.DischargeTimeSeries),
+                dischargeIdentifier,
+                processorConfig.Location,
+                defaults.DischargeLabel);
+
+            var dischargeTotalIdentifier =
+                ResolveDefaultIdentifier(processorConfig.DischargeTotalTimeSeries, DischargeTotalParameterId, defaults.EventLabel);
+
+            var dischargeTotalTimeSeries = FindOrCreateTimeSeries(
+                nameof(processorConfig.DischargeTotalTimeSeries),
+                dischargeTotalIdentifier,
+                processorConfig.Location,
+                defaults.EventLabel,
+                identifier => CreateDischargeTotalTimeSeries(defaults, processorConfig, identifier));
+
             var processor = new Processor
             {
-                EventTimeSeries = GetTimeSeries(FindTimeSeries(nameof(processorConfig.EventTimeSeries), processorConfig.EventTimeSeries)),
-                DischargeTimeSeries = GetTimeSeries(FindTimeSeries(nameof(processorConfig.DischargeTimeSeries), processorConfig.DischargeTimeSeries)),
-                DischargeTotalTimeSeries = GetTimeSeries(FindTimeSeries(nameof(processorConfig.DischargeTotalTimeSeries), processorConfig.DischargeTotalTimeSeries)),
-                MinimumEventDuration = processorConfig.MinimumEventDuration ?? Context.MinimumEventDuration
+                EventTimeSeries = eventTimeSeries,
+                DischargeTimeSeries = dischargeTimeSeries,
+                DischargeTotalTimeSeries = dischargeTotalTimeSeries,
+                MinimumEventDuration = processorConfig.MinimumEventDuration ?? defaults.MinimumEventDuration,
             };
 
-            ThrowIfWrongParameter("QR", nameof(processor.DischargeTimeSeries), processor.DischargeTimeSeries);
-            ThrowIfWrongParameter("QV", nameof(processor.DischargeTotalTimeSeries), processor.DischargeTotalTimeSeries);
+            ThrowIfWrongParameter(DischargeParameterId, nameof(processor.DischargeTimeSeries), processor.DischargeTimeSeries);
+            ThrowIfWrongParameter(DischargeTotalParameterId, nameof(processor.DischargeTotalTimeSeries), processor.DischargeTotalTimeSeries);
             ThrowIfWrongTimeSeriesType(TimeSeriesType.Reflected, nameof(processor.DischargeTotalTimeSeries), processor.DischargeTotalTimeSeries);
 
-            DecomposeVolumetricFlowUnits(processor.DischargeTimeSeries);
+            DecomposeTimePeriodUnits(VolumeUnitGroup, processor.DischargeTimeSeries);
+
+            // TODO: If no calculations, try to infer them from all the "LabData" timeseries in the location with a mass/volume unit group and a Total equivalent?
+
+            processor.Calculations.AddRange(processorConfig
+                .Calculations
+                .Select(calculationConfig => Resolve(defaults, processorConfig.Location, processor, calculationConfig)));
 
             return processor;
         }
 
-        private TimeSeries GetTimeSeries(TimeSeriesDescription timeSeries)
+        private string ResolveDefaultIdentifier(string explicitIdentifier, string parameterId, string label)
         {
-            return Client.Provisioning.Get(new GetTimeSeries {TimeSeriesUniqueId = timeSeries.UniqueId});
+            if (!string.IsNullOrEmpty(explicitIdentifier))
+                return explicitIdentifier;
+
+            var parameter = FindExistingParameterById(parameterId);
+
+            return $"{parameter.Identifier}.{label}";
         }
 
-        private TimeSeriesDescription FindTimeSeries(string name, string identifierOrUniqueId)
+        private Calculation Resolve(Defaults defaults, string defaultLocation, Processor processor, CalculationConfig calculationConfig)
         {
+            var samplingTimeSeries = FindTimeSeries(
+                nameof(calculationConfig.SamplingSeries),
+                calculationConfig.SamplingSeries,
+                defaultLocation,
+                defaults.SamplingLabel);
+
+            var samplingIdentifier = TimeSeriesIdentifierParser.ParseIdentifier(samplingTimeSeries.Identifier);
+
+            var totalLoadingIdentifier = !string.IsNullOrEmpty(calculationConfig.TotalLoadingSeries)
+                ? calculationConfig.TotalLoadingSeries
+                : $"{defaults.TotalLoadingPrefix}{samplingIdentifier.Parameter}";
+
+            var totalLoadingTimeSeries = FindOrCreateTimeSeries(
+                nameof(calculationConfig.TotalLoadingSeries),
+                totalLoadingIdentifier,
+                defaultLocation,
+                defaults.EventLabel,
+                identifier => CreateTotalLoadingTimeSeries(defaults, calculationConfig, processor, samplingTimeSeries, identifier));
+
+            return new Calculation
+            {
+                SamplingTimeSeries = samplingTimeSeries,
+                EventTimeSeries = processor.EventTimeSeries,
+                TotalLoadingTimeSeries = totalLoadingTimeSeries
+            };
+        }
+
+        private TimeSeries GetTimeSeries(Guid uniqueId)
+        {
+            return Client.Provisioning.Get(new GetTimeSeries {TimeSeriesUniqueId = uniqueId});
+        }
+
+        private const string DefaultMethodCode = "DefaultNone";
+
+        private TimeSeries CreateDischargeTotalTimeSeries(
+            Defaults defaults,
+            ProcessorConfig processorConfig,
+            string identifier)
+        {
+            var timeSeriesIdentifier = TimeSeriesIdentifierParser.ParseIdentifier(identifier);
+
+            Log.Info($"Creating '{identifier}' ...");
+
+            var parameter = FindExistingParameterByIdentifier(timeSeriesIdentifier.Parameter);
+            var unit = ResolveParameterUnit(defaults.DischargeTotalUnit, processorConfig.DischargeTotalUnit, parameter);
+            var location = FindExistingLocation(timeSeriesIdentifier.Location);
+
+            var response = Client.Provisioning.Post(
+                new Aquarius.TimeSeries.Client.ServiceModels.Provisioning.PostReflectedTimeSeries
+                {
+                    LocationUniqueId = location.UniqueId,
+                    Parameter = parameter.ParameterId,
+                    Unit = unit,
+                    Label = timeSeriesIdentifier.Label,
+                    InterpolationType = InterpolationType.SucceedingConstant,
+                    GapTolerance = DurationExtensions.MaxGapDuration,
+                    UtcOffset = location.UtcOffset,
+                    Method = DefaultMethodCode,
+                    Comment = $"Created automatically by {ExeHelper.ExeNameAndVersion}"
+                });
+
+            Log.Info($"Created '{response.Identifier}' ({response.Unit})");
+
+            AddNewTimeSeries(response);
+
+            return response;
+        }
+
+        private string ResolveParameterUnit(string defaultUnit, string overrideUnit, Parameter parameter)
+        {
+            return !string.IsNullOrEmpty(overrideUnit)
+                ? overrideUnit
+                : !string.IsNullOrEmpty(defaultUnit)
+                    ? defaultUnit
+                    : parameter.UnitIdentifier;
+        }
+
+        private TimeSeries CreateTotalLoadingTimeSeries(
+            Defaults defaults,
+            CalculationConfig calculationConfig,
+            Processor processor,
+            TimeSeries sourceTimeSeries,
+            string identifier)
+        {
+            var timeSeriesIdentifier = TimeSeriesIdentifierParser.ParseIdentifier(identifier);
+
+            Log.Info($"Creating '{identifier}' ...");
+
+            var parameter = FindExistingParameterByIdentifier(timeSeriesIdentifier.Parameter);
+            var unit = ResolveParameterUnit(defaults.TotalLoadingUnit, calculationConfig.TotalLoadingUnit, parameter);
+            var location = FindExistingLocation(timeSeriesIdentifier.Location);
+
+            var (sourceMassUnit, sourceVolumeUnit) = DecomposeIntegrationUnits(MassUnitGroup, VolumeUnitGroup, sourceTimeSeries);
+            var totalDischargeVolumeUnit = GetUnit(VolumeUnitGroup, processor.DischargeTotalTimeSeries.Unit);
+            var loadingMassUnit = GetUnit(MassUnitGroup, parameter.UnitIdentifier);
+
+            var comments = new List<string>();
+            var scalars = new List<string>();
+
+            if (sourceMassUnit != loadingMassUnit)
+            {
+                BuildUnitConversion(scalars, comments, sourceMassUnit, loadingMassUnit);
+            }
+
+            if (sourceVolumeUnit != totalDischargeVolumeUnit)
+            {
+                BuildUnitConversion(scalars, comments, totalDischargeVolumeUnit, sourceVolumeUnit);
+            }
+
+            var formula = !scalars.Any()
+                ? $"y = x1 * x2; // No unit conversion required"
+                : $"y = x1 * x2 * {string.Join(" * ", scalars)}; // Convert {string.Join(", then ", comments)}";
+
+            var response = Client.Provisioning.Post(new PostCalculatedDerivedTimeSeries
+            {
+                LocationUniqueId = location.UniqueId,
+                Parameter = parameter.ParameterId,
+                Unit = unit,
+                Label = timeSeriesIdentifier.Label,
+                InterpolationType = GetTimeSeriesInterpolationType(sourceTimeSeries.UniqueId),
+                UtcOffset = location.UtcOffset,
+                Method = DefaultMethodCode,
+                Comment = $"Created automatically by {ExeHelper.ExeNameAndVersion}",
+                TimeSeriesUniqueIds = new List<Guid> { sourceTimeSeries.UniqueId, processor.DischargeTotalTimeSeries.UniqueId},
+                Formula = formula
+            });
+
+            Log.Info($"Created '{response.Identifier}' ({response.Unit}) with formula: {formula}");
+
+            AddNewTimeSeries(response);
+
+            return response;
+        }
+
+        private void BuildUnitConversion(List<string> scalars, List<string> comments, Unit sourceUnit, Unit targetUnit)
+        {
+            var factor = ConvertUnits(1.0, sourceUnit, targetUnit);
+
+            scalars.Add($"{factor}");
+            comments.Add($"{sourceUnit.GroupIdentifier} ({sourceUnit.UnitIdentifier} to {targetUnit.UnitIdentifier})");
+        }
+
+        private Parameter FindExistingParameterByIdentifier(string identifier)
+        {
+            var parameter = Parameters
+                .SingleOrDefault(p => p.Identifier.Equals(identifier, StringComparison.InvariantCultureIgnoreCase));
+
+            if (parameter != null)
+                return parameter;
+
+            parameter = Parameters
+                .SingleOrDefault(p => p.ParameterId.Equals(identifier, StringComparison.InvariantCultureIgnoreCase));
+
+            if (parameter != null)
+                throw new ExpectedException($"'{identifier}' is not a known parameter identifier. Did you mean '{parameter.Identifier}' instead?");
+
+            throw new ExpectedException($"'{identifier}' is not a known parameter identifier.");
+        }
+
+        private Parameter FindExistingParameterById(string parameterId)
+        {
+            var parameter = Parameters
+                .SingleOrDefault(p => p.ParameterId.Equals(parameterId, StringComparison.InvariantCultureIgnoreCase));
+
+            if (parameter != null)
+                return parameter;
+            throw new ExpectedException($"'{parameterId}' is not a known parameter ID.");
+        }
+
+        private Location FindExistingLocation(string locationIdentifier)
+        {
+            var location = LocationDescriptions
+                .SingleOrDefault(l =>
+                    l.Identifier.Equals(locationIdentifier, StringComparison.InvariantCultureIgnoreCase));
+
+            if (location != null)
+                return Client.Provisioning.Get(new GetLocation{ LocationUniqueId = location.UniqueId});
+
+            throw new ExpectedException($"'{locationIdentifier}' is not a known location.");
+        }
+
+        private InterpolationType GetTimeSeriesInterpolationType(Guid uniqueId)
+        {
+            var response = Client.Publish.Get(new TimeSeriesDataCorrectedServiceRequest
+            {
+                TimeSeriesUniqueId = uniqueId,
+                GetParts = "MetadataOnly",
+            });
+                
+            return (InterpolationType)Enum.Parse(typeof(InterpolationType), $"{response.InterpolationTypes.Last().Type}", true);
+        }
+
+        private void AddNewTimeSeries(TimeSeries timeSeries)
+        {
+            TimeSeriesDescriptions.AddRange(Client.Publish.Get(new TimeSeriesDescriptionListByUniqueIdServiceRequest
+            {
+                TimeSeriesUniqueIds = new List<Guid> {timeSeries.UniqueId}
+            }).TimeSeriesDescriptions);
+        }
+
+        private TimeSeries FindTimeSeries(
+            string name,
+            string identifierOrUniqueId,
+            string defaultLocation,
+            string defaultLabel)
+        {
+            return FindOrCreateTimeSeries(
+                name,
+                identifierOrUniqueId,
+                defaultLocation,
+                defaultLabel);
+        }
+
+        private TimeSeries FindOrCreateTimeSeries(
+            string name,
+            string identifierOrUniqueId,
+            string defaultLocation,
+            string defaultLabel,
+            Func<string,TimeSeries> createFactory = null)
+        {
+            identifierOrUniqueId = identifierOrUniqueId ?? string.Empty;
+
             if (Guid.TryParse(identifierOrUniqueId, out var uniqueId))
             {
-                return FindTimeSeries(name, uniqueId);
+                return GetTimeSeries(FindExistingTimeSeries(name, uniqueId));
             }
+
+            var inferredLabel = !identifierOrUniqueId.Contains(".") && !string.IsNullOrEmpty(defaultLabel)
+                ? $".{defaultLabel}"
+                : null;
+
+            var inferredLocation = !identifierOrUniqueId.Contains("@") && !string.IsNullOrEmpty(defaultLocation)
+                ? $"@{defaultLocation}"
+                : null;
+
+            var identifier = $"{identifierOrUniqueId}{inferredLabel}{inferredLocation}";
 
             var timeSeries = TimeSeriesDescriptions
                 .FirstOrDefault(ts =>
-                    ts.Identifier.Equals(identifierOrUniqueId, StringComparison.InvariantCultureIgnoreCase));
+                    ts.Identifier.Equals(identifier, StringComparison.InvariantCultureIgnoreCase));
 
             if (timeSeries != null)
-                return timeSeries;
+                return GetTimeSeries(timeSeries.UniqueId);
 
-            throw new ExpectedException($"'{identifierOrUniqueId}' is not a known {name} time-series.");
+            if (Context.CreateMissingTimeSeries && createFactory != null)
+                return createFactory(identifier);
+
+            throw new ExpectedException($"'{identifier}' is not a known {name} time-series.");
         }
 
-        private TimeSeriesDescription FindTimeSeries(string name, Guid uniqueId)
+        private Guid FindExistingTimeSeries(string name, Guid uniqueId)
         {
             var timeSeries = TimeSeriesDescriptions
                 .FirstOrDefault(ts => ts.UniqueId == uniqueId);
 
             if (timeSeries != null)
-                return timeSeries;
+                return timeSeries.UniqueId;
 
             throw new ExpectedException($"{uniqueId:N} is not a known {name} time-series.");
         }
@@ -164,32 +461,41 @@ namespace TotalDischargeExternalProcessor
             throw new ExpectedException($"{name} '{timeSeries.Identifier}' ({timeSeries.TimeSeriesType}) is not the expected '{timeSeriesType}' time-series type.");
         }
 
-        private (Unit VolumeUnit, Unit TimeUnit) DecomposeVolumetricFlowUnits(TimeSeries timeSeries)
+        private (Unit CoreUnit, Unit IntegrationUnit) DecomposeTimePeriodUnits(string coreUnitGroup, TimeSeries timeSeries)
+        {
+            return DecomposeIntegrationUnits(coreUnitGroup, TimeUnitGroup, timeSeries);
+        }
+
+        private (Unit CoreUnit, Unit IntegrationUnit) DecomposeIntegrationUnits(string coreUnitGroup, string integrationUnitGroup, TimeSeries timeSeries)
         {
             var parts = timeSeries.Unit.Split(TimeSeparatorChars, 2);
 
             if (parts.Length != 2)
-                throw new ExpectedException($"The '{timeSeries.Unit}' unit of '{timeSeries.Identifier}' is not a supported volumetric flow unit");
+                throw new ExpectedException($"The '{timeSeries.Unit}' unit of '{timeSeries.Identifier}' is not a supported {integrationUnitGroup}-based unit");
 
-            var volumeUnitId = parts[0];
-            var timeUnitId = parts[1];
+            var coreUnitId = parts[0];
+            var integrationUnitId = parts[1];
 
-            var volumeUnit = GetVolumeUnit(volumeUnitId);
-            var timeUnit = GetTimeUnit(timeUnitId);
+            var coreUnit = GetUnit(coreUnitGroup, coreUnitId);
+            var integrationUnit = GetUnit(integrationUnitGroup, integrationUnitId);
 
-            return (volumeUnit, timeUnit);
+            return (coreUnit, integrationUnit);
         }
 
         private static readonly char[] TimeSeparatorChars = {'/'};
 
+        private const string TimeUnitGroup = "Time";
+        private const string VolumeUnitGroup = "Volume";
+        private const string MassUnitGroup = "Mass";
+
         private Unit GetTimeUnit(string unitId)
         {
-            return GetUnit("Time", unitId);
+            return GetUnit(TimeUnitGroup, unitId);
         }
 
         private Unit GetVolumeUnit(string unitId)
         {
-            return GetUnit("Volume", unitId);
+            return GetUnit(VolumeUnitGroup, unitId);
         }
 
         private Unit GetUnit(string unitGroupId, string unitId)
@@ -372,7 +678,7 @@ namespace TotalDischargeExternalProcessor
             var secondsUnit = GetTimeUnit("s");
             var outputVolumeUnit = GetVolumeUnit(dischargeTotalSeries.Unit);
 
-            var (volumeUnit, timeUnit) = DecomposeVolumetricFlowUnits(dischargeSeries);
+            var (volumeUnit, timeUnit) = DecomposeTimePeriodUnits(VolumeUnitGroup, dischargeSeries);
 
             foreach (var point in dischargePoints)
             {
