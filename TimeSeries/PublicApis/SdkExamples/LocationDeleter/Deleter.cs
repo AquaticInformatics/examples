@@ -323,6 +323,17 @@ namespace LocationDeleter
             }
             catch (WebServiceException exception)
             {
+                if (IsTimeSeriesUsedInDerivations(exception))
+                {
+                    var derivedTimeSeries = GetTimeSeriesDerivedFromTimeSeries(timeSeriesDescription);
+
+                    Log.Warn($"Time-series '{timeSeriesDescription.Identifier}' has {derivedTimeSeries.Count} derived time-series and cannot be deleted. You will need to first delete '{string.Join("', '", derivedTimeSeries.Select(ts => ts.Identifier))}'");
+
+                    ++LockedTimeSeriesCount;
+
+                    return 0;
+                }
+
                 if (IsTimeSeriesLocked(exception))
                 {
                     Log.Warn($"Time-series '{timeSeriesDescription.Identifier}' has locked data and cannot be deleted.");
@@ -346,6 +357,17 @@ namespace LocationDeleter
                 throw;
             }
         }
+
+        private static bool IsRatingModelUsedInDerivations(WebServiceException exception)
+        {
+            return exception.ErrorCode == "DependentRatingModelException";
+        }
+
+        private static bool IsTimeSeriesUsedInDerivations(WebServiceException exception)
+        {
+            return exception.ErrorCode == "DependentTimeSeriesException";
+        }
+
 
         private static bool IsTimeSeriesLocked(WebServiceException exception)
         {
@@ -436,11 +458,7 @@ namespace LocationDeleter
             {
                 try
                 {
-                    return Client.Publish.Get(new TimeSeriesDescriptionListByUniqueIdServiceRequest
-                        {
-                            TimeSeriesUniqueIds = new List<Guid> {uniqueId}
-                        })
-                        .TimeSeriesDescriptions
+                    return GetTimeSeriesDescriptions(uniqueId)
                         .Single();
                 }
                 catch (WebServiceException)
@@ -465,7 +483,39 @@ namespace LocationDeleter
                 return null;
             }
 
+            TimeSeriesDescriptions[timeSeriesDescription.UniqueId] = timeSeriesDescription;
+
             return timeSeriesDescription;
+        }
+
+        private Dictionary<Guid,TimeSeriesDescription> TimeSeriesDescriptions { get; } = new Dictionary<Guid, TimeSeriesDescription>();
+
+        private List<TimeSeriesDescription> GetTimeSeriesDescriptions(params Guid[] uniqueIds)
+        {
+            var knownDescriptions = uniqueIds
+                .Where(uniqueId => TimeSeriesDescriptions.ContainsKey(uniqueId))
+                .Select(uniqueId => TimeSeriesDescriptions[uniqueId])
+                .ToList();
+
+            var unknownUniqueIds = uniqueIds
+                .Where(uniqueId => !TimeSeriesDescriptions.ContainsKey(uniqueId))
+                .ToList();
+
+            if (!unknownUniqueIds.Any())
+                return knownDescriptions;
+
+            var response = Client.Publish.Get(new TimeSeriesDescriptionListByUniqueIdServiceRequest
+            {
+                TimeSeriesUniqueIds = unknownUniqueIds
+            });
+
+            foreach (var timeSeriesDescription in response.TimeSeriesDescriptions)
+            {
+                TimeSeriesDescriptions[timeSeriesDescription.UniqueId] = timeSeriesDescription;
+                knownDescriptions.Add(timeSeriesDescription);
+            }
+
+            return knownDescriptions;
         }
 
         private string GetTimeSeriesSummary(TimeSeriesDescription timeSeries)
@@ -479,10 +529,7 @@ namespace LocationDeleter
                 ? $"{"point".ToQuantity(timeSeriesData.Points.Count)} from {timeSeriesData.Points.First().Timestamp.DateTimeOffset} to {timeSeriesData.Points.Last().Timestamp.DateTimeOffset}"
                 : "no points";
 
-            var downchainDependencies = Client.Publish.Get(new DownchainProcessorListByTimeSeriesServiceRequest
-            {
-                TimeSeriesUniqueId = timeSeries.UniqueId
-            }).Processors;
+            var derivedTimeSeries = GetTimeSeriesDerivedFromTimeSeries(timeSeries);
 
             var timeSeriesSummary = FriendlyListExcludingZeroCounts(
                 pointsSummary,
@@ -491,9 +538,14 @@ namespace LocationDeleter
                 "qualifier".ToQuantity(timeSeriesData.Qualifiers.Count),
                 "note".ToQuantity(timeSeriesData.Notes.Count),
                 "approval".ToQuantity(timeSeriesData.Approvals.Count),
-                "derived dependency".ToQuantity(downchainDependencies.Count));
+                "derived dependency".ToQuantity(derivedTimeSeries.Count));
 
-            return $"Time-series '{timeSeries.Identifier}' ({timeSeries.TimeSeriesType}) has {timeSeriesSummary}";
+            if (derivedTimeSeries.Any())
+            {
+                timeSeriesSummary += $": '{string.Join("', '", derivedTimeSeries.Select(ts => ts.Identifier))}'";
+            }
+
+            return $"Time-series '{timeSeries.Identifier}' ({timeSeries.TimeSeriesType}) has {timeSeriesSummary}.";
         }
 
         private static string FriendlyListExcludingZeroCounts(params string[] items)
@@ -585,11 +637,11 @@ namespace LocationDeleter
             }
             catch (WebServiceException exception)
             {
-                if (exception.ErrorCode == "DependentRatingModelException")
+                if (IsRatingModelUsedInDerivations(exception))
                 {
-                    var derivedTimeSeries = GetDerivedTimeSeries(ratingModelInfo.Identifier);
+                    var derivedTimeSeries = GetTimeSeriesDerivedFromRatingModel(ratingModelInfo.Identifier);
 
-                    Log.Warn($"Rating model '{ratingModelInfo.Identifier}' has {derivedTimeSeries.Count} derived time-series and cannot be deleted. You will need to first delete '{string.Join("', '", derivedTimeSeries)}'");
+                    Log.Warn($"Rating model '{ratingModelInfo.Identifier}' has {derivedTimeSeries.Count} derived time-series and cannot be deleted. You will need to first delete '{string.Join("', '", derivedTimeSeries.Select(ts => ts.Identifier))}'");
 
                     ++LockedRatingModelCount;
 
@@ -621,14 +673,19 @@ namespace LocationDeleter
                     RatingModelIdentifier = ratingModelInfo.Identifier
                 });
 
-                var derivedTimeSeries = GetDerivedTimeSeries(ratingModelInfo.Identifier);
+                var derivedTimeSeries = GetTimeSeriesDerivedFromRatingModel(ratingModelInfo.Identifier);
 
                 var ratingModelSummary = FriendlyListExcludingZeroCounts(
                     "rating curve".ToQuantity(details.RatingCurves.Count),
                     "approval".ToQuantity(details.Approvals.Count),
                     "derived time-series".ToQuantity(derivedTimeSeries.Count));
 
-                return $"Rating model '{ratingModelInfo.Identifier}' has {ratingModelSummary}";
+                if (derivedTimeSeries.Any())
+                {
+                    ratingModelSummary += $": '{string.Join("', '", derivedTimeSeries.Select(ts => ts.Identifier))}'";
+                }
+
+                return $"Rating model '{ratingModelInfo.Identifier}' has {ratingModelSummary}.";
             }
             catch (WebServiceException exception)
             {
@@ -641,26 +698,35 @@ namespace LocationDeleter
             }
         }
 
-        private List<string> GetDerivedTimeSeries(string ratingModelIdentifier)
+        private List<TimeSeriesDescription> GetTimeSeriesDerivedFromRatingModel(string ratingModelIdentifier)
         {
-            var outputTimeSeries = Client.Publish.Get(new DownchainProcessorListByRatingModelServiceRequest
+            return GetDerivedTimeSeries(Client.Publish.Get(new DownchainProcessorListByRatingModelServiceRequest
                 {
                     RatingModelIdentifier = ratingModelIdentifier
                 })
-                .Processors
+                .Processors);
+        }
+
+        private List<TimeSeriesDescription> GetTimeSeriesDerivedFromTimeSeries(TimeSeriesDescription timeSeries)
+        {
+            return GetDerivedTimeSeries(Client.Publish.Get(new DownchainProcessorListByTimeSeriesServiceRequest
+                {
+                    TimeSeriesUniqueId = timeSeries.UniqueId
+                })
+                .Processors);
+        }
+
+        private List<TimeSeriesDescription> GetDerivedTimeSeries(List<Processor> processors)
+        {
+            var outputTimeSeries = processors
                 .Select(p => p.OutputTimeSeriesUniqueId)
                 .Distinct()
                 .ToList();
 
             if (!outputTimeSeries.Any())
-                return new List<string>();
+                return new List<TimeSeriesDescription>();
 
-            return Client.Publish.Get(new TimeSeriesDescriptionListByUniqueIdServiceRequest
-                {
-                    TimeSeriesUniqueIds = outputTimeSeries
-                }).TimeSeriesDescriptions
-                .Select(ts => ts.Identifier)
-                .ToList();
+            return GetTimeSeriesDescriptions(outputTimeSeries.ToArray());
         }
 
         private int LockedLocationCount { get; set; }
