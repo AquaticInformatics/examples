@@ -405,3 +405,8 @@ class timeseries_client:
         return self.acquisition.post("/locations/" + locationUniqueId + "/attachments/reports",
                                      params={'Title': title},
                                      files={'file': open(pathToFile, 'rb')}).json()
+
+    def uploadFieldVisit(self, locationUniqueId, pathToFile):
+        """Uploads a file as a field visit to the given location"""
+        return self.acquisition.post("/locations/" + locationUniqueId + "/visits/upload/plugins",
+                                     files={'file': open(pathToFile, 'rb')}).json()
