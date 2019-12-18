@@ -4,9 +4,10 @@ using System.Reflection;
 using System.Windows.Forms;
 using System.Xml;
 using log4net;
+using SamplesTripScheduler;
 using ServiceStack;
 
-namespace SamplesTripScheduler
+namespace SamplesPlannedSpecimenInstantiator
 {
     static class Program
     {

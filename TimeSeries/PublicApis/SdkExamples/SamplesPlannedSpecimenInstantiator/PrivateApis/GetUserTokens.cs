@@ -1,7 +1,7 @@
 ﻿using Aquarius.Samples.Client.ServiceModel;
 using ServiceStack;
 
-namespace SamplesTripScheduler.PrivateApis
+namespace SamplesPlannedSpecimenInstantiator.PrivateApis
 {
     [Route("/v1/usertokens")]
     public class GetUserTokens : IReturn<UserTokensResponse>

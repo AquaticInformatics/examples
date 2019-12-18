@@ -1,4 +1,4 @@
-﻿namespace SamplesTripScheduler
+﻿namespace SamplesPlannedSpecimenInstantiator
 {
     public class Config
     {

@@ -82,7 +82,7 @@
             this.scheduleButton.Name = "scheduleButton";
             this.scheduleButton.Size = new System.Drawing.Size(145, 23);
             this.scheduleButton.TabIndex = 39;
-            this.scheduleButton.Text = "Schedule selected trips ...";
+            this.scheduleButton.Text = "Schedule selected visits ...";
             this.scheduleButton.UseVisualStyleBackColor = true;
             this.scheduleButton.Click += new System.EventHandler(this.scheduleButton_Click);
             // 
@@ -92,7 +92,7 @@
             this.loadButton.Name = "loadButton";
             this.loadButton.Size = new System.Drawing.Size(128, 23);
             this.loadButton.TabIndex = 38;
-            this.loadButton.Text = "Load planned trips ...";
+            this.loadButton.Text = "Load planned visits ...";
             this.loadButton.UseVisualStyleBackColor = true;
             this.loadButton.Click += new System.EventHandler(this.loadButton_Click);
             // 
@@ -206,7 +206,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MinimumSize = new System.Drawing.Size(484, 375);
             this.Name = "MainForm";
-            this.Text = "Sample Specimen Instantiator";
+            this.Text = "Planned Specimen Instantiator";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAqTs)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.tripDataGridView)).EndInit();

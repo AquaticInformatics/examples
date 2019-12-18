@@ -2,7 +2,7 @@
 using System.IO;
 using System.Reflection;
 
-namespace SamplesTripScheduler
+namespace SamplesPlannedSpecimenInstantiator
 {
     public class ExeHelper
     {

@@ -9,7 +9,8 @@ using Aquarius.Samples.Client;
 using Aquarius.Samples.Client.ServiceModel;
 using Humanizer;
 using log4net;
-using SamplesTripScheduler.PrivateApis;
+using SamplesPlannedSpecimenInstantiator;
+using SamplesPlannedSpecimenInstantiator.PrivateApis;
 using ServiceStack;
 using ServiceStack.Text;
 
@@ -24,7 +25,7 @@ namespace SamplesTripScheduler
             InitializeComponent();
 
             // ReSharper disable once VirtualMemberCallInConstructor
-            Text = ExeHelper.ExeNameAndVersion;
+            Text = $"Planned Specimens Instantiator v{ExeHelper.ExeVersion}";
 
             LoadConfig();
 
@@ -232,12 +233,12 @@ namespace SamplesTripScheduler
                 .ToList();
 
             var tripsWithPlannedVisits = allTrips
-                .Where(t => plannedTripIds.Contains(t.Id))
+                .Where(t => plannedTripIds.Contains(t.Id) && t.FieldVisits.Any(IsCandidateVisit))
                 .ToList();
 
             var items = tripsWithPlannedVisits
                 .SelectMany(t => t.FieldVisits)
-                .Where(v => v.StartTime.HasValue && v.PlannedActivities.Any(a => a.ActivityTemplate.SpecimenTemplates.Any()))
+                .Where(IsCandidateVisit)
                 .Select(v => new TableItem
                 {
                     Trip = v.FieldTrip.CustomId,
@@ -259,6 +260,14 @@ namespace SamplesTripScheduler
             tripDataGridView.Enabled = true;
 
             Info($"{"trip".ToQuantity(tripsWithPlannedVisits.Count)} with planned visits.");
+        }
+
+        private bool IsCandidateVisit(FieldVisit visit)
+        {
+            return visit.FieldTrip != null
+                   && visit.PlanningStatus == PlanningStatusType.PLANNED
+                   && visit.StartTime.HasValue
+                   && visit.PlannedActivities.Any(a => a.ActivityTemplate.SpecimenTemplates.Any());
         }
 
         public class TableItem

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace SamplesTripScheduler
+namespace SamplesPlannedSpecimenInstantiator
 {
     public class CursorWait : IDisposable
     {

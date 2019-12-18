@@ -31,7 +31,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChangeVisitApprovals", "Cha
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TotalDischargeExternalProcessor", "TotalDischargeExternalProcessor\TotalDischargeExternalProcessor.csproj", "{C598046C-4E2E-4C49-8437-5C897BA9C7AD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SamplesTripScheduler", "SamplesTripScheduler\SamplesTripScheduler.csproj", "{C491945B-F4FD-4501-B8D6-B1CF671762F5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SamplesPlannedSpecimenInstantiator", "SamplesPlannedSpecimenInstantiator\SamplesPlannedSpecimenInstantiator.csproj", "{C491945B-F4FD-4501-B8D6-B1CF671762F5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
