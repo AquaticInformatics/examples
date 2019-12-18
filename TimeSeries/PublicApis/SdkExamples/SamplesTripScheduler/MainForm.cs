@@ -32,7 +32,7 @@ namespace SamplesTripScheduler
             disconnectButton.Enabled = false;
             loadButton.Enabled = false;
             scheduleButton.Enabled = false;
-            tripListBox.Enabled = false;
+            tripDataGridView.Enabled = false;
         }
 
         private void Info(string message)
@@ -209,20 +209,11 @@ namespace SamplesTripScheduler
 
         private void ClearTripList()
         {
-            tripListBox.DataSource = null;
-            tripListBox.Enabled = false;
-            tripListBox.SelectedIndex = -1;
+            tripDataGridView.DataSource = null;
+            tripDataGridView.Enabled = false;
 
             loadButton.Enabled = false;
             scheduleButton.Enabled = false;
-        }
-
-        private void SetTripList(Dictionary<FieldTrip, string> items)
-        {
-            tripListBox.DataSource = new BindingSource(items, null);
-            tripListBox.DisplayMember = "Value";
-            tripListBox.ValueMember = "Key";
-            tripListBox.Enabled = true;
         }
 
         private void LoadTripsWithPlannedVisits()
@@ -244,30 +235,39 @@ namespace SamplesTripScheduler
                 .Where(t => plannedTripIds.Contains(t.Id))
                 .ToList();
 
-            var tripItems = tripsWithPlannedVisits.ToDictionary(t => t, FormatTripListItem);
+            var items = tripsWithPlannedVisits
+                .SelectMany(t => t.FieldVisits)
+                .Where(v => v.StartTime.HasValue && v.PlannedActivities.Any(a => a.ActivityTemplate.SpecimenTemplates.Any()))
+                .Select(v => new TableItem
+                {
+                    Trip = v.FieldTrip.CustomId,
+                    Start = v.StartTime.Value.ToDateTimeUtc().Add(DateTimeOffset.Now.Offset),
+                    Location = v.SamplingLocation.CustomId,
+                    Specimens = $"{v.PlannedActivities.SelectMany(a => a.ActivityTemplate.SpecimenTemplates).Count()} specimens",
+                    Visit = v
+                })
+                .OrderBy(i => i.Trip)
+                .ThenBy(i => i.Start)
+                .ToList();
 
-            if (tripItems.Any())
-            {
-                SetTripList(tripItems);
-
-                tripListBox.SelectedIndex = 0;
-            }
-            else
-            {
-                ClearTripList();
-            }
+            tripDataGridView.DataSource = items;
+            tripDataGridView.Columns[0].SortMode = DataGridViewColumnSortMode.Automatic;
+            tripDataGridView.Columns[1].SortMode = DataGridViewColumnSortMode.Automatic;
+            tripDataGridView.Columns[2].SortMode = DataGridViewColumnSortMode.Automatic;
+            tripDataGridView.Columns[3].SortMode = DataGridViewColumnSortMode.NotSortable;
+            tripDataGridView.Columns[4].Visible = false;
+            tripDataGridView.Enabled = true;
 
             Info($"{"trip".ToQuantity(tripsWithPlannedVisits.Count)} with planned visits.");
         }
 
-        private string FormatTripListItem(FieldTrip trip)
+        public class TableItem
         {
-            var plannedVisits = trip
-                .FieldVisits
-                .Where(v => v.PlanningStatus == PlanningStatusType.PLANNED && (v.PlannedActivities?.Any() ?? false))
-                .ToList();
-
-            return $"{trip.CustomId} @ {trip.StartTime} with {"visit".ToQuantity(plannedVisits.Count)}: {string.Join(", ", plannedVisits.Select(v => $"{v.SamplingLocation.CustomId} with {"activity".ToQuantity(v.PlannedActivities.Count)}"))}";
+            public string Trip { get; set; }
+            public DateTime Start { get; set; }
+            public string Location { get; set; }
+            public string Specimens { get; set; }
+            public FieldVisit Visit { get; set; }
         }
 
         private void loadButton_Click(object sender, EventArgs e)
@@ -292,26 +292,22 @@ namespace SamplesTripScheduler
             }
         }
 
-        private void tripListBox_SelectedIndexChanged(object sender, EventArgs e)
+        private void tripDataGridView_SelectionChanged(object sender, EventArgs e)
         {
-            var index = tripListBox.SelectedIndex;
-
-            scheduleButton.Enabled = index >= 0;
+            scheduleButton.Enabled = tripDataGridView.SelectedRows.Count > 0;
         }
 
         private void ScheduleSelectedTrips()
         {
-            if (tripListBox.SelectedIndex < 0 || tripListBox.Items.Count < 0)
-                return;
-
-            var visitsToSchedule = tripListBox
-                .SelectedItems
-                .Cast<KeyValuePair<FieldTrip, string>>()
-                .Select(kvp => kvp.Key)
-                .SelectMany(t => t.FieldVisits.Where(v => v.PlanningStatus == PlanningStatusType.PLANNED))
+            var visitsToSchedule = tripDataGridView
+                .SelectedRows
+                .Cast<DataGridViewRow>()
+                .Select(r => r.DataBoundItem as TableItem)
+                .Where(ti => ti != null)
+                .Select(ti => ti.Visit)
                 .ToList();
 
-            Warn($"Scheduling {visitsToSchedule.Count} visits.");
+            Info($"Scheduling {visitsToSchedule.Count} visits.");
 
             foreach (var visit in visitsToSchedule)
             {
@@ -330,11 +326,11 @@ namespace SamplesTripScheduler
 
             var message = $"Trip '{visit.FieldTrip.CustomId}' on {visit.StartTime} @ '{visit.SamplingLocation.CustomId}': ";
 
-            foreach (var plannedActivity in visit.PlannedActivities)
+            foreach (var plannedActivity in visit.PlannedActivities.Where(a => a.ActivityTemplate.SpecimenTemplates.Any()))
             {
                 var activityTemplate = plannedActivity.ActivityTemplate;
 
-                message += $" '{activityTemplate.CustomId}' with {"specimen".ToQuantity(activityTemplate.SpecimenTemplates.Count)} {string.Join(", ", activityTemplate.SpecimenTemplates.Select(s => s.CustomId))}";
+                message += $" '{activityTemplate.CustomId}' with {activityTemplate.SpecimenTemplates.Count} specimens {string.Join(", ", activityTemplate.SpecimenTemplates.Select(s => s.Name))}";
 
                 var activity = _client.Post(new PostSpecimensFromPlannedActivity
                 {

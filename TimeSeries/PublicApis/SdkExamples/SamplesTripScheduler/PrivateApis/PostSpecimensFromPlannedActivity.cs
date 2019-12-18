@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Aquarius.Samples.Client.ServiceModel;
+﻿using Aquarius.Samples.Client.ServiceModel;
 using ServiceStack;
 
 namespace SamplesTripScheduler.PrivateApis
@@ -11,7 +6,7 @@ namespace SamplesTripScheduler.PrivateApis
     [Route("/v1/fieldvisits/{VisitId}/activityfromplannedactivity", "POST")]
     public class PostSpecimensFromPlannedActivity : IReturn<Activity>
     {
-        public string VisitId { get; set; }
+        public string VisitId { get; set; } // Hack for ambiguous DTO in the Platform SDK. This separates the path parameter from the body parameter
         public string Id { get; set; }
         public ActivityTemplate ActivityTemplate { get; set; }
         public string Instruction { get; set; }

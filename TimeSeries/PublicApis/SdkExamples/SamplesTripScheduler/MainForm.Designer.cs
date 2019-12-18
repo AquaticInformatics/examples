@@ -36,13 +36,14 @@
             this.loadButton = new System.Windows.Forms.Button();
             this.clearButton = new System.Windows.Forms.Button();
             this.outputTextBox = new System.Windows.Forms.TextBox();
-            this.tripListBox = new System.Windows.Forms.ListBox();
             this.disconnectButton = new System.Windows.Forms.Button();
             this.connectButton = new System.Windows.Forms.Button();
             this.connectionLabel = new System.Windows.Forms.Label();
             this.apiTokenTextBox = new System.Windows.Forms.TextBox();
             this.apiTokenLinkLabel = new System.Windows.Forms.LinkLabel();
+            this.tripDataGridView = new System.Windows.Forms.DataGridView();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAqTs)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.tripDataGridView)).BeginInit();
             this.SuspendLayout();
             // 
             // serverTextBox
@@ -119,19 +120,6 @@
             this.outputTextBox.Size = new System.Drawing.Size(440, 59);
             this.outputTextBox.TabIndex = 36;
             // 
-            // tripListBox
-            // 
-            this.tripListBox.AllowDrop = true;
-            this.tripListBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tripListBox.FormattingEnabled = true;
-            this.tripListBox.Location = new System.Drawing.Point(12, 87);
-            this.tripListBox.Name = "tripListBox";
-            this.tripListBox.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
-            this.tripListBox.Size = new System.Drawing.Size(440, 108);
-            this.tripListBox.TabIndex = 35;
-            this.tripListBox.SelectedIndexChanged += new System.EventHandler(this.tripListBox_SelectedIndexChanged);
-            // 
             // disconnectButton
             // 
             this.disconnectButton.Location = new System.Drawing.Point(225, 31);
@@ -180,11 +168,29 @@
             this.apiTokenLinkLabel.Text = "API Token:";
             this.apiTokenLinkLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.apiTokenLinkLabel_LinkClicked);
             // 
+            // tripDataGridView
+            // 
+            this.tripDataGridView.AllowUserToAddRows = false;
+            this.tripDataGridView.AllowUserToDeleteRows = false;
+            this.tripDataGridView.AllowUserToOrderColumns = true;
+            this.tripDataGridView.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.tripDataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.tripDataGridView.Location = new System.Drawing.Point(15, 87);
+            this.tripDataGridView.Name = "tripDataGridView";
+            this.tripDataGridView.ReadOnly = true;
+            this.tripDataGridView.RowHeadersVisible = false;
+            this.tripDataGridView.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.tripDataGridView.Size = new System.Drawing.Size(436, 108);
+            this.tripDataGridView.TabIndex = 46;
+            this.tripDataGridView.SelectionChanged += new System.EventHandler(this.tripDataGridView_SelectionChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(468, 336);
+            this.Controls.Add(this.tripDataGridView);
             this.Controls.Add(this.apiTokenLinkLabel);
             this.Controls.Add(this.serverTextBox);
             this.Controls.Add(this.serverLabel);
@@ -193,7 +199,6 @@
             this.Controls.Add(this.loadButton);
             this.Controls.Add(this.clearButton);
             this.Controls.Add(this.outputTextBox);
-            this.Controls.Add(this.tripListBox);
             this.Controls.Add(this.disconnectButton);
             this.Controls.Add(this.connectButton);
             this.Controls.Add(this.connectionLabel);
@@ -204,6 +209,7 @@
             this.Text = "Sample Specimen Instantiator";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAqTs)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.tripDataGridView)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -218,12 +224,12 @@
         private System.Windows.Forms.Button loadButton;
         private System.Windows.Forms.Button clearButton;
         private System.Windows.Forms.TextBox outputTextBox;
-        private System.Windows.Forms.ListBox tripListBox;
         private System.Windows.Forms.Button disconnectButton;
         private System.Windows.Forms.Button connectButton;
         private System.Windows.Forms.Label connectionLabel;
         private System.Windows.Forms.TextBox apiTokenTextBox;
         private System.Windows.Forms.LinkLabel apiTokenLinkLabel;
+        private System.Windows.Forms.DataGridView tripDataGridView;
     }
 }
 
