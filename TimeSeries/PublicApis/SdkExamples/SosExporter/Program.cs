@@ -330,7 +330,21 @@ namespace SosExporter
                     Setter = value => context.Timeout = TimeSpan.Parse(value, CultureInfo.InvariantCulture),
                     Getter = () => context.Timeout.Humanize(2),
                     Description = "The timeout used for all web requests, in hh:mm:ss format."
-                }
+                },
+                new Option
+                {
+                    Key = nameof(context.SosLoginRoute),
+                    Setter = value => context.SosLoginRoute = value,
+                    Getter = () => context.SosLoginRoute,
+                    Description = "SOS server login route"
+                },
+                new Option
+                {
+                    Key = nameof(context.SosLogoutRoute),
+                    Setter = value => context.SosLogoutRoute = value,
+                    Getter = () => context.SosLogoutRoute,
+                    Description = "SOS server logout route"
+                },
             };
 
             var usageMessage

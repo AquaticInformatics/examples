@@ -100,5 +100,7 @@ namespace SosExporter
         public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(5);
         public TimeSpan? MaximumExportDuration { get; set; }
         public bool ApplyRounding { get; set; } = true;
+        public string SosLoginRoute { get; set; }
+        public string SosLogoutRoute { get; set; }
     }
 }
