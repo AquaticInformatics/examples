@@ -16,6 +16,7 @@ Try the `/help` option for more details.
 
 - .NET 4.7 runtime (any up-to-date Windows system will contain this runtime).
 - Credentials for an AQTS app server and a SOS OGC server.
+- See the [Docker container setup](./docker/DockerSetup.md) guide to setup your own SOS server.
 
 ## Installation
 

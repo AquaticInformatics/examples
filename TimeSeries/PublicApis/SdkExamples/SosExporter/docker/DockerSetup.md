@@ -27,11 +27,11 @@ $ docker-compose down
 
 Before you can feed the SOS server with time-series data, the SOS server must be configured.
 
-Browse to http://localhost/ to load the stock 52North interface
+Browse to http://localhost/ to load the stock 52North interface:
 
 ![Click Here To Start Installation](ClickHereToStartInstallation.png)
 
-Click on the **here** link to start the configuration sequence.
+Click on the red **here** link to start the configuration sequence.
 
 ![Install Start Page](InstallStartPage.png)
 

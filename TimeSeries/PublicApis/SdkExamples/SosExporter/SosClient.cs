@@ -27,7 +27,9 @@ namespace SosExporter
             var client = new SosClient(context.Config.SosServer, context.Config.SosUsername, context.Config.SosPassword)
             {
                 MaximumPointsPerObservation = context.MaximumPointsPerObservation,
-                TimeoutMilliseconds = Convert.ToInt32(context.Timeout.TotalMilliseconds)
+                TimeoutMilliseconds = Convert.ToInt32(context.Timeout.TotalMilliseconds),
+                LoginRoute = context.SosLoginRoute ?? "login",
+                LogoutRoute = context.SosLogoutRoute ?? "logout",
             };
 
             client.Connect();
@@ -37,6 +39,8 @@ namespace SosExporter
 
         private int MaximumPointsPerObservation { get; set; }
         private int TimeoutMilliseconds { get; set; }
+        private string LoginRoute { get; set; }
+        private string LogoutRoute { get; set; }
 
         private string HostUrl { get; }
         private string Username { get; }
@@ -128,7 +132,7 @@ namespace SosExporter
                 {"password", Password}
             };
 
-            $"{HostUrl}/j_spring_security_check"
+            $"{HostUrl}/{LoginRoute}"
                 .PostToUrl(
                     login.ToFormUrlEncoded(),
                     MimeTypes.Xml,
@@ -141,7 +145,7 @@ namespace SosExporter
         {
             DisableTransactionalOperations();
 
-            $"{HostUrl}/j_spring_security_logout"
+            $"{HostUrl}/{LogoutRoute}"
                 .GetStringFromUrl(requestFilter: UseJsonClientCookies);
         }
 

@@ -132,6 +132,9 @@
   <ItemGroup>
     <None Include="App.config" />
     <EmbeddedResource Include="log4net.config" />
+    <None Include="docker\docker-compose\docker-compose.yml" />
+    <None Include="docker\docker-compose\nginx-proxy.conf" />
+    <None Include="docker\DockerSetup.md" />
     <None Include="Ogc\owsExceptionReport.xsd">
       <SubType>Designer</SubType>
     </None>
@@ -153,6 +156,18 @@
   <ItemGroup>
     <None Include="FodyWeavers.xml" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="docker\ClickHereToStartInstallation.png" />
+    <Content Include="docker\ConfirmDataSourceStep.png" />
+    <Content Include="docker\DisableTransactionalCheckbox.png" />
+    <Content Include="docker\FinishInstall.png" />
+    <Content Include="docker\InstallStartPage.png" />
+    <Content Include="docker\SelectDataSource.png" />
+    <Content Include="docker\SelectTransactionalSecurityTab.png" />
+    <Content Include="docker\SetupCompleted.png" />
+    <Content Include="docker\StartButton.png" />
+  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Microsoft.Bcl.Build.1.0.14\tools\Microsoft.Bcl.Build.targets" Condition="Exists('..\packages\Microsoft.Bcl.Build.1.0.14\tools\Microsoft.Bcl.Build.targets')" />
   <Target Name="EnsureBclBuildImported" BeforeTargets="BeforeBuild" Condition="'$(BclBuildImported)' == ''">
