@@ -34,6 +34,8 @@ The `hostname` parameter of the `timeseries_client` constructor supports a numbe
 
 Now the `timeseries` object represents an authenticated AQTS session.
 
+Note: API access from python requires a credentialed account. You cannot use an ActiveDirectory or OpenIDConnect account for API access.
+
 Step 3 - Make requests from the public API endpoints
 
 The `timeseries` object has `publish`, `acquisition`, and `provisioning` properties that are [`Session objects`](http://docs.python-requests.org/en/master/user/advanced/#session-objects), enabling fluent API requests from those public API endpoints, using the `get()`, `post()`, `put()`, and `delete()` methods.
@@ -123,6 +125,21 @@ Non-GET requests should specify any request parameters as a Python dictionary in
 # Create a new location
 >>> payload = {'LocationIdentifier': 'Loc2', 'LocationName': 'My second location', 'LocationPath': 'All Locations', 'LocationType': 'Hydrology Station'}
 >>> location = timeseries.provisioning.post('/locations', json=payload).json()
+```
+
+```python
+# Change the display name of an existing parameter
+# First fetch all the parameters in the system
+>>> parameters = timeseries.provisioning.get('/parameters').json()['Results']
+
+# Find the Stage parameter by parameter ID
+>>> stage = next(p for p in parameters if p['ParameterId'] == 'HG')
+
+# Change the identifier
+>>> stage['Identifier'] = 'Stagey Thing'
+
+# Issue the PUT request with the modified object
+>>> timeseries.provisioning.put('/parameters/'+stage['UniqueId'], data = stage)
 ```
 ### Refer to your API Reference Guides
 
