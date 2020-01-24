@@ -125,7 +125,7 @@ namespace UserImporter
                 var aquariusUserAuthenticationType =
                     CsvAuthenticationTypeConverter.Convert(aquariusUser.AuthenticationType);
 
-                var user = UpdateUserByAuthenticationType[userRecord.AuthenticationType](userRecord, aquariusUser.UniqueId);
+                var user = UpdateUserByAuthenticationType[userRecord.AuthenticationType](userRecord, aquariusUser);
 
                 if (userRecord.AuthenticationType != aquariusUserAuthenticationType)
                 {
@@ -144,8 +144,8 @@ namespace UserImporter
             }
         }
 
-        private static readonly Dictionary<AuthenticationType, Func<UserRecord, Guid, IReturn<User>>>
-            UpdateUserByAuthenticationType = new Dictionary<AuthenticationType, Func<UserRecord, Guid, IReturn<User>>>
+        private static readonly Dictionary<AuthenticationType, Func<UserRecord, User, IReturn<User>>>
+            UpdateUserByAuthenticationType = new Dictionary<AuthenticationType, Func<UserRecord, User, IReturn<User>>>
             {
                 { AuthenticationType.Credentials, UserMapper.GetCredentialsPutUserFromRecord },
                 { AuthenticationType.ActiveDirectory, UserMapper.GetActiveDirectoryPutUserFromRecord },

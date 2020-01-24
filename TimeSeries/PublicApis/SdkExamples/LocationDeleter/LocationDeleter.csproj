@@ -8,7 +8,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>LocationDeleter</RootNamespace>
     <AssemblyName>LocationDeleter</AssemblyName>
-    <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <NuGetPackageImportStamp>
@@ -40,8 +40,8 @@
     <Reference Include="AQService.Common">
       <HintPath>InternalLibraries\AQService.Common.dll</HintPath>
     </Reference>
-    <Reference Include="Aquarius.Client, Version=18.7.4.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Aquarius.SDK.18.7.4\lib\net45\Aquarius.Client.dll</HintPath>
+    <Reference Include="Aquarius.Client, Version=19.4.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Aquarius.SDK.19.4.0\lib\net45\Aquarius.Client.dll</HintPath>
     </Reference>
     <Reference Include="Aquarius.Client.Legacy, Version=18.7.4.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Aquarius.SDK.Legacy.18.7.4\lib\net45\Aquarius.Client.Legacy.dll</HintPath>
@@ -78,6 +78,7 @@
       <HintPath>..\packages\ServiceStack.Text.4.5.12\lib\net45\ServiceStack.Text.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net.Http.Extensions, Version=2.2.29.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Net.Http.2.2.29\lib\net45\System.Net.Http.Extensions.dll</HintPath>
@@ -87,6 +88,7 @@
     </Reference>
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
