@@ -87,7 +87,7 @@ requests.exceptions.HTTPError: 404 Client Error: Not Found for url: http://myser
 
 Your code can use standard python error handling techniques (like  `try ... except ...` blocks) to handle these exceptions as you'd like.
 
-## Formating requests and parsing responses
+## Formatting requests and parsing responses
 
 The `publish`, `acquisition`, and `provisioning` Session objects expose `get()`, `post()`, `put()`, and `delete()` methods for making authenticated HTTP requests and returning response objects.
 
@@ -139,7 +139,7 @@ Non-GET requests should specify any request parameters as a Python dictionary in
 >>> stage['Identifier'] = 'Stagey Thing'
 
 # Issue the PUT request with the modified object
->>> timeseries.provisioning.put('/parameters/'+stage['UniqueId'], data = stage)
+>>> timeseries.provisioning.put('/parameters/'+stage['UniqueId'], json=stage)
 ```
 ### Refer to your API Reference Guides
 
