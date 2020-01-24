@@ -8,11 +8,12 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>SosExporter</RootNamespace>
     <AssemblyName>SosExporter</AssemblyName>
-    <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>x64</PlatformTarget>
@@ -42,8 +43,8 @@
     <Reference Include="AQSystemMLib">
       <HintPath>InternalLibraries\AQSystemMLib.dll</HintPath>
     </Reference>
-    <Reference Include="Aquarius.Client, Version=18.7.4.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Aquarius.SDK.18.7.4\lib\net45\Aquarius.Client.dll</HintPath>
+    <Reference Include="Aquarius.Client, Version=19.4.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Aquarius.SDK.19.4.0\lib\net45\Aquarius.Client.dll</HintPath>
     </Reference>
     <Reference Include="CommunicationShared">
       <HintPath>InternalLibraries\CommunicationShared.dll</HintPath>

@@ -8,7 +8,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>PointZilla</RootNamespace>
     <AssemblyName>PointZilla</AssemblyName>
-    <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <NuGetPackageImportStamp>
@@ -37,8 +37,8 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Aquarius.Client, Version=19.2.4.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Aquarius.SDK.19.2.4\lib\net45\Aquarius.Client.dll</HintPath>
+    <Reference Include="Aquarius.Client, Version=19.4.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Aquarius.SDK.19.4.0\lib\net45\Aquarius.Client.dll</HintPath>
     </Reference>
     <Reference Include="Aquarius.Client.Legacy, Version=19.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Aquarius.SDK.Legacy.19.1.0\lib\net45\Aquarius.Client.Legacy.dll</HintPath>

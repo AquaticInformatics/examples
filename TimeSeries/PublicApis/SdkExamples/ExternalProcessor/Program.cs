@@ -12,6 +12,7 @@ using NodaTime;
 using NodaTime.Text;
 using ServiceStack;
 using PostReflectedTimeSeries = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.PostReflectedTimeSeries;
+using TimeSeriesPoint = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.TimeSeriesPoint;
 using PublishTimeSeriesPoint = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeSeriesPoint;
 
 namespace ExternalProcessor
@@ -195,9 +196,9 @@ namespace ExternalProcessor
             Console.WriteLine($"Appended {result.NumberOfPointsAppended} points (deleting {result.NumberOfPointsDeleted} points) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds.");
         }
 
-        private IEnumerable<ReflectedTimeSeriesPoint> RecalculatePoints(IEnumerable<PublishTimeSeriesPoint> sourcePoints)
+        private IEnumerable<TimeSeriesPoint> RecalculatePoints(IEnumerable<PublishTimeSeriesPoint> sourcePoints)
         {
-            return sourcePoints.Select(p => new ReflectedTimeSeriesPoint
+            return sourcePoints.Select(p => new TimeSeriesPoint
             {
                 Time = Instant.FromDateTimeOffset(p.Timestamp.DateTimeOffset).Plus(Duration.FromSeconds(30)),
                 Value = p.Value.Numeric.HasValue
