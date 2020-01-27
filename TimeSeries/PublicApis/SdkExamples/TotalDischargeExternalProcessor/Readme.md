@@ -174,7 +174,7 @@ That's why following naming conventions is a better approach.
     "EventParameterAndLabel": "Count.Bottle",
     "EventLabel": "Event",
     "TotalLoadingPrefix": "Total ",
-    "DiscreteLabel": "LabData",
+    "SamplingLabel": "LabData",
     "DischargeLabel": "Discharge",
     "DischargeTotalUnit": "Mm^3",
     "TotalLoadingUnit": "kg",
