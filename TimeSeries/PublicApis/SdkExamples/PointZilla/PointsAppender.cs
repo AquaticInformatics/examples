@@ -39,6 +39,8 @@ namespace PointZilla
 
             ThrowIfInvalidGapInterval();
 
+            AdjustGradesAndQualifiers(Points);
+
             if (!string.IsNullOrEmpty(Context.SaveCsvPath))
             {
                 new CsvWriter(Context)
@@ -132,8 +134,6 @@ namespace PointZilla
         {
             AppendResponse appendResponse;
 
-            AdjustGradesAndQualifiers(points);
-
             if (isReflected)
             {
                 appendResponse = client.Acquisition.Post(new PostReflectedTimeSeries
@@ -210,9 +210,14 @@ namespace PointZilla
             if (qualifiers == null || !qualifiers.Any())
                 return Context.MappedDefaultQualifiers;
 
-            return qualifiers
+            var mappedQualifiers = qualifiers
                 .Select(s => Context.MappedQualifiers.TryGetValue(s, out var mappedValue) ? mappedValue : s)
+                .Where(s => !string.IsNullOrEmpty(s))
                 .ToList();
+
+            return mappedQualifiers.Any()
+                ? mappedQualifiers
+                : null;
         }
 
         private IEnumerable<(List<TimeSeriesPoint> Points, Interval TimeRange)> GetPointBatches(

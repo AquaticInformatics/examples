@@ -34,6 +34,8 @@ namespace PointZilla
             var username = !string.IsNullOrEmpty(Context.SourceTimeSeries.Username) ? Context.SourceTimeSeries.Username : Context.Username;
             var password = !string.IsNullOrEmpty(Context.SourceTimeSeries.Password) ? Context.SourceTimeSeries.Password : Context.Password;
 
+            Log.Info($"Connecting to {server} to retrieve points ...");
+
             using (var client = AquariusClient.CreateConnectedClient(server, username, password))
             {
                 Log.Info($"Connected to {server} ({client.ServerVersion})");
