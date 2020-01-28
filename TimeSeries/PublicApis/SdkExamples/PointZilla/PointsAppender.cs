@@ -217,7 +217,7 @@ namespace PointZilla
 
             return mappedQualifiers.Any()
                 ? mappedQualifiers
-                : null;
+                : Context.MappedDefaultQualifiers;
         }
 
         private IEnumerable<(List<TimeSeriesPoint> Points, Interval TimeRange)> GetPointBatches(
