@@ -429,11 +429,15 @@ namespace PointZilla
 
         private static List<string> ParseQualifiers(string text)
         {
-            return text
+            var qualifiers = text
                 .Split(QualifierDelimiters, StringSplitOptions.RemoveEmptyEntries)
                 .Select(s => s.Trim())
                 .Where(s => !string.IsNullOrEmpty(s))
                 .ToList();
+
+            return qualifiers.Any()
+                ? qualifiers
+                : null;
         }
 
         private static readonly char[] QualifierDelimiters = {','};
