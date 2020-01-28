@@ -23,6 +23,8 @@ namespace PointZilla
         public CommandType Command { get; set; } = CommandType.Auto;
         public int? GradeCode { get; set; }
         public List<string> Qualifiers { get; set; } = new List<string>();
+        public bool IgnoreGrades { get; set; }
+        public bool IgnoreQualifiers{ get; set; }
 
         public CreateMode CreateMode { get; set; } = CreateMode.Never;
         public Duration GapTolerance { get; set; } = DurationExtensions.MaxGapDuration;

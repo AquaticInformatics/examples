@@ -205,6 +205,8 @@ Any grade codes or qualifiers imported from CSV rows or manually set via the `/G
 
 When specifying point values on the command line, you must specify the `/GradeCode` or `/Qualifiers` option before specifying the numeric value.
 
+To completely disable grade codes or qualifiers from the appended points, set the `/IgnoreGrades=true` or the `/IgnoreQualifiers=true` options. These options can be useful when reading points from files or other AQTS systems which have these metadata, but you only want the timestamp and point values.
+
 Grade codes and qualifiers will not be appended to basic time-series before AQTS 19.2.185.
 
 ## Copying points from another time-series

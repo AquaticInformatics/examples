@@ -132,6 +132,8 @@ namespace PointZilla
         {
             AppendResponse appendResponse;
 
+            AdjustGradesAndQualifiers(points);
+
             if (isReflected)
             {
                 appendResponse = client.Acquisition.Post(new PostReflectedTimeSeries
@@ -168,6 +170,18 @@ namespace PointZilla
                 polledStatus => polledStatus.AppendStatus != AppendStatusCode.Pending,
                 null,
                 Context.AppendTimeout);
+        }
+
+        private void AdjustGradesAndQualifiers(List<TimeSeriesPoint> points)
+        {
+            if (Context.IgnoreGrades || Context.IgnoreQualifiers)
+            {
+                foreach (var point in points)
+                {
+                    point.GradeCode = !Context.IgnoreGrades ? point.GradeCode : null;
+                    point.Qualifiers = !Context.IgnoreQualifiers ? point.Qualifiers : null;
+                }
+            }
         }
 
         private IEnumerable<(List<TimeSeriesPoint> Points, Interval TimeRange)> GetPointBatches(

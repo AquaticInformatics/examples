@@ -120,6 +120,8 @@ namespace PointZilla
                 new Option {Key = nameof(context.Command), Setter = value => context.Command = ParseEnum<CommandType>(value), Getter = () => context.Command.ToString(), Description = $"Append operation to perform.  {EnumOptions<CommandType>()}"},
                 new Option {Key = nameof(context.GradeCode), Setter = value => context.GradeCode = int.Parse(value), Getter = () => context.GradeCode.ToString(), Description = "Optional grade code for all appended points"},
                 new Option {Key = nameof(context.Qualifiers), Setter = value => context.Qualifiers = QualifiersParser.Parse(value), Getter = () => string.Join(",", context.Qualifiers), Description = "Optional qualifier list for all appended points"},
+                new Option {Key = nameof(context.IgnoreGrades), Setter = value => context.IgnoreGrades = bool.Parse(value), Getter = () => context.IgnoreGrades.ToString(), Description = "Ignore any specified grade codes."},
+                new Option {Key = nameof(context.IgnoreQualifiers), Setter = value => context.IgnoreQualifiers = bool.Parse(value), Getter = () => context.IgnoreQualifiers.ToString(), Description = "Ignore any specified qualifiers."},
 
                 new Option(), new Option {Description = "Time-series creation options:"},
                 new Option {Key = nameof(context.CreateMode), Setter = value => context.CreateMode = ParseEnum<CreateMode>(value), Getter = () => context.CreateMode.ToString(), Description = $"Mode for creating missing time-series. {EnumOptions<CreateMode>()}"},
