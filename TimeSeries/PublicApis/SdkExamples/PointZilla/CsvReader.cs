@@ -21,6 +21,7 @@ namespace PointZilla
 
         private Context Context { get; }
         private InstantPattern TimePattern { get; }
+        private Duration DefaultBias { get; }
         private TimeSpan DefaultTimeOfDay { get; }
 
         public CsvReader(Context context)
@@ -34,6 +35,10 @@ namespace PointZilla
             TimePattern = string.IsNullOrWhiteSpace(Context.CsvDateTimeFormat)
                 ? InstantPattern.ExtendedIsoPattern
                 : InstantPattern.CreateWithInvariantCulture(Context.CsvDateTimeFormat);
+
+            DefaultBias = TimePattern.PatternText.Contains("'Z'")
+                ? Duration.Zero
+                : Duration.FromTimeSpan((Context.UtcOffset ?? Offset.Zero).ToTimeSpan());
         }
 
         private void ValidateConfiguration()
@@ -47,7 +52,7 @@ namespace PointZilla
             var result = TimePattern.Parse(text);
 
             if (result.Success)
-                return result.Value;
+                return result.Value.Plus(DefaultBias);
 
             return null;
         }
