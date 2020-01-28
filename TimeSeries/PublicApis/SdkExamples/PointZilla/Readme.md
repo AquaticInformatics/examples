@@ -205,7 +205,33 @@ Any grade codes or qualifiers imported from CSV rows or manually set via the `/G
 
 When specifying point values on the command line, you must specify the `/GradeCode` or `/Qualifiers` option before specifying the numeric value.
 
+To completely disable grade codes or qualifiers from the appended points, set the `/IgnoreGrades=true` or the `/IgnoreQualifiers=true` options. These options can be useful when reading points from files or other AQTS systems which have these metadata, but you only want the timestamp and point values.
+
 Grade codes and qualifiers will not be appended to basic time-series before AQTS 19.2.185.
+
+### Mapping between different grades or qualifiers
+
+If your source data has a different grade or qualifier configuration, you can specify the `/MappedGradeCodes=sourceValue:mappedValue` and `/MappedQualifiers=sourceValue:mappedValue` options multiple times, to coerce grades and qualifiers into the required ranges.
+
+There are some helpful options to give you full control over the mapped metadata:
+- If the `sourceValue` component of `sourceValue:mappedValue` is empty, then mapped value is used when none exists in the source data. The works for either grades or qualifiers.
+- Mapped grades can also use a `lowSouceValue,highSourceValue:mappedValue` that spans a range of grades by separating the low and high values with a comma.
+
+Using an [`@options.txt` file](https://github.com/AquaticInformatics/examples/wiki/Common-command-line-options) to store the mapping is recommended, since the required configuration may require hundreds of lines.
+
+Ex. If your source file defines grades from 1 (best) to 5 (worst), and 6 through 10 as unusable, but the AQTS system defines grades from 1 (worst) to 50 (best), with -2 being unusable, a `@GradeMap.txt` might look like this:
+
+```
+# Map from 1-5 into 50-down-to-1
+/MappedGrades=1:50
+/MappedGrades=2:40
+/MappedGrades=3:30
+/MappedGrades=4:20
+/MappedGrades=5:10
+
+# Map all the weird grades to the stock AQTS Unusable grade of -2
+/MappedGrades=6,10:-2
+```
 
 ## Copying points from another time-series
 
@@ -303,14 +329,20 @@ Supported -option=value settings (/option=value works too):
   -Wait                     Wait for the append request to complete [default: True]
   -AppendTimeout            Timeout period for append completion, in .NET TimeSpan format.
   -BatchSize                Maximum number of points to send in a single append request [default: 500000]
-  
+
   ========================= Time-series options:
   -TimeSeries               Target time-series identifier or unique ID
   -TimeRange                Time-range for overwrite in ISO8061/ISO8601 (defaults to start/end points)
   -Command                  Append operation to perform.  One of Auto, Append, OverwriteAppend, Reflected, DeleteAllPoints. [default: Auto]
   -GradeCode                Optional grade code for all appended points
   -Qualifiers               Optional qualifier list for all appended points
-  
+
+  ========================= Metadata options:
+  -IgnoreGrades             Ignore any specified grade codes. [default: False]
+  -IgnoreQualifiers         Ignore any specified qualifiers. [default: False]
+  -MappedGrades             Grade mapping in sourceValue:mappedValue syntax. Can be set multiple times.
+  -MappedQualifiers         Qualifier mapping in sourceValue:mappedValue syntax. Can be set multiple times.
+
   ========================= Time-series creation options:
   -CreateMode               Mode for creating missing time-series. One of Never, Basic, Reflected. [default: Never]
   -GapTolerance             Gap tolerance for newly-created time-series. [default: "MaxDuration"]
@@ -324,14 +356,14 @@ Supported -option=value settings (/option=value works too):
   -ComputationIdentifier    Time-series computation identifier
   -ComputationPeriodIdentifier Time-series computation period identifier
   -SubLocationIdentifier    Time-series sub-location identifier
-  -TimeSeriesType           Time-series type. One of Unknown, ProcessorBasic, ProcessorDerived, External, Reflected.
+  -TimeSeriesType           Time-series type. One of Unknown, ProcessorBasic, ProcessorDerived, Reflected.
   -ExtendedAttributeValues  Extended attribute values in UPPERCASE_COLUMN_NAME@UPPERCASE_TABLE_NAME=value syntax. Can be set multiple times.
-  
+
   ========================= Copy points from another time-series:
   -SourceTimeSeries         Source time-series to copy. Prefix with [server2] or [server2:username2:password2] to copy from another server
   -SourceQueryFrom          Start time of extracted points in ISO8601 format.
   -SourceQueryTo            End time of extracted points
-  
+
   ========================= Point-generator options:
   -StartTime                Start time of generated points, in ISO8601 format. [default: the current time]
   -PointInterval            Interval between generated points, in .NET TimeSpan format. [default: 00:01:00]
@@ -342,7 +374,7 @@ Supported -option=value settings (/option=value works too):
   -WaveformPhase            Phase within one waveform period [default: 0]
   -WaveformScalar           Scale the waveform by this amount [default: 1]
   -WaveformPeriod           Waveform period before repeating [default: 1440]
-  
+
   ========================= CSV parsing options:
   -CSV                      Parse the CSV file
   -CsvDateTimeField         CSV column index for combined date+time timestamps [default: 1]
@@ -351,7 +383,7 @@ Supported -option=value settings (/option=value works too):
   -CsvDateOnlyFormat        Format of CSV date-only fields
   -CsvTimeOnlyField         CSV column index for time-only timestamps [default: 0]
   -CsvTimeOnlyFormat        Format of CSV time-only fields
-  -CsvDefaultTimeOfDay      Time of day value when no time field is used [default: 00:00:00]
+  -CsvDefaultTimeOfDay      Time of day value when no time field is used [default: 00:00]
   -CsvValueField            CSV column index for values [default: 3]
   -CsvGradeField            CSV column index for grade codes [default: 5]
   -CsvQualifiersField       CSV column index for qualifiers [default: 6]
@@ -374,4 +406,3 @@ Use the @optionsFile syntax to read more options from a file.
   Blank lines and leading/trailing whitespace is ignored.
   Comment lines begin with a # or // marker.
 ```
- 

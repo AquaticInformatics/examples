@@ -8,11 +8,17 @@ namespace PointZilla
     {
         public static List<string> Parse(string text)
         {
-            return (text ?? string.Empty)
-                .Split(QualifiersDelimiters, StringSplitOptions.RemoveEmptyEntries)
+            var qualifiers = (text ?? string.Empty)
+                .Split(QualifierDelimiters, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
                 .ToList();
+
+            return qualifiers.Any()
+                ? qualifiers
+                : null;
         }
 
-        private static readonly char[] QualifiersDelimiters = {','};
+        private static readonly char[] QualifierDelimiters = { ',' };
     }
 }

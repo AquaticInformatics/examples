@@ -119,7 +119,13 @@ namespace PointZilla
                 new Option {Key = nameof(context.TimeRange), Setter = value => context.TimeRange = ParseInterval(value), Getter = () => context.TimeRange?.ToString(), Description = "Time-range for overwrite in ISO8061/ISO8601 (defaults to start/end points)"},
                 new Option {Key = nameof(context.Command), Setter = value => context.Command = ParseEnum<CommandType>(value), Getter = () => context.Command.ToString(), Description = $"Append operation to perform.  {EnumOptions<CommandType>()}"},
                 new Option {Key = nameof(context.GradeCode), Setter = value => context.GradeCode = int.Parse(value), Getter = () => context.GradeCode.ToString(), Description = "Optional grade code for all appended points"},
-                new Option {Key = nameof(context.Qualifiers), Setter = value => context.Qualifiers = QualifiersParser.Parse(value), Getter = () => string.Join(",", context.Qualifiers), Description = "Optional qualifier list for all appended points"},
+                new Option {Key = nameof(context.Qualifiers), Setter = value => context.Qualifiers = QualifiersParser.Parse(value), Getter = () => string.Empty, Description = "Optional qualifier list for all appended points"},
+
+                new Option(), new Option {Description = "Metadata options:"},
+                new Option {Key = nameof(context.IgnoreGrades), Setter = value => context.IgnoreGrades = bool.Parse(value), Getter = () => $"{context.IgnoreGrades}", Description = "Ignore any specified grade codes."},
+                new Option {Key = nameof(context.IgnoreQualifiers), Setter = value => context.IgnoreQualifiers = bool.Parse(value), Getter = () => $"{context.IgnoreQualifiers}", Description = "Ignore any specified qualifiers."},
+                new Option {Key = nameof(context.MappedGrades), Setter = value => ParseMappedGrade(context, value), Getter = () => string.Empty, Description = "Grade mapping in sourceValue:mappedValue syntax. Can be set multiple times."},
+                new Option {Key = nameof(context.MappedQualifiers), Setter = value => ParseMappedQualifier(context, value), Getter = () => string.Empty, Description = "Qualifier mapping in sourceValue:mappedValue syntax. Can be set multiple times."},
 
                 new Option(), new Option {Description = "Time-series creation options:"},
                 new Option {Key = nameof(context.CreateMode), Setter = value => context.CreateMode = ParseEnum<CreateMode>(value), Getter = () => context.CreateMode.ToString(), Description = $"Mode for creating missing time-series. {EnumOptions<CreateMode>()}"},
@@ -433,7 +439,7 @@ namespace PointZilla
 
         private static void ParseExtendedAttributeValue(Context context, string text)
         {
-            var components = text.Split(new[] {'='}, 2);
+            var components = SplitOnFirstSeparator(text, '=');
 
             if (components.Length < 2)
                 throw new ExpectedException($"'{text}' is not in UPPERCASE_COLUMN_NAME@UPPERCASE_TABLE_NAME=value format.");
@@ -446,6 +452,84 @@ namespace PointZilla
                 ColumnIdentifier = columnIdentifier,
                 Value = value
             });
+        }
+
+        private static string[] SplitOnFirstSeparator(string text, params char[] separators)
+        {
+            return text.Split(separators, 2);
+        }
+
+        private static void ParseMappedGrade(Context context, string text)
+        {
+            var components = SplitOnFirstSeparator(text, ':');
+
+            if (components.Length < 2)
+                throw new ExpectedException($"'{text}' is not in sourceValue:mappedValue syntax.");
+
+            var sourceValueText = components[0].Trim();
+            var mappedValueText = components[1].Trim();
+
+            int? mappedGrade = null;
+
+            if (!string.IsNullOrEmpty(mappedValueText))
+            {
+                if (!int.TryParse(mappedValueText, out var mappedValue))
+                    throw new ExpectedException($"'{text}' is not in sourceValue:mappedValue syntax.");
+
+                mappedGrade = mappedValue;
+            }
+
+            context.GradeMappingEnabled = true;
+
+            if (string.IsNullOrEmpty(sourceValueText))
+            {
+                context.MappedDefaultGrade = mappedGrade;
+                return;
+            }
+
+            var ranges = SplitOnFirstSeparator(sourceValueText, ',')
+                .Select(s => int.TryParse(s, out var value)
+                    ? value
+                    : throw new ExpectedException($"'{text}' is not in sourceValue:mappedValue syntax."))
+                .OrderBy(value => value)
+                .ToList();
+
+            var lowSourceValue = ranges[0];
+            var highSourceValue = ranges.Count > 1 ? ranges[1] : lowSourceValue;
+
+            for(var sourceValue = lowSourceValue; sourceValue <= highSourceValue; ++sourceValue)
+            {
+                context.MappedGrades[sourceValue] = mappedGrade;
+            }
+        }
+
+        private static void ParseMappedQualifier(Context context, string text)
+        {
+            var mapping = SplitOnFirstSeparator(text, ':');
+
+            if (mapping.Length < 2)
+                throw new ExpectedException($"'{text}' is not in sourceValue:mappedValue syntax.");
+
+            var sourceValue = mapping[0].Trim();
+            var mappedValue = mapping[1].Trim();
+
+            if (string.IsNullOrEmpty(mappedValue))
+            {
+                mappedValue = null;
+            }
+
+            context.QualifierMappingEnabled = true;
+
+            if (string.IsNullOrEmpty(sourceValue))
+            {
+                context.MappedDefaultQualifiers = !string.IsNullOrEmpty(mappedValue)
+                    ? new List<string> {mappedValue}
+                    : null;
+            }
+            else
+            {
+                context.MappedQualifiers[sourceValue] = mappedValue;
+            }
         }
 
         private readonly Context _context;

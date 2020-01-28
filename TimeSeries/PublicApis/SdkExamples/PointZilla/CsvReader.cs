@@ -224,7 +224,7 @@ namespace PointZilla
 
                 ParseColumn<double>(row, Context.CsvValueField, number => value = number);
                 ParseColumn<double>(row, Context.CsvGradeField, number => gradeCode = (int)number);
-                ParseStringColumn(row, Context.CsvQualifiersField, text => qualifiers = ParseQualifiers(text));
+                ParseStringColumn(row, Context.CsvQualifiersField, text => qualifiers = QualifiersParser.Parse(text));
 
                 return new TimeSeriesPoint
                 {
@@ -374,7 +374,7 @@ namespace PointZilla
                 if (int.TryParse(text, out var grade))
                     gradeCode = grade;
             });
-            ParseField(fields, Context.CsvQualifiersField, text => qualifiers = ParseQualifiers(text));
+            ParseField(fields, Context.CsvQualifiersField, text => qualifiers = QualifiersParser.Parse(text));
 
             if ((pointType == null || pointType == PointType.Unknown) && time == null)
                 return null;
@@ -426,17 +426,6 @@ namespace PointZilla
             {
                 {PointType.Gap.ToString(), PointType.Gap},
             };
-
-        private static List<string> ParseQualifiers(string text)
-        {
-            return text
-                .Split(QualifierDelimiters, StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim())
-                .Where(s => !string.IsNullOrEmpty(s))
-                .ToList();
-        }
-
-        private static readonly char[] QualifierDelimiters = {','};
 
         private static void ParseField(string[] fields, int fieldIndex, Action<string> parseAction)
         {

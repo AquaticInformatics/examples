@@ -22,7 +22,16 @@ namespace PointZilla
         public Interval? TimeRange { get; set; }
         public CommandType Command { get; set; } = CommandType.Auto;
         public int? GradeCode { get; set; }
-        public List<string> Qualifiers { get; set; } = new List<string>();
+        public List<string> Qualifiers { get; set; }
+
+        public bool IgnoreGrades { get; set; }
+        public bool GradeMappingEnabled { get; set; }
+        public int? MappedDefaultGrade { get; set; }
+        public Dictionary<int, int?> MappedGrades { get; } = new Dictionary<int, int?>();
+        public bool IgnoreQualifiers { get; set; }
+        public bool QualifierMappingEnabled { get; set; }
+        public List<string> MappedDefaultQualifiers { get; set; }
+        public Dictionary<string,string> MappedQualifiers { get; } = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
 
         public CreateMode CreateMode { get; set; } = CreateMode.Never;
         public Duration GapTolerance { get; set; } = DurationExtensions.MaxGapDuration;

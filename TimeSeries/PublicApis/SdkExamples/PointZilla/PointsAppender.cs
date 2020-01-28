@@ -39,6 +39,8 @@ namespace PointZilla
 
             ThrowIfInvalidGapInterval();
 
+            AdjustGradesAndQualifiers(Points);
+
             if (!string.IsNullOrEmpty(Context.SaveCsvPath))
             {
                 new CsvWriter(Context)
@@ -168,6 +170,54 @@ namespace PointZilla
                 polledStatus => polledStatus.AppendStatus != AppendStatusCode.Pending,
                 null,
                 Context.AppendTimeout);
+        }
+
+        private void AdjustGradesAndQualifiers(List<TimeSeriesPoint> points)
+        {
+            if (!Context.IgnoreGrades && !Context.IgnoreQualifiers && !Context.GradeMappingEnabled && !Context.QualifierMappingEnabled)
+                return;
+
+            foreach (var point in points)
+            {
+                point.GradeCode = AdjustGradeCode(point.GradeCode);
+                point.Qualifiers = AdjustQualifiers(point.Qualifiers);
+            }
+        }
+
+        private int? AdjustGradeCode(int? gradeCode)
+        {
+            if (Context.IgnoreGrades)
+                return null;
+
+            if (!Context.GradeMappingEnabled)
+                return gradeCode;
+
+            return gradeCode.HasValue
+                ? Context.MappedGrades.TryGetValue(gradeCode.Value, out var mappedValue)
+                    ? mappedValue
+                    : gradeCode
+                : Context.MappedDefaultGrade;
+        }
+
+        private List<string> AdjustQualifiers(List<string> qualifiers)
+        {
+            if (Context.IgnoreQualifiers)
+                return null;
+
+            if (!Context.QualifierMappingEnabled)
+                return qualifiers;
+
+            if (qualifiers == null || !qualifiers.Any())
+                return Context.MappedDefaultQualifiers;
+
+            var mappedQualifiers = qualifiers
+                .Select(s => Context.MappedQualifiers.TryGetValue(s, out var mappedValue) ? mappedValue : s)
+                .Where(s => !string.IsNullOrEmpty(s))
+                .ToList();
+
+            return mappedQualifiers.Any()
+                ? mappedQualifiers
+                : null;
         }
 
         private IEnumerable<(List<TimeSeriesPoint> Points, Interval TimeRange)> GetPointBatches(
