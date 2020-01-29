@@ -47,6 +47,12 @@ Authenticate with your AQTS server using the `connect` method of the `timeseries
 > timeseries$connect("myserver", "myusername", "mypassword")
 ```
 
+If your app server is running on a secure connection, just prefix the server name or IP with "https:"
+```R
+# Connects to https://myserver/AQUARIUS as "myuser"
+> timeseries$connect("https://myserver", "myusername", "mypassword")
+```
+
 All subsequent requests to the AQTS server will use the authenticated session.
 
 ### Disconnecting from AQTS
