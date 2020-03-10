@@ -152,6 +152,31 @@ Timestamps can be extracted in a few ways:
 - When `/CsvDateOnlyField` is used, the `/UtcOffset` option will determine the UTC offset of the timestamp.
 - You cannot combine the DateTime options with DateOnly or TimeOnly options.
 
+### Setting the UTC offset for your point timestamps
+
+The AQTS Acquisition API requires unambiguous timestamps. Each timestamp must specify a UTC offset, or use 'Z' to indicate UTC time.
+
+When reading points from a CSV file, any timestamp missing a timezone will use the `/UtcOffset` setting, which defaults to the timezone of the computer running PointZilla.
+
+The `/UtcOffset=zone` option can be used to set an explicit time-zone.
+
+UTC offsets can be +HH[:mm], -HH[:mm], or the [ISO 8601 Duration](https://www.w3.org/TR/xmlschema-2/#duration) format.
+
+The following options are all equivalent ways of specifying Eastern Standard Time (UTC-05:00):
+- `/UtcOffset=-05:00`
+- `/UtcOffset=-05`
+- `/UtcOffset=-5`
+- `/UtcOffset=-PT5H`
+- `/UtcOffset=PT-5H`
+
+The following options are all equivalent ways of specifying Australian Central Standard Time (UTC+09:30):
+- `/UtcOffset=+09:30`
+- `/UtcOffset=9:30`
+- `/UtcOffset=09:30`
+- `/UtcOffset=PT9H30M`
+
+When the `/UtcOffset` value is explicitly set, the value will also be used when creating any time-series or locations.
+
 ## Appending values from an Excel spreadsheet
 
 All the CSV parsing options also apply to parsing Excel workbooks.
@@ -183,6 +208,7 @@ The basic rules for the setting created time-series properties are:
 - Use reasonable defaults when possible.
 - The parameter's default unit, interpolation type, and monitoring method are used as a starting point.
 - No gap tolerance is configured by default.
+- The UTC offset of the location will be used as the UTC offset of the time-series, unless the `/UtcOffset=` option is explicitly set.
 - If you are copying a time-series from another AQTS system using the [`/SourceTimeSeries=`](#copying-points-from-another-time-series) option, copy as many of the source time-series properties as possible.
 - Any command line options you set will override any automatically inferred defaults.
 

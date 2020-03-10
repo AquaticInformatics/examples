@@ -12,6 +12,7 @@ using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using log4net;
 using NodaTime;
+using NodaTime.Text;
 using ServiceStack;
 using ServiceStack.Logging.Log4Net;
 
@@ -130,7 +131,7 @@ namespace PointZilla
                 new Option(), new Option {Description = "Time-series creation options:"},
                 new Option {Key = nameof(context.CreateMode), Setter = value => context.CreateMode = ParseEnum<CreateMode>(value), Getter = () => context.CreateMode.ToString(), Description = $"Mode for creating missing time-series. {EnumOptions<CreateMode>()}"},
                 new Option {Key = nameof(context.GapTolerance), Setter = value => context.GapTolerance = value.FromJson<Duration>(), Getter = () => context.GapTolerance.ToJson(), Description = "Gap tolerance for newly-created time-series."},
-                new Option {Key = nameof(context.UtcOffset), Setter = value => context.UtcOffset = value.FromJson<Offset>(), Getter = () => string.Empty, Description = "UTC offset for any created time-series or location. [default: Use system timezone]"},
+                new Option {Key = nameof(context.UtcOffset), Setter = value => context.UtcOffset = ParseOffset(value), Getter = () => string.Empty, Description = "UTC offset for any created time-series or location. [default: Use system timezone]"},
                 new Option {Key = nameof(context.Unit), Setter = value => context.Unit = value, Getter = () => context.Unit, Description = "Time-series unit"},
                 new Option {Key = nameof(context.InterpolationType), Setter = value => context.InterpolationType = ParseEnum<InterpolationType>(value), Getter = () => context.InterpolationType.ToString(), Description = $"Time-series interpolation type. {EnumOptions<InterpolationType>()}"},
                 new Option {Key = nameof(context.Publish), Setter = value => context.Publish = bool.Parse(value), Getter = () => context.Publish.ToString(), Description = "Publish flag."},
@@ -530,6 +531,27 @@ namespace PointZilla
             {
                 context.MappedQualifiers[sourceValue] = mappedValue;
             }
+        }
+
+        private static Offset ParseOffset(string text)
+        {
+            try
+            {
+                var offset = text.FromJson<Offset>();
+
+                return offset;
+            }
+            // ReSharper disable once EmptyGeneralCatchClause
+            catch (Exception)
+            {
+            }
+
+            var result = OffsetPattern.GeneralInvariantPattern.Parse(text);
+
+            if (result.Success)
+                return result.Value;
+
+            throw new ExpectedException($"'{text}' is not a valid UTC offset {result.Exception.Message}");
         }
 
         private readonly Context _context;
