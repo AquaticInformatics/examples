@@ -238,7 +238,8 @@ namespace TotalDischargeExternalProcessor
                     GapTolerance = DurationExtensions.MaxGapDuration,
                     UtcOffset = location.UtcOffset,
                     Method = DefaultMethodCode,
-                    Comment = $"Created automatically by {ExeHelper.ExeNameAndVersion}"
+                    Comment = $"Created automatically by {ExeHelper.ExeNameAndVersion}",
+                    ExtendedAttributeValues = CreateRequiredExtendedAttributes()
                 });
 
             Log.Info($"Created '{response.Identifier}' ({response.Unit})");
@@ -304,7 +305,8 @@ namespace TotalDischargeExternalProcessor
                 Method = DefaultMethodCode,
                 Comment = $"Created automatically by {ExeHelper.ExeNameAndVersion}",
                 TimeSeriesUniqueIds = new List<Guid> { sourceTimeSeries.UniqueId, processor.DischargeTotalTimeSeries.UniqueId},
-                Formula = formula
+                Formula = formula,
+                ExtendedAttributeValues = CreateRequiredExtendedAttributes()
             });
 
             Log.Info($"Created '{response.Identifier}' ({response.Unit}) with formula: {formula}");
@@ -313,6 +315,37 @@ namespace TotalDischargeExternalProcessor
 
             return response;
         }
+
+        private List<ExtendedAttributeValue> CreateRequiredExtendedAttributes()
+        {
+            var timeSeriesExtendedAttributes = Client.Provisioning.Get(new GetTimeSeriesExtendedAttributes())
+                .Results;
+
+            return timeSeriesExtendedAttributes
+                .Where(f => !f.CanBeEmpty)
+                .Select(CreateDefaultValue)
+                .ToList();
+        }
+
+        private static ExtendedAttributeValue CreateDefaultValue(ExtendedAttributeField field)
+        {
+            return new ExtendedAttributeValue
+            {
+                ColumnIdentifier = field.ColumnIdentifier,
+                Value = DefaultValues[field.FieldType](field)
+            };
+        }
+
+        private static readonly Dictionary<ExtendedAttributeFieldType, Func<ExtendedAttributeField, string>>
+            DefaultValues = new Dictionary<ExtendedAttributeFieldType, Func<ExtendedAttributeField, string>>
+            {
+                {ExtendedAttributeFieldType.Boolean, field => default(bool).ToString()},
+                {ExtendedAttributeFieldType.Number, field => "0"},
+                {ExtendedAttributeFieldType.DateTime, field => DateTimeOffset.UtcNow.ToString("O")},
+                {ExtendedAttributeFieldType.String, field => string.Empty},
+                {ExtendedAttributeFieldType.StringOption, field => field.ValueOptions.First()},
+            };
+
 
         private void BuildUnitConversion(List<string> scalars, List<string> comments, Unit sourceUnit, Unit targetUnit)
         {

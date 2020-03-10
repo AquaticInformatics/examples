@@ -31,22 +31,9 @@ namespace TotalDischargeExternalProcessor
                 var time = point.Time;
                 var value = point.Value;
 
-                if (value < prevValue)
+                if (value <= prevValue)
                 {
-                    // The signal is falling. This should be the start of an event
-                    if (start.HasValue && MinimumDuration < prevTime.Value - start.Value)
-                    {
-                        // Flush any previous interval before starting a new one
-                        yield return new Interval(start.Value, prevTime.Value);
-                    }
-
-                    // Start tracking the next event
-                    start = time;
-                }
-                // ReSharper disable once CompareOfFloatsByEqualityOperator
-                else if (value == prevValue)
-                {
-                    // The signal is perfectly flat
+                    // The signal is perfectly flat or falling
                     if (start.HasValue && MinimumDuration < time - prevValueStart.Value)
                     {
                         // This signal has remained flat for long enough to close the event after the minimum duration
@@ -56,10 +43,11 @@ namespace TotalDischargeExternalProcessor
                 }
                 else if (value > prevValue)
                 {
-                    // The signal is rising. The existing event
+                    // The signal is rising. Extend the existing event
                     if (!start.HasValue)
                     {
-                        start = prevValueStart;
+                        // The previous point is the true start of the event
+                        start = prevTime;
                     }
                 }
 
