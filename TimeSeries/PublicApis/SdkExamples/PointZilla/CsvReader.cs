@@ -38,7 +38,7 @@ namespace PointZilla
 
             DefaultBias = TimePattern.PatternText.Contains("'Z'")
                 ? Duration.Zero
-                : Duration.FromTimeSpan((Context.UtcOffset ?? Offset.Zero).ToTimeSpan());
+                : Duration.FromTimeSpan((Context.UtcOffset ?? Offset.FromTicks(DateTimeOffset.Now.Offset.Ticks)).ToTimeSpan());
         }
 
         private void ValidateConfiguration()
@@ -52,7 +52,7 @@ namespace PointZilla
             var result = TimePattern.Parse(text);
 
             if (result.Success)
-                return result.Value.Plus(DefaultBias);
+                return result.Value.Minus(DefaultBias);
 
             return null;
         }
@@ -418,7 +418,7 @@ namespace PointZilla
         private Instant InstantFromDateTime(DateTime dateTime)
         {
             return Instant.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified),
-                (Context.UtcOffset ?? Offset.Zero).ToTimeSpan()));
+                DefaultBias.ToTimeSpan()));
         }
 
         private bool TryParsePointType(string text, out PointType pointType)
