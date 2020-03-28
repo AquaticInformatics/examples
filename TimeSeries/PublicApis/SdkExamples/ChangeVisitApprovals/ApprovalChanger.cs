@@ -99,7 +99,9 @@ namespace ChangeVisitApprovals
                 // Change field visits from all locations
                 Context.Locations = new List<string>{"*"};
 
-                ResolvedLocations = GetResolvedLocations();
+                ResolvedLocations = GetResolvedLocations()
+                    .OrderBy(l => l.Identifier)
+                    .ToList();
             }
 
             var timeRange = new List<string>();
