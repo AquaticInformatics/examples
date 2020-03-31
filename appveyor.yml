@@ -78,7 +78,7 @@ artifacts:
     name: TotalDischargeExternalProcessor
     type: file
 
-  - path: TimeSeries\PublicApis\SdkExamples\SamplesPlannedSpecimenInstantiator\bin\Release\SamplesPlannedSpecimenInstantiator.exe
+  - path: TimeSeries\Samples\DotNetSdk\SamplesPlannedSpecimenInstantiator\bin\Release\SamplesPlannedSpecimenInstantiator.exe
     name: SamplesPlannedSpecimenInstantiator
     type: file
 
