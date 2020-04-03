@@ -16,7 +16,7 @@ namespace SondeFileSynchronizer
             log4net.Config.XmlConfigurator.Configure();
         }
 
-        static void Main(string[] args)
+        static void Main()
         {
             if (AnotherInstanceIsRunning())
             {
@@ -30,8 +30,7 @@ namespace SondeFileSynchronizer
             {
                 Environment.ExitCode = 1;
 
-                var context = GetContext();
-                //TODO: Validate(context);
+                var context = GetValidatedContext();
             }
             catch (Exception ex)
             {
@@ -43,9 +42,12 @@ namespace SondeFileSynchronizer
             }
         }
 
-        private static Context GetContext()
+        private static Context GetValidatedContext()
         {
-            return new Context();
+            var context = ConfigLoader.FromConfigFile();
+            context.Validate();
+
+            return context;
         }
 
         private static bool AnotherInstanceIsRunning()
