@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Threading;
 using log4net;
 using SondeFileSynchronizer.Config;
+using SondeFileSynchronizer.Synchronize;
 
 namespace SondeFileSynchronizer
 {
@@ -18,6 +19,8 @@ namespace SondeFileSynchronizer
 
         static void Main()
         {
+            Log.Info("Program started.");
+
             if (AnotherInstanceIsRunning())
             {
                 Log.Debug("Another instance of the program is still running. Do nothing."); 
@@ -31,6 +34,9 @@ namespace SondeFileSynchronizer
                 Environment.ExitCode = 1;
 
                 var context = GetValidatedContext();
+
+                var synchronizer = new Synchronizer(context);
+                synchronizer.Synchronize();
             }
             catch (Exception ex)
             {

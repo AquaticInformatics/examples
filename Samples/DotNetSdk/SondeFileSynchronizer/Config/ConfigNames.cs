@@ -4,7 +4,6 @@ namespace SondeFileSynchronizer.Config
     public static class ConfigNames
     {
         public const string SondeFileFolder = "SondeFileFolder";
-        public const string ResultsFolder = "ResultsFolder";
         public const string ArchiveFolder = "ArchiveFolder";
 
         public const string SamplesApiBaseUrl = "SamplesApiBaseUrl";
