@@ -59,8 +59,9 @@ namespace SondeFileSynchronizer.Synchronize
             try
             {
                 var convertedFileInfo = _converter.ToSamplesObservationFile(processingFileInfo);
+                Log.Info($"Transformed successfully:'{convertedFileInfo.Name}'");
 
-                //Example: https://test.gaiaserve.net/api/v2/observationimports?fileType=SIMPLE_CSV&timeZoneOffset=-08%3A00&linkFieldVisitsForNewObservations=false");
+                //BillToDo: where can we get timeZoneOffset?
                 var importRequest = new PostObservationImports { fileType = "SIMPLE_CSV", linkFieldVisitsForNewObservations = false, timeZoneOffset = "-08" };
                 using (var stream = new MemoryStream(File.ReadAllBytes(convertedFileInfo.FullName)))
                 {
@@ -72,7 +73,7 @@ namespace SondeFileSynchronizer.Synchronize
             }
             catch (Exception ex)
             {
-                Log.Error($"Failed to import '{processingFileInfo.FullName}'. Error: {ex.Message}");
+                Log.Error($"Failed to import '{processingFileInfo.Name}'. Error: {ex.Message}");
                 _fileMan.MoveToFailed(processingFileInfo);
             }
         }

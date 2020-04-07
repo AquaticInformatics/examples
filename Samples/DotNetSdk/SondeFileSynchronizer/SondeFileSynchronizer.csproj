@@ -55,6 +55,12 @@
     <Reference Include="Aquarius.Client, Version=20.0.3.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Aquarius.SDK.20.0.3\lib\net45\Aquarius.Client.dll</HintPath>
     </Reference>
+    <Reference Include="ExcelDataReader, Version=3.6.0.0, Culture=neutral, PublicKeyToken=93517dbe6a4012fa, processorArchitecture=MSIL">
+      <HintPath>..\packages\ExcelDataReader.3.6.0\lib\net45\ExcelDataReader.dll</HintPath>
+    </Reference>
+    <Reference Include="ExcelDataReader.DataSet, Version=3.6.0.0, Culture=neutral, PublicKeyToken=93517dbe6a4012fa, processorArchitecture=MSIL">
+      <HintPath>..\packages\ExcelDataReader.DataSet.3.6.0\lib\net35\ExcelDataReader.DataSet.dll</HintPath>
+    </Reference>
     <Reference Include="log4net, Version=2.0.8.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <HintPath>..\packages\log4net.2.0.8\lib\net45-full\log4net.dll</HintPath>
     </Reference>
@@ -79,6 +85,7 @@
     </Reference>
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Memory.4.5.3\lib\netstandard2.0\System.Memory.dll</HintPath>
     </Reference>
@@ -117,6 +124,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SamplesDtos\PostObservationImport.cs" />
     <Compile Include="Synchronize\Synchronizer.cs" />
+    <Compile Include="Transform\ColumnConstants.cs" />
+    <Compile Include="Transform\DataTableExtensions.cs" />
     <Compile Include="Transform\SondeFileConverter.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -125,7 +134,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
-    <EmbeddedResource Include="Transform\SamplesFileExample.csv" />
+    <EmbeddedResource Include="Transform\SamplesFileTemplate.csv" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">

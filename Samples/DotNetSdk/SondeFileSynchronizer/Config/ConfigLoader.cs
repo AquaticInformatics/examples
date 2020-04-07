@@ -81,7 +81,8 @@ namespace SondeFileSynchronizer.Config
             while (index < lines.Length)
             {
                 var line = lines[index++];
-                if (string.IsNullOrWhiteSpace(line))
+                if (string.IsNullOrWhiteSpace(line) ||
+                    IsLineToIgnore(line))
                 {
                     continue;
                 }
