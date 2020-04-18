@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using log4net;
@@ -94,6 +95,55 @@ namespace SondeFileSynchronizer.FileManagement
         public void SaveToFailedFolder(string text, FileInfo fileInfo)
         {
             FileHelper.ForceWriteToFile(fileInfo, text);
+        }
+
+        public void ArchiveSuccessFiles()
+        {
+            var successFolder = _context.SuccessFolder;
+            if (!Directory.Exists(successFolder))
+            {
+                return;
+            }
+
+            var files = Directory.GetFiles(successFolder, "*.*");
+            if (files.Length <= _context.ArchiveWhenFileNumberIsLargerThan)
+            {
+                return;
+            }
+
+            Log.Info($"Zipping up {files.Length} files in folder '{successFolder}'");
+            
+            var zipFilePath = Path.Combine(_context.ArchiveFolder, $"SuccessFiles_{DateTime.Now:yyyy-MM-dd_HH-mm}.zip");
+            Directory.CreateDirectory(_context.ArchiveFolder);
+
+            ZipDirectoryOrThrow(successFolder, zipFilePath);
+
+            var deletedFiles= FileHelper.DeleteFilesNoThrow(files);
+            Log.Info($"{deletedFiles.Count} files deleted from folder '{successFolder}'");
+
+            var fileNumNotDeleted = files.Length - deletedFiles.Count;
+            if (fileNumNotDeleted > 0)
+            {
+                Log.Warn($"{fileNumNotDeleted} files were not deleted. See the log file for reasons.");
+            }
+        }
+
+        private static void ZipDirectoryOrThrow(string successFolder, string zipFilePath)
+        {
+            try
+            {
+                ZipFile.CreateFromDirectory(successFolder, zipFilePath);
+                Log.Info($"Zip file:'{zipFilePath}'");
+            }
+            catch
+            {
+                if (File.Exists(zipFilePath))
+                {
+                    File.Delete(zipFilePath);
+                }
+
+                throw;
+            }
         }
     }
 }

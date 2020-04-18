@@ -1,5 +1,4 @@
-﻿
-namespace SondeFileSynchronizer.Config
+﻿namespace SondeFileSynchronizer.Config
 {
     public static class ConfigNames
     {
@@ -9,6 +8,7 @@ namespace SondeFileSynchronizer.Config
         public const string SamplesApiBaseUrl = "SamplesApiBaseUrl";
         public const string SamplesAuthToken = "SamplesAuthToken";
         public const string DefaultUtcOffset = "DefaultUtcOffset";
+        public const string ArchiveWhenFileNumberIsLargerThan = "ArchiveWhenFileNumberIsLargerThan";
 
         public const string MappingSection = "Mapping_Section";
         public const string HeaderMappingSection = "Header_" + MappingSection;

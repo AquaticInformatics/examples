@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Threading;
 using log4net;
 using SondeFileSynchronizer.Config;
+using SondeFileSynchronizer.FileManagement;
 using SondeFileSynchronizer.Synchronize;
 
 namespace SondeFileSynchronizer
@@ -35,6 +36,8 @@ namespace SondeFileSynchronizer
 
                 var context = GetValidatedContext();
 
+                ArchiveSuccessFilesNoThrow(context);
+
                 var synchronizer = new Synchronizer(context);
                 synchronizer.Synchronize();
             }
@@ -45,6 +48,19 @@ namespace SondeFileSynchronizer
             finally
             {
                 EndProgram(release:true);
+            }
+        }
+
+        private static void ArchiveSuccessFilesNoThrow(Context context)
+        {
+            try
+            {
+                var fileMan = new SondeFileManager(context);
+                fileMan.ArchiveSuccessFiles();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Failed to archive files: {e.Message}");
             }
         }
 

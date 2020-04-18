@@ -1,13 +1,18 @@
-﻿using System.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Reflection;
 using ExcelDataReader;
+using log4net;
 using SondeFileSynchronizer.Transform;
 
 namespace SondeFileSynchronizer.FileManagement
 {
     public class FileHelper
     {
+        private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         public static FileInfo MoveReplaceFile(FileInfo fileInfo, string targetFolderPath)
         {
             Directory.CreateDirectory(targetFolderPath);
@@ -67,6 +72,26 @@ namespace SondeFileSynchronizer.FileManagement
             }
 
             File.WriteAllText(targetFileInfo.FullName, csvText);
+        }
+
+        public static List<string> DeleteFilesNoThrow(string[] files)
+        {
+            var deletedFiles = new List<string>();
+
+            foreach (var file in files)
+            {
+                try
+                {
+                    File.Delete(file);
+                    deletedFiles.Add(file);
+                }
+                catch (Exception e)
+                {
+                    Log.Error($"Failed to delete file '{file}'. Error:{e.Message}");
+                }
+            }
+
+            return deletedFiles;
         }
     }
 }

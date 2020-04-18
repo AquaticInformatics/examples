@@ -27,6 +27,9 @@ namespace SondeFileSynchronizer.Config
         public string SamplesAuthToken => GetValueByNameOrDefault(ConfigNames.SamplesAuthToken, "");
         public string DefaultUtcOffset => GetValueByNameOrDefault(ConfigNames.DefaultUtcOffset,"");
 
+        public int ArchiveWhenFileNumberIsLargerThan =>
+            int.Parse(GetValueByNameOrDefault(ConfigNames.ArchiveWhenFileNumberIsLargerThan, "200"));
+
         private string GetValueByNameOrDefault(string name, string defaultValue)
         {
             if (SettingNameValues.TryGetValue(name, out string value))
@@ -55,6 +58,14 @@ namespace SondeFileSynchronizer.Config
                 !TimeSpan.TryParse(DefaultUtcOffset, out _))
             {
                 throw new ConfigException("You must specify the default utc offset for the observation time.");
+            }
+
+            var fileNumberStr = GetValueByNameOrDefault(ConfigNames.ArchiveWhenFileNumberIsLargerThan, "");
+
+            if (string.IsNullOrWhiteSpace(fileNumberStr) ||
+                !int.TryParse(fileNumberStr, out _))
+            {
+                throw new ConfigException($"'{ConfigNames.ArchiveWhenFileNumberIsLargerThan}' must be an integer.'{fileNumberStr}' is invalid.");
             }
         }
     }
