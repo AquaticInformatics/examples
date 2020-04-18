@@ -33,7 +33,6 @@ namespace SondeFileSynchronizer.Config
         private static Context ParseLinesForContext(string[] lines)
         {
             var context = new Context();
-            var settingNameValues = new Dictionary<string,string>();
 
             var index = 0;
             while (index < lines.Length)
@@ -51,10 +50,9 @@ namespace SondeFileSynchronizer.Config
                     continue;
                 }
 
-                ParseForSetting(line, settingNameValues);
+                ParseForSetting(line, context.SettingNameValues);
             }
 
-            context.Setting = new Setting(settingNameValues);
             return context;
         }
 

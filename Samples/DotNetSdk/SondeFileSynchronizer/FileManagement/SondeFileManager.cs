@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -11,38 +12,58 @@ namespace SondeFileSynchronizer.FileManagement
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private readonly Setting _setting;
+        private readonly Context _context;
 
-        public SondeFileManager(Setting setting)
+        public SondeFileManager(Context context)
         {
-            _setting = setting;
+            _context = context;
         }
 
-        public string SondeFileFolder => _setting.FolderPathToMonitor;
+        public string SondeFileFolder => _context.FolderPathToMonitor;
 
         public FileInfo MoveToProcessing(FileInfo fileInfo)
         {
-            return MoveFileToFolder(fileInfo, _setting.ProcessingFolder);
+            return MoveFileToFolder(fileInfo, _context.ProcessingFolder);
         }
 
         private FileInfo MoveFileToFolder(FileInfo fileInfo, string targetFolderPath)
         {
             var movedTo = FileHelper.MoveReplaceFile(fileInfo, targetFolderPath);
-            Log.Info($"Moved  to '{movedTo.FullName}'");
+            Log.Debug($"'{fileInfo.Name}' moved to '{targetFolderPath}'");
 
             return movedTo;
         }
 
-        public FileInfo MoveToSuccess(FileInfo fileInfo)
+        public void MoveAllToFailedNoThrow(params FileInfo[] fileInfos)
         {
-            return MoveFileToFolder(fileInfo, _setting.SuccessFolder);
+            MoveFilesToFolderNoThrow(fileInfos, _context.FailedFolder);
         }
 
-        public FileInfo MoveToFailed(FileInfo fileInfo)
+        private void MoveFilesToFolderNoThrow(FileInfo[] fileInfos, string targetFolderPath)
         {
-            return MoveFileToFolder(fileInfo, _setting.FailedFolder);
+            foreach (var fileInfo in fileInfos)
+            {
+                if (!fileInfo.Exists)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    MoveFileToFolder(fileInfo, targetFolderPath);
+                }
+                catch (Exception ex)
+                {
+                    Log.Debug($"Error moving file '{fileInfo.FullName}' to folder '{targetFolderPath}'.", ex);
+                }
+            }
         }
 
+        public void MoveAllToSuccessNoThrow(params FileInfo[] fileInfos)
+        {
+            MoveFilesToFolderNoThrow(fileInfos, _context.SuccessFolder);
+        }
+        
         public List<FileInfo> GetSondeCsvFiles()
         {
             var dir = new DirectoryInfo(SondeFileFolder);
@@ -56,7 +77,23 @@ namespace SondeFileSynchronizer.FileManagement
 
         public string GetConvertedSamplesFilePath(FileInfo fileInfo)
         {
-            return Path.Combine(_setting.ConvertedFolder, fileInfo.Name + ".Samples.csv");
+            return Path.Combine(_context.ProcessingFolder, GetSamplesFileName(fileInfo));
+        }
+
+        private static string GetSamplesFileName(FileInfo fileInfo)
+        {
+            return Path.Combine(Path.GetFileNameWithoutExtension(fileInfo.Name) + ".Converted.csv");
+        }
+
+        public FileInfo GetFailedSamplesFileInfo(FileInfo fileInfo)
+        {
+            return new FileInfo(Path.Combine(_context.FailedFolder, 
+                Path.GetFileNameWithoutExtension(GetSamplesFileName(fileInfo)) + "_Errors.csv"));
+        }
+
+        public void SaveToFailedFolder(string text, FileInfo fileInfo)
+        {
+            FileHelper.ForceWriteToFile(fileInfo, text);
         }
     }
 }

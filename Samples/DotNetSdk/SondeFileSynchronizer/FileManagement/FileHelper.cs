@@ -56,6 +56,11 @@ namespace SondeFileSynchronizer.FileManagement
         public static void ForceWriteDataTableAsCsvFile(FileInfo targetFileInfo, DataTable dataTable)
         {
             var csvText = dataTable.ToCsv();
+            ForceWriteToFile(targetFileInfo, csvText);
+        }
+
+        public static void ForceWriteToFile(FileInfo targetFileInfo, string csvText)
+        {
             if (!string.IsNullOrWhiteSpace(targetFileInfo.DirectoryName))
             {
                 Directory.CreateDirectory(targetFileInfo.DirectoryName);

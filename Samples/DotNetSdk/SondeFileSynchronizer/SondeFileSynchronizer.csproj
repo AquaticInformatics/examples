@@ -52,8 +52,8 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Aquarius.Client, Version=20.0.3.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Aquarius.SDK.20.0.3\lib\net45\Aquarius.Client.dll</HintPath>
+    <Reference Include="Aquarius.Client, Version=20.0.6.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Aquarius.SDK.20.0.6\lib\net45\Aquarius.Client.dll</HintPath>
     </Reference>
     <Reference Include="ExcelDataReader, Version=3.6.0.0, Culture=neutral, PublicKeyToken=93517dbe6a4012fa, processorArchitecture=MSIL">
       <HintPath>..\packages\ExcelDataReader.3.6.0\lib\net45\ExcelDataReader.dll</HintPath>
@@ -104,6 +104,9 @@
       <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.5.2\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
     <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
+    </Reference>
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -117,12 +120,15 @@
     <Compile Include="Config\ConfigNames.cs" />
     <Compile Include="Config\ConfigLoader.cs" />
     <Compile Include="Config\Context.cs" />
-    <Compile Include="Config\Setting.cs" />
     <Compile Include="FileManagement\FileHelper.cs" />
+    <Compile Include="FileManagement\FileInfoSet.cs" />
     <Compile Include="FileManagement\SondeFileManager.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SamplesDtos\PostObservationImport.cs" />
+    <Compile Include="ServiceClient\ImportClient.cs" />
+    <Compile Include="ServiceClient\ImportResult.cs" />
+    <Compile Include="ServiceClient\ImportResultResponse.cs" />
+    <Compile Include="ServiceClient\ImportStatus.cs" />
     <Compile Include="Synchronize\Synchronizer.cs" />
     <Compile Include="Transform\ColumnConstants.cs" />
     <Compile Include="Transform\DataTableExtensions.cs" />

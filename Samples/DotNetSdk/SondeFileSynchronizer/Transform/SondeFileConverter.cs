@@ -20,7 +20,7 @@ namespace SondeFileSynchronizer.Transform
         public SondeFileConverter(Context context)
         {
             _context = context;
-            _fileMan = new SondeFileManager(_context.Setting);
+            _fileMan = new SondeFileManager(_context);
         }
 
         public FileInfo ToSamplesObservationFile(FileInfo sondeFileInfo)
