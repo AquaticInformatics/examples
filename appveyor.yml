@@ -42,6 +42,10 @@ artifacts:
     name: ObservationValidator
     type: zip
 
+  - path: Samples\DotNetSdk\SondeFileSynchronizer\bin\Release
+    name: SondeFileSynchronizer
+    type: zip
+
   - path: TimeSeries\PublicApis\SdkExamples\PointZilla\bin\Release\PointZilla.exe
     name: PointZilla
     type: file
@@ -87,7 +91,7 @@ deploy:
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: Example utilities $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor, SamplesPlannedSpecimenInstantiator
+    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor,SondeFileSynchronizer,SamplesPlannedSpecimenInstantiator
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true
