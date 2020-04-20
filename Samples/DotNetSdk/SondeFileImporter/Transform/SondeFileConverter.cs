@@ -4,10 +4,10 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using SondeFileSynchronizer.Config;
-using SondeFileSynchronizer.FileManagement;
+using SondeFileImporter.Config;
+using SondeFileImporter.FileManagement;
 
-namespace SondeFileSynchronizer.Transform
+namespace SondeFileImporter.Transform
 {
     public class SondeFileConverter
     {

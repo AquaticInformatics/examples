@@ -1,4 +1,4 @@
-﻿namespace SondeFileSynchronizer.ServiceClient
+﻿namespace SondeFileImporter.ServiceClient
 {
     public class ImportResult
     {

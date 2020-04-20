@@ -1,4 +1,4 @@
-﻿namespace SondeFileSynchronizer.Config
+﻿namespace SondeFileImporter.Config
 {
     public static class ConfigNames
     {

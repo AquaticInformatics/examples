@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace SondeFileSynchronizer.Config
+namespace SondeFileImporter.Config
 {
     public class ConfigException : Exception
     {

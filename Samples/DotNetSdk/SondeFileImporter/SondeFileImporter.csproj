@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{6D5F7772-8BD0-4FCB-B2AC-0A173CD0C2E8}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>SondeFileSynchronizer</RootNamespace>
-    <AssemblyName>SondeFileSynchronizer</AssemblyName>
+    <RootNamespace>SondeFileImporter</RootNamespace>
+    <AssemblyName>SondeFileImporter</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -130,7 +130,7 @@
     <Compile Include="ServiceClient\ImportResult.cs" />
     <Compile Include="ServiceClient\ImportResultResponse.cs" />
     <Compile Include="ServiceClient\ImportStatus.cs" />
-    <Compile Include="Synchronize\Synchronizer.cs" />
+    <Compile Include="Importer\Importer.cs" />
     <Compile Include="Transform\ColumnConstants.cs" />
     <Compile Include="Transform\DataTableExtensions.cs" />
     <Compile Include="Transform\SondeFileConverter.cs" />
@@ -140,8 +140,17 @@
     <None Include="Config.ini">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="ExampleDataFiles\Sonde file example.Converted.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="ExampleDataFiles\Sonde file example.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
     <EmbeddedResource Include="Transform\SamplesFileTemplate.csv" />
+    <None Include="Readme.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">

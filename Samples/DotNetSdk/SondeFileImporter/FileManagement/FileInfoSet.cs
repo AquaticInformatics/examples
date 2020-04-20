@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace SondeFileSynchronizer.FileManagement
+namespace SondeFileImporter.FileManagement
 {
     public class FileInfoSet
     {

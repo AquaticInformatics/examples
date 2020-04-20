@@ -8,9 +8,9 @@ using Aquarius.Samples.Client;
 using Aquarius.Samples.Client.ServiceModel;
 using Aquarius.TimeSeries.Client;
 using ServiceStack;
-using SondeFileSynchronizer.Config;
+using SondeFileImporter.Config;
 
-namespace SondeFileSynchronizer.ServiceClient
+namespace SondeFileImporter.ServiceClient
 {
     public class ImportClient : IDisposable
     {

@@ -3,14 +3,14 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using log4net;
-using SondeFileSynchronizer.Config;
-using SondeFileSynchronizer.FileManagement;
-using SondeFileSynchronizer.ServiceClient;
-using SondeFileSynchronizer.Transform;
+using SondeFileImporter.Config;
+using SondeFileImporter.FileManagement;
+using SondeFileImporter.ServiceClient;
+using SondeFileImporter.Transform;
 
-namespace SondeFileSynchronizer.Synchronize
+namespace SondeFileImporter.Importer
 {
-    public class Synchronizer
+    public class SondeFileImporter
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -18,7 +18,7 @@ namespace SondeFileSynchronizer.Synchronize
         private readonly SondeFileManager _fileMan;
         private readonly SondeFileConverter _converter;
 
-        public Synchronizer(Context context)
+        public SondeFileImporter(Context context)
         {
             _context = context;
             _fileMan = new SondeFileManager(_context);

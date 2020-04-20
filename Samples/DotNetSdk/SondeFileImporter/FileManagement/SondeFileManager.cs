@@ -5,9 +5,9 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using log4net;
-using SondeFileSynchronizer.Config;
+using SondeFileImporter.Config;
 
-namespace SondeFileSynchronizer.FileManagement
+namespace SondeFileImporter.FileManagement
 {
     public class SondeFileManager
     {

@@ -1,4 +1,4 @@
-﻿namespace SondeFileSynchronizer.Transform
+﻿namespace SondeFileImporter.Transform
 {
     public static class ColumnConstants
     {

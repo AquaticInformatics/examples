@@ -2,11 +2,11 @@
 using System.Reflection;
 using System.Threading;
 using log4net;
-using SondeFileSynchronizer.Config;
-using SondeFileSynchronizer.FileManagement;
-using SondeFileSynchronizer.Synchronize;
+using SondeFileImporter.Config;
+using SondeFileImporter.FileManagement;
+using SondeFileImporter.Importer;
 
-namespace SondeFileSynchronizer
+namespace SondeFileImporter
 {
     public class Program
     {
@@ -38,8 +38,8 @@ namespace SondeFileSynchronizer
 
                 ArchiveSuccessFilesNoThrow(context);
 
-                var synchronizer = new Synchronizer(context);
-                synchronizer.Synchronize();
+                var importer = new Importer.SondeFileImporter(context);
+                importer.Synchronize();
             }
             catch (Exception ex)
             {

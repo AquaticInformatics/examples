@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using ServiceStack;
 
-namespace SondeFileSynchronizer.Transform
+namespace SondeFileImporter.Transform
 {
     public static class DataTableExtensions
     {

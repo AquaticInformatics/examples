@@ -5,9 +5,9 @@ using System.IO;
 using System.Reflection;
 using ExcelDataReader;
 using log4net;
-using SondeFileSynchronizer.Transform;
+using SondeFileImporter.Transform;
 
-namespace SondeFileSynchronizer.FileManagement
+namespace SondeFileImporter.FileManagement
 {
     public class FileHelper
     {
