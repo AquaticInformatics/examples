@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace SondeFileImporter.Config
 {
@@ -12,7 +13,7 @@ namespace SondeFileImporter.Config
             Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + @"\Config.ini";
 
         private static readonly string NameValueSeparator = "=";
-        private static readonly string CommentLineStart = "#";
+        private static readonly string CommentLineStart = ";";
 
         public static Context FromConfigFile()
         {
@@ -67,7 +68,7 @@ namespace SondeFileImporter.Config
             var trimmedLine = line?.Trim();
 
             return !string.IsNullOrWhiteSpace(trimmedLine) &&
-                   trimmedLine.EndsWith(ConfigNames.MappingSection, StringComparison.InvariantCultureIgnoreCase);
+                   Regex.IsMatch(trimmedLine, @"^\[.+\]$");
         }
 
         private static int ParseSection(string[] lines, int currentIndex, Context context)
