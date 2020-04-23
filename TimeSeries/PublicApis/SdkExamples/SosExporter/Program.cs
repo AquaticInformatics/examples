@@ -85,11 +85,6 @@ namespace SosExporter
             SosClient.ConfigureJsonOnce();
         }
 
-        private static string GetProgramName()
-        {
-            return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
-        }
-
         private static Context ParseArgs(string[] args)
         {
             var context = new Context();
@@ -245,35 +240,20 @@ namespace SosExporter
                 },
 
                 new Option(),
-                new Option {Description = "Maximum time range of points to upload: Changes will trigger a full resync:"},
+                new Option {Description = "Export duration configuration: Changes will trigger a full resync:"},
                 new Option
                 {
-                    Key = nameof(context.Config.MaximumPointDays),
-                    Setter = value =>
-                    {
-                        var components = value.Split('=');
-                        if (components.Length == 2)
-                        {
-                            var periodText = components[0];
-                            var daysText = components[1];
-
-                            var period = (ComputationPeriod) Enum.Parse(typeof(ComputationPeriod), periodText, true);
-                            var days = daysText.Equals("All", StringComparison.InvariantCultureIgnoreCase)
-                                ? -1
-                                : int.Parse(daysText);
-
-                            context.Config.MaximumPointDays[period] = days;
-                        }
-                    },
-                    Getter = () => "\n    " + string.Join("\n    ", context.Config.MaximumPointDays.Select(kvp =>
-                    {
-                        var daysText = kvp.Value > 0
-                            ? kvp.Value.ToString()
-                            : "All";
-
-                        return $"{kvp.Key,-8} = {daysText}";
-                    })) + "\n  ",
-                    Description = "Days since the last point to upload, in Frequency=Value format."
+                    Key = nameof(context.Config.ExportDurationAttributeName),
+                    Setter = value => context.Config.ExportDurationAttributeName = value,
+                    Getter = () => context.Config.ExportDurationAttributeName,
+                    Description = "Name of time-series extended attribute storing the export duration."
+                },
+                new Option
+                {
+                    Key = nameof(context.Config.DefaultExportDurationDays),
+                    Setter = value => context.Config.DefaultExportDurationDays = int.Parse(value),
+                    Getter = () => $"{context.Config.DefaultExportDurationDays}",
+                    Description = "Default export duration when the extended attribute value cannot be parsed."
                 },
 
                 new Option(), 
@@ -329,9 +309,9 @@ namespace SosExporter
                 },
                 new Option
                 {
-                    Key = nameof(context.MaximumExportDuration),
-                    Setter = value => context.MaximumExportDuration = TimeSpan.Parse(value, CultureInfo.InvariantCulture),
-                    Getter = () => context.MaximumExportDuration?.Humanize(2),
+                    Key = nameof(context.MaximumPollDuration),
+                    Setter = value => context.MaximumPollDuration = TimeSpan.Parse(value, CultureInfo.InvariantCulture),
+                    Getter = () => context.MaximumPollDuration?.Humanize(2),
                     Description = "The maximum duration before polling AQTS for more changes, in hh:mm:ss format. Defaults to the AQTS global setting."
                 },
                 new Option
@@ -360,7 +340,7 @@ namespace SosExporter
             var usageMessage
                     = $"Export time-series changes in AQTS time-series to an OGC SOS server."
                       + $"\n"
-                      + $"\nusage: {GetProgramName()} [-option=value] [@optionsFile] ..."
+                      + $"\nusage: {ExeHelper.ExeName} [-option=value] [@optionsFile] ..."
                       + $"\n"
                       + $"\nSupported -option=value settings (/option=value works too):\n\n  {string.Join("\n  ", options.Select(o => o.UsageText()))}"
                       + $"\n"

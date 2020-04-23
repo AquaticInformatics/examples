@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using Humanizer;
@@ -31,7 +32,7 @@ namespace SosExporter
 
         public void Run()
         {
-            Log.Info($"{GetProgramVersion()} connecting to {Context.Config.AquariusServer} ...");
+            Log.Info($"{ExeHelper.ExeNameAndVersion} connecting to {Context.Config.AquariusServer} ...");
 
             using (Aquarius = CreateConnectedAquariusClient())
             {
@@ -49,15 +50,6 @@ namespace SosExporter
         }
 
         private static readonly AquariusServerVersion MinimumVersion = AquariusServerVersion.Create("17.2");
-
-        private static string GetProgramVersion()
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-            var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
-
-            // ReSharper disable once PossibleNullReferenceException
-            return $"{MethodBase.GetCurrentMethod().DeclaringType.Namespace} v{fileVersionInfo.FileVersion}";
-        }
 
         private IAquariusClient CreateConnectedAquariusClient()
         {
@@ -90,7 +82,7 @@ namespace SosExporter
 
             ValidateFilters();
 
-            MaximumExportDuration = Context.MaximumExportDuration
+            MaximumExportDuration = Context.MaximumPollDuration
                                     ?? SyncStatus.GetMaximumChangeEventDuration()
                                         .Subtract(TimeSpan.FromHours(1));
 
@@ -419,16 +411,15 @@ namespace SosExporter
 
             var stopwatch = Stopwatch.StartNew();
 
-            for (var i = 0; i < filteredTimeSeriesDescriptions.Count; ++i)
+            foreach (var timeSeriesDescription in filteredTimeSeriesDescriptions)
             {
-                var timeSeriesDescription = filteredTimeSeriesDescriptions[i];
-
                 using (Sos = SosClient.CreateConnectedClient(Context))
                 {
                     // Create a separate SOS client connection to ensure that the transactions are committed after each export
+                    var description = timeSeriesDescription;
                     ExportTimeSeries(
                         clearExportedData,
-                        changeEvents.Single(t => t.UniqueId == timeSeriesDescription.UniqueId),
+                        changeEvents.Single(t => t.UniqueId == description.UniqueId),
                         timeSeriesDescription);
                 }
 
@@ -526,7 +517,7 @@ namespace SosExporter
 
             var locationInfo = GetLocationInfo(timeSeriesDescription.LocationIdentifier);
 
-            var period = GetTimeSeriesPeriod(timeSeriesDescription);
+            var exportDuration = GetExportDuration(timeSeriesDescription);
 
             var dataRequest = new TimeSeriesDataCorrectedServiceRequest
             {
@@ -539,13 +530,13 @@ namespace SosExporter
             var deleteExistingSensor = clearExportedData && existingSensor != null;
             var assignedOffering = existingSensor?.Identifier;
 
-            var timeSeries = FetchMinimumTimeSeries(detectedChange, timeSeriesDescription, existingSensor, dataRequest, ref deleteExistingSensor, ref period);
+            var timeSeries = FetchMinimumTimeSeries(detectedChange, timeSeriesDescription, existingSensor, dataRequest, ref deleteExistingSensor);
 
             var createSensor = existingSensor == null || deleteExistingSensor;
 
             TimeSeriesPointFilter.FilterTimeSeriesPoints(timeSeries);
 
-            var exportSummary = $"{timeSeries.NumPoints} points [{timeSeries.Points.FirstOrDefault()?.Timestamp.DateTimeOffset:O} to {timeSeries.Points.LastOrDefault()?.Timestamp.DateTimeOffset:O}] from '{timeSeriesDescription.Identifier}' with Frequency={period}";
+            var exportSummary = $"{timeSeries.NumPoints} points [{timeSeries.Points.FirstOrDefault()?.Timestamp.DateTimeOffset:O} to {timeSeries.Points.LastOrDefault()?.Timestamp.DateTimeOffset:O}] from '{timeSeriesDescription.Identifier}' with ExportDuration={exportDuration.Humanize()}";
 
             ExportedTimeSeriesCount += 1;
             ExportedPointCount += timeSeries.NumPoints ?? 0;
@@ -597,8 +588,7 @@ namespace SosExporter
             TimeSeriesDescription timeSeriesDescription,
             SensorInfo existingSensor,
             TimeSeriesDataCorrectedServiceRequest dataRequest,
-            ref bool deleteExistingSensor,
-            ref ComputationPeriod period)
+            ref bool deleteExistingSensor)
         {
             TimeSeriesDataServiceResponse timeSeries;
 
@@ -608,13 +598,7 @@ namespace SosExporter
                 // This is the preferred code path, since we only need to export the new points.
                 timeSeries = Aquarius.Publish.Get(dataRequest);
 
-                if (period == ComputationPeriod.Unknown)
-                {
-                    // We may have just fetched enough recent points to determine the time-series frequency
-                    period = ComputationPeriodEstimator.InferPeriodFromRecentPoints(timeSeries);
-                }
-
-                TrimEarlyPoints(timeSeriesDescription, timeSeries, period);
+                TrimEarlyPoints(timeSeriesDescription, timeSeries);
 
                 return timeSeries;
             }
@@ -632,9 +616,9 @@ namespace SosExporter
                 dataRequest.QueryFrom = null;
             }
 
-            timeSeries = FetchRecentSignal(timeSeriesDescription, dataRequest, ref period);
+            timeSeries = FetchRecentSignal(timeSeriesDescription, dataRequest);
 
-            TrimEarlyPoints(timeSeriesDescription, timeSeries, period);
+            TrimEarlyPoints(timeSeriesDescription, timeSeries);
 
             return timeSeries;
         }
@@ -646,58 +630,70 @@ namespace SosExporter
 
         private void TrimEarlyPoints(
             TimeSeriesDescription timeSeriesDescription,
-            TimeSeriesDataServiceResponse timeSeries,
-            ComputationPeriod period)
+            TimeSeriesDataServiceResponse timeSeries)
         {
-            var maximumDaysToExport = Context.Config.MaximumPointDays[period];
+            var exportDuration = GetExportDuration(timeSeriesDescription);
 
-            if (maximumDaysToExport <= 0 || !timeSeries.Points.Any())
+            if (exportDuration <= TimeSpan.Zero || !timeSeries.Points.Any())
                 return;
 
-            var earliestDayToUpload = SubtractTimeSpan(
-                timeSeries.Points.Last().Timestamp.DateTimeOffset,
-                TimeSpan.FromDays(maximumDaysToExport));
+            var earliestDayToUpload = timeSeries.Points.Last().Timestamp.DateTimeOffset - exportDuration;
 
             var remainingPoints = timeSeries.Points
                 .Where(p => p.Timestamp.DateTimeOffset >= earliestDayToUpload)
                 .ToList();
 
-            if (!RoughDailyPointCount.TryGetValue(period, out var expectedDailyPointCount))
-            {
-                expectedDailyPointCount = 1.0;
-            }
-
-            var roughPointLimit = Convert.ToInt32(maximumDaysToExport * expectedDailyPointCount * 1.5);
-
-            if (remainingPoints.Count > roughPointLimit)
-            {
-                var limitExceededCount = remainingPoints.Count - roughPointLimit;
-
-                Log.Warn($"Upper limit of {roughPointLimit} points exceeded by {limitExceededCount} points for Frequency={period} and MaximumPointDays={maximumDaysToExport} in '{timeSeriesDescription.Identifier}'.");
-
-                remainingPoints = remainingPoints
-                    .Skip(limitExceededCount)
-                    .ToList();
-            }
-
             var trimmedPointCount = timeSeries.NumPoints - remainingPoints.Count;
 
             Log.Info(
-                $"Trimming '{timeSeriesDescription.Identifier}' {trimmedPointCount} points before {earliestDayToUpload:O} with {remainingPoints.Count} points remaining with Frequency={period}");
+                $"Trimming '{timeSeriesDescription.Identifier}' {trimmedPointCount} points before {earliestDayToUpload:O} with {remainingPoints.Count} points remaining with ExportDuration={exportDuration.Humanize()}");
 
             timeSeries.Points = remainingPoints;
             timeSeries.NumPoints = timeSeries.Points.Count;
         }
 
-        private static readonly Dictionary<ComputationPeriod, double> RoughDailyPointCount = new Dictionary<ComputationPeriod, double>
+        private TimeSpan GetExportDuration(TimeSeriesDescription timeSeriesDescription)
         {
-            {ComputationPeriod.Monthly, 1.0 / 30 },
-            {ComputationPeriod.Weekly, 1.0 / 7 },
-            {ComputationPeriod.Daily, 1.0 },
-            {ComputationPeriod.Hourly, 24 },
-            {ComputationPeriod.QuarterHourly, 24 * 4 },
-            {ComputationPeriod.Minutes, 24 * 60 },
-        };
+            var durationAttribute = timeSeriesDescription
+                .ExtendedAttributes
+                .FirstOrDefault(a => a.Name.Equals(Context.Config.ExportDurationAttributeName,
+                    StringComparison.InvariantCultureIgnoreCase));
+
+            return ParseHumanDuration(durationAttribute?.Value as string) ??
+                   TimeSpan.FromDays(Context.Config.DefaultExportDurationDays);
+        }
+
+        private TimeSpan? ParseHumanDuration(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
+
+            var match = HumanDurationRegex.Match(text);
+
+            if (!match.Success)
+                return null;
+
+            var value = match.Groups["value"].Value;
+            var unit = match.Groups["unit"].Value.TrimEnd('s', 'S');
+
+            if (!double.TryParse(value, out var quantity) || quantity < 0)
+                return null;
+
+            if (!DurationFactory.TryGetValue(unit, out var factory))
+                return null;
+
+            return factory(quantity);
+        }
+
+        private static readonly Regex HumanDurationRegex = new Regex(@"^\s*(?<value>\S+)\s+(?<unit>\S+)\s*$");
+
+        private static readonly Dictionary<string, Func<double, TimeSpan>> DurationFactory =
+            new Dictionary<string, Func<double, TimeSpan>>(StringComparer.InvariantCultureIgnoreCase)
+            {
+                {"day", value => TimeSpan.FromDays(value)},
+                {"month", value => TimeSpan.FromDays(value * 30)},
+                {"year", value => TimeSpan.FromDays(value * 365)},
+            };
 
         private (LocationDescription LocationDescription, LocationDataServiceResponse LocationData) GetLocationInfo(string locationIdentifier)
         {
@@ -726,34 +722,11 @@ namespace SosExporter
             LocationInfoCache { get; } =
                 new Dictionary<string, (LocationDescription LocationDescription, LocationDataServiceResponse LocationData)>();
 
-        private static DateTimeOffset SubtractTimeSpan(DateTimeOffset dateTimeOffset, TimeSpan timeSpan)
-        {
-            return dateTimeOffset.Subtract(DateTimeOffset.MinValue) <= timeSpan
-                ? DateTimeOffset.MinValue
-                : dateTimeOffset.Subtract(timeSpan);
-        }
-
-        private ComputationPeriod GetTimeSeriesPeriod(TimeSeriesDescription timeSeriesDescription)
-        {
-            if (Enum.TryParse<ComputationPeriod>(timeSeriesDescription.ComputationPeriodIdentifier, true, out var period))
-            {
-                if (period == ComputationPeriod.WaterYear)
-                    period = ComputationPeriod.Annual; // WaterYear and Annual are the same frequency
-
-                if (Context.Config.MaximumPointDays.ContainsKey(period))
-                    return period;
-            }
-
-            // Otherwise fall back to the "I don't know" setting
-            return ComputationPeriod.Unknown;
-        }
-
         private TimeSeriesDataServiceResponse FetchRecentSignal(
             TimeSeriesDescription timeSeriesDescription,
-            TimeSeriesDataCorrectedServiceRequest dataRequest,
-            ref ComputationPeriod period)
+            TimeSeriesDataCorrectedServiceRequest dataRequest)
         {
-            var maximumDaysToExport = Context.Config.MaximumPointDays[period];
+            var exportDuration = GetExportDuration(timeSeriesDescription);
 
             // If we find ourselves here, we will need to do a least one fetch of data to see if we have enough to satisfy the export request.
             var utcNow = DateTime.UtcNow.Date;
@@ -761,54 +734,15 @@ namespace SosExporter
                 timeSeriesDescription.UtcOffsetIsoDuration.ToTimeSpan());
 
             var queryStartPoint = dataRequest.QueryFrom ?? startOfToday.Subtract(TimeSpan.FromDays(90));
-            dataRequest.QueryFrom = queryStartPoint;
+            dataRequest.QueryFrom = queryStartPoint - exportDuration;
 
-            TimeSeriesDataServiceResponse timeSeries;
-
-            if (period == ComputationPeriod.Unknown)
-            {
-                // We don't know the time-series period, so we'll need to load the most recent data until we can make a stronger inference about the frequency
-                timeSeries = FetchRecentSignal(
-                    timeSeriesDescription,
-                    dataRequest,
-                    ts => ts.NumPoints >= ComputationPeriodEstimator.MinimumPointCount,
-                    "to determine signal frequency");
-
-                period = ComputationPeriodEstimator.InferPeriodFromRecentPoints(timeSeries);
-                maximumDaysToExport = Context.Config.MaximumPointDays[period];
-
-                if (dataRequest.QueryFrom == null)
-                {
-                    // We've already asked for all the data
-                    return timeSeries;
-                }
-
-                if (GetRetrievedDuration(timeSeries, dataRequest) >= GetMaximumRetrievalDuration(maximumDaysToExport))
-                {
-                    // We have enough known points to satisfy the export request
-                    return timeSeries;
-                }
-            }
-
-            // We've seen enough of the most recent points to know the time-series period,
-            // but we still don't know how much data to fetch.
-            // Stop when we've retrieved at least this much data
-            var maximumRetrievalDuration = GetMaximumRetrievalDuration(maximumDaysToExport);
-
-            timeSeries = FetchRecentSignal(
+            var timeSeries = FetchRecentSignal(
                 timeSeriesDescription,
                 dataRequest,
-                ts => GetRetrievedDuration(ts, dataRequest) >= maximumRetrievalDuration,
-                $"with Frequency={period}");
+                ts => GetRetrievedDuration(ts, dataRequest) >= exportDuration,
+                $"with ExportDuration={exportDuration.Humanize()}");
 
             return timeSeries;
-        }
-
-        private static TimeSpan GetMaximumRetrievalDuration(int maximumDaysToExport)
-        {
-            return maximumDaysToExport > 0
-                ? TimeSpan.FromDays(maximumDaysToExport)
-                : TimeSpan.MaxValue;
         }
 
         private static TimeSpan GetRetrievedDuration(

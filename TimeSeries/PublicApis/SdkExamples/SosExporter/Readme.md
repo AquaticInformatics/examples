@@ -206,18 +206,9 @@ Supported -option=value settings (/option=value works too):
   -Grades                      Filter points by grade code or name. Can be specified multiple times.
   -Qualifiers                  Filter points by qualifier. Can be specified multiple times.
 
-  ============================ Maximum time range of points to upload: Changes will trigger a full resync:
-  -MaximumPointDays            Days since the last point to upload, in Frequency=Value format. [default:
-    Unknown  = 90
-    Annual   = All
-    Monthly  = All
-    Weekly   = 3653
-    Daily    = 3653
-    Hourly   = 365
-    Points   = 30
-    Minutes  = 30
-    QuarterHourly = 30
-  ]
+  ============================ Export duration configuration: Changes will trigger a full resync:
+  -ExportDurationAttributeName Name of time-series extended attribute storing the export duration. [default: SosExportDuration]
+  -DefaultExportDurationDays   Default export duration when the extended attribute value cannot be parsed. [default: 60]
 
   ============================ Other options: (Changing these values won't trigger a full resync)
   -ConfigurationName           The name of the export configuration, to be saved in the AQTS global settings. [default: SosConfig]
@@ -227,8 +218,10 @@ Supported -option=value settings (/option=value works too):
   -ChangesSince                The starting changes-since time in ISO 8601 format. Defaults to the saved AQTS global setting value.
   -ApplyRounding               When true, export the rounded point values. [default: True]
   -MaximumPointsPerObservation The maximum number of points per SOS observation [default: 1000]
-  -MaximumExportDuration       The maximum duration before polling AQTS for more changes, in hh:mm:ss format.  Defaults to the AQTS global setting.
+  -MaximumPollDuration         The maximum duration before polling AQTS for more changes, in hh:mm:ss format. Defaults to the AQTS global setting.
   -Timeout                     The timeout used for all web requests, in hh:mm:ss format. [default: 5 minutes]
+  -SosLoginRoute               SOS server login route
+  -SosLogoutRoute              SOS server logout route
 
 ISO 8601 timestamps use a yyyy'-'mm'-'dd'T'HH':'mm':'ss'.'fffffffzzz format.
 
