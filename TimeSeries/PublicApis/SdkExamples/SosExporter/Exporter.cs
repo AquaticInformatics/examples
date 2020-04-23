@@ -619,8 +619,12 @@ namespace SosExporter
                 return timeSeries;
             }
 
-            if (GetLastSensorTime(existingSensor) >= detectedChange.FirstPointChanged)
+            var lastSensorTime = GetLastSensorTime(existingSensor);
+
+            if (lastSensorTime >= detectedChange.FirstPointChanged)
             {
+                Log.Warn($"FirstPointChanged={detectedChange.FirstPointChanged:O} of '{timeSeriesDescription.Identifier}' precedes LastSensorTime={lastSensorTime:O} of '{existingSensor.Identifier}'. Forcing delete of existing sensor.");
+
                 // A point has changed before the last known observation, so we'll need to throw out the entire sensor
                 deleteExistingSensor = true;
 
@@ -629,16 +633,6 @@ namespace SosExporter
             }
 
             timeSeries = FetchRecentSignal(timeSeriesDescription, dataRequest, ref period);
-
-            if (GetLastSensorTime(existingSensor) >= detectedChange.FirstPointChanged)
-            {
-                // A point has changed before the last known observation, so we'll need to throw out the entire sensor
-                deleteExistingSensor = true;
-
-                // We'll also need to fetch more data again
-                dataRequest.QueryFrom = null;
-                timeSeries = FetchRecentSignal(timeSeriesDescription, dataRequest, ref period);
-            }
 
             TrimEarlyPoints(timeSeriesDescription, timeSeries, period);
 
