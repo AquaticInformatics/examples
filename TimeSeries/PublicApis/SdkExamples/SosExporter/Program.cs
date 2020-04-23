@@ -30,8 +30,18 @@ namespace SosExporter
 
                 var context = ParseArgs(args);
 
-                new Exporter { Context = context }
-                    .Run();
+                using (var guard = new SingleInstanceGuard(context.ConfigurationName))
+                {
+                    if (!guard.IsAnotherInstanceRunning())
+                    {
+                        new Exporter {Context = context}
+                            .Run();
+                    }
+                    else
+                    {
+                        _log.Warn($"Exiting while another instance of {guard.Name} is running.");
+                    }
+                }
 
                 Environment.ExitCode = 0;
             }
