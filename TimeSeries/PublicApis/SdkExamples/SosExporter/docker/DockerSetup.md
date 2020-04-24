@@ -51,7 +51,7 @@ Select the **Transactional Security** tab
 
 ![Select Transactional Security Tab](SelectTransactionalSecurityTab.png)
 
-Disable the **foo** checkbox and click **Next**
+Disable the **Transactional security active** checkbox and click **Next**
 
 ![Disable Transactional Checkbox](DisableTransactionalCheckbox.png)
 

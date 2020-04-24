@@ -6,7 +6,7 @@
 - Reasonable defaults are assumed. By default, all AQTS time-series with Publish=true will be exported.
 - All options can be configured from the command line and/or from configuration files.
 - The exporter works in "incremental" mode when possible, exporting only newly appended points as they appear.
-- When an incremental export is not possible, the entire time-series record is exported, according to the `-MaximumPointDays` configuration.
+- When an incremental export is not possible, the entire time-series record is exported, according to the `-ExportDurationAttributeName` configuration.
 - Changes to the export configuration which break incremental exports will automatically be detected and a full resync will be performed. 
 - The `SosExporter.log` file will contain the output of the most recent export cycle.
 
@@ -74,7 +74,7 @@ C:\> SosExporter @sosconfig.txt /DryRun=True
 The first time the exporter is run, it will need to perform a full resync with the SOS server. This will involve:
 - Deleting all sensors and observations from the SOS server.
 - Re-creating a new sensor for every exported AQTS time-series.
-- Exporting the last `-MaximumPointDays` days worth of points from AQTS. The number of days exported depends upon the frequency of the time-series and is configurable.
+- Exporting the last full set of points from AQTS. The number of days exported depends upon the value of the `-ExportDurationAttributeName` extended attribute value of the time-series. If no value is set for the time-series, the `-DefaultExportDurationDays` value is used.
 
 A full resync cycle can take many hours, depending on the number of time-series configured for export, and the number of points exported. We have observed the exporter taking about an hour to export 5000 time-series with a combined total of 1 million observed points. Your mileage may vary.
 
@@ -91,7 +91,7 @@ The following events will force a full resync:
   - The `GET /Publish/v2/GetTimeSeriesUniqueIdList` settings (like `-Publish` or `-ExtendedFilters`)
   - The inclusion/exclusion filters for time-series identifiers
   - The inclusion/exclusion filters for time-series points based on approvals, grades, and/or qualifiers
-  - The `-MaximumPointDays` configuration, which sets the maximum retrieval time based on the time-series frequency.
+  - The `-ExportDurationAttributeName` and `-DefaultExportDurationDays` configuration, which sets the maximum retrieval time based on the time-series extended attribute value.
   
 ## Run the exporter on a schedule
 
@@ -206,18 +206,9 @@ Supported -option=value settings (/option=value works too):
   -Grades                      Filter points by grade code or name. Can be specified multiple times.
   -Qualifiers                  Filter points by qualifier. Can be specified multiple times.
 
-  ============================ Maximum time range of points to upload: Changes will trigger a full resync:
-  -MaximumPointDays            Days since the last point to upload, in Frequency=Value format. [default:
-    Unknown  = 90
-    Annual   = All
-    Monthly  = All
-    Weekly   = 3653
-    Daily    = 3653
-    Hourly   = 365
-    Points   = 30
-    Minutes  = 30
-    QuarterHourly = 30
-  ]
+  ============================ Export duration configuration: Changes will trigger a full resync:
+  -ExportDurationAttributeName Name of time-series extended attribute storing the export duration. [default: SosExportDuration]
+  -DefaultExportDurationDays   Default export duration when the extended attribute value cannot be parsed. [default: 60]
 
   ============================ Other options: (Changing these values won't trigger a full resync)
   -ConfigurationName           The name of the export configuration, to be saved in the AQTS global settings. [default: SosConfig]
@@ -227,8 +218,10 @@ Supported -option=value settings (/option=value works too):
   -ChangesSince                The starting changes-since time in ISO 8601 format. Defaults to the saved AQTS global setting value.
   -ApplyRounding               When true, export the rounded point values. [default: True]
   -MaximumPointsPerObservation The maximum number of points per SOS observation [default: 1000]
-  -MaximumExportDuration       The maximum duration before polling AQTS for more changes, in hh:mm:ss format.  Defaults to the AQTS global setting.
+  -MaximumPollDuration         The maximum duration before polling AQTS for more changes, in hh:mm:ss format. Defaults to the AQTS global setting.
   -Timeout                     The timeout used for all web requests, in hh:mm:ss format. [default: 5 minutes]
+  -SosLoginRoute               SOS server login route
+  -SosLogoutRoute              SOS server logout route
 
 ISO 8601 timestamps use a yyyy'-'mm'-'dd'T'HH':'mm':'ss'.'fffffffzzz format.
 

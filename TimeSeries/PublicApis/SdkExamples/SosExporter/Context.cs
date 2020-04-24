@@ -31,19 +31,8 @@ namespace SosExporter
         public List<GradeFilter> Grades { get; } = new List<GradeFilter>();
         public List<QualifierFilter> Qualifiers { get; } = new List<QualifierFilter>();
 
-        public Dictionary<ComputationPeriod, int> MaximumPointDays { get; } = new Dictionary<ComputationPeriod, int>
-        {
-            {ComputationPeriod.Unknown, 90},
-            {ComputationPeriod.Annual, -1},
-            {ComputationPeriod.Monthly, -1},
-            {ComputationPeriod.Weekly, 3653},
-            {ComputationPeriod.Daily, 3653},
-            {ComputationPeriod.Hourly, 365},
-            {ComputationPeriod.Points, 30},
-            //{ComputationPeriod.WaterYear, -1}, // These are treated like Annual
-            {ComputationPeriod.Minutes, 30},
-            {ComputationPeriod.QuarterHourly, 30},
-        };
+        public string ExportDurationAttributeName { get; set; } = "SosExportDuration";
+        public int DefaultExportDurationDays { get; set; } = 60;
     }
 
     public interface IFilter
@@ -98,7 +87,7 @@ namespace SosExporter
         public DateTimeOffset? ChangesSince { get; set; }
         public int MaximumPointsPerObservation { get; set; } = 1000;
         public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(5);
-        public TimeSpan? MaximumExportDuration { get; set; }
+        public TimeSpan? MaximumPollDuration { get; set; }
         public bool ApplyRounding { get; set; } = true;
         public string SosLoginRoute { get; set; }
         public string SosLogoutRoute { get; set; }
