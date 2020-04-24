@@ -419,6 +419,7 @@ namespace SosExporter
                     var description = timeSeriesDescription;
                     ExportTimeSeries(
                         clearExportedData,
+                        response.NextToken,
                         changeEvents.Single(t => t.UniqueId == description.UniqueId),
                         timeSeriesDescription);
                 }
@@ -508,13 +509,11 @@ namespace SosExporter
             }
         }
 
-        private void ExportTimeSeries(
-            bool clearExportedData,
-            TimeSeriesChangeEvent detectedChange,
+        private void ExportTimeSeries(bool clearExportedData,
+            DateTime? nextChangesSinceToken,
+            TimeSeriesUniqueIds detectedChange,
             TimeSeriesDescription timeSeriesDescription)
         {
-            Log.Info($"Fetching changes from '{timeSeriesDescription.Identifier}' FirstPointChanged={detectedChange.FirstPointChanged:O} HasAttributeChanged={detectedChange.HasAttributeChange} ...");
-
             var locationInfo = GetLocationInfo(timeSeriesDescription.LocationIdentifier);
 
             var exportDuration = GetExportDuration(timeSeriesDescription);
@@ -526,11 +525,44 @@ namespace SosExporter
                 ApplyRounding = Context.ApplyRounding,
             };
 
+            if (nextChangesSinceToken.HasValue)
+            {
+                // This will prevent accidentally capturing anything past the start of the syncing response window
+                dataRequest.QueryTo = new DateTimeOffset(nextChangesSinceToken.Value).AddTicks(-1);
+            }
+
             var existingSensor = Sos.FindExistingSensor(timeSeriesDescription);
             var deleteExistingSensor = clearExportedData && existingSensor != null;
             var assignedOffering = existingSensor?.Identifier;
 
-            var timeSeries = FetchMinimumTimeSeries(detectedChange, timeSeriesDescription, existingSensor, dataRequest, ref deleteExistingSensor);
+            var lastSensorTime = GetLastSensorTime(existingSensor);
+
+            if (detectedChange.HasAttributeChange ?? lastSensorTime >= detectedChange.FirstPointChanged)
+            {
+                Log.Warn($"FirstPointChanged={detectedChange.FirstPointChanged:O} AttributeChange={detectedChange.HasAttributeChange} of '{timeSeriesDescription.Identifier}' precedes LastSensorTime={lastSensorTime:O} of '{existingSensor?.Identifier}'. Forcing delete of existing sensor.");
+
+                // A point has changed before the last known observation, so we'll need to throw out the entire sensor
+                deleteExistingSensor = true;
+
+                // We'll also need to fetch more data again
+                dataRequest.QueryFrom = null;
+            }
+
+            if (dataRequest.QueryFrom == null)
+            {
+                // Get the full extraction
+                var endPoint = dataRequest.QueryTo ?? DateTimeOffset.Now;
+                var startOfToday = new DateTimeOffset(endPoint.Year, endPoint.Month, endPoint.Day, 0, 0, 0,
+                    timeSeriesDescription.UtcOffsetIsoDuration.ToTimeSpan());
+
+                dataRequest.QueryFrom = startOfToday - exportDuration;
+            }
+
+            Log.Info($"Fetching changes from '{timeSeriesDescription.Identifier}' FirstPointChanged={detectedChange.FirstPointChanged:O} HasAttributeChanged={detectedChange.HasAttributeChange} QueryFrom={dataRequest.QueryFrom:O} ...");
+
+            var timeSeries = Aquarius.Publish.Get(dataRequest);
+
+            TrimEarlyPoints(timeSeriesDescription, timeSeries);
 
             var createSensor = existingSensor == null || deleteExistingSensor;
 
@@ -583,46 +615,6 @@ namespace SosExporter
                 : detectedChange.FirstPointChanged;
         }
 
-        private TimeSeriesDataServiceResponse FetchMinimumTimeSeries(
-            TimeSeriesChangeEvent detectedChange,
-            TimeSeriesDescription timeSeriesDescription,
-            SensorInfo existingSensor,
-            TimeSeriesDataCorrectedServiceRequest dataRequest,
-            ref bool deleteExistingSensor)
-        {
-            TimeSeriesDataServiceResponse timeSeries;
-
-            if (!deleteExistingSensor && GetLastSensorTime(existingSensor) < dataRequest.QueryFrom)
-            {
-                // All the changed points have occurred after the last sensor point which exists in the SOS server.
-                // This is the preferred code path, since we only need to export the new points.
-                timeSeries = Aquarius.Publish.Get(dataRequest);
-
-                TrimEarlyPoints(timeSeriesDescription, timeSeries);
-
-                return timeSeries;
-            }
-
-            var lastSensorTime = GetLastSensorTime(existingSensor);
-
-            if (lastSensorTime >= detectedChange.FirstPointChanged)
-            {
-                Log.Warn($"FirstPointChanged={detectedChange.FirstPointChanged:O} of '{timeSeriesDescription.Identifier}' precedes LastSensorTime={lastSensorTime:O} of '{existingSensor.Identifier}'. Forcing delete of existing sensor.");
-
-                // A point has changed before the last known observation, so we'll need to throw out the entire sensor
-                deleteExistingSensor = true;
-
-                // We'll also need to fetch more data again
-                dataRequest.QueryFrom = null;
-            }
-
-            timeSeries = FetchRecentSignal(timeSeriesDescription, dataRequest);
-
-            TrimEarlyPoints(timeSeriesDescription, timeSeries);
-
-            return timeSeries;
-        }
-
         private static DateTimeOffset? GetLastSensorTime(SensorInfo sensor)
         {
             return sensor?.PhenomenonTime.LastOrDefault();
@@ -643,10 +635,22 @@ namespace SosExporter
                 .Where(p => p.Timestamp.DateTimeOffset >= earliestDayToUpload)
                 .ToList();
 
-            var trimmedPointCount = timeSeries.NumPoints - remainingPoints.Count;
+            // Limit points at 10K (that will still hold 7 days of 1-minute data)
+            const int maximumExportCount = 10000;
 
-            Log.Info(
-                $"Trimming '{timeSeriesDescription.Identifier}' {trimmedPointCount} points before {earliestDayToUpload:O} with {remainingPoints.Count} points remaining with ExportDuration={exportDuration.Humanize()}");
+            if (remainingPoints.Count > maximumExportCount)
+            {
+                remainingPoints = remainingPoints
+                    .Skip(remainingPoints.Count - maximumExportCount)
+                    .ToList();
+            }
+
+            var trimmedPointCount = timeSeries.Points.Count - remainingPoints.Count;
+
+            if (trimmedPointCount <= 0)
+                return;
+
+            Log.Info($"Trimming '{timeSeriesDescription.Identifier}' {trimmedPointCount} points before {earliestDayToUpload:O} with {remainingPoints.Count} points remaining with ExportDuration={exportDuration.Humanize()}");
 
             timeSeries.Points = remainingPoints;
             timeSeries.NumPoints = timeSeries.Points.Count;
@@ -721,83 +725,5 @@ namespace SosExporter
             Dictionary<string, (LocationDescription LocationDescription, LocationDataServiceResponse LocationData)>
             LocationInfoCache { get; } =
                 new Dictionary<string, (LocationDescription LocationDescription, LocationDataServiceResponse LocationData)>();
-
-        private TimeSeriesDataServiceResponse FetchRecentSignal(
-            TimeSeriesDescription timeSeriesDescription,
-            TimeSeriesDataCorrectedServiceRequest dataRequest)
-        {
-            var exportDuration = GetExportDuration(timeSeriesDescription);
-
-            // If we find ourselves here, we will need to do a least one fetch of data to see if we have enough to satisfy the export request.
-            var utcNow = DateTime.UtcNow.Date;
-            var startOfToday = new DateTimeOffset(utcNow.Year, utcNow.Month, utcNow.Day, 0, 0, 0,
-                timeSeriesDescription.UtcOffsetIsoDuration.ToTimeSpan());
-
-            var queryStartPoint = dataRequest.QueryFrom ?? startOfToday.Subtract(TimeSpan.FromDays(90));
-            dataRequest.QueryFrom = queryStartPoint - exportDuration;
-
-            var timeSeries = FetchRecentSignal(
-                timeSeriesDescription,
-                dataRequest,
-                ts => GetRetrievedDuration(ts, dataRequest) >= exportDuration,
-                $"with ExportDuration={exportDuration.Humanize()}");
-
-            return timeSeries;
-        }
-
-        private static TimeSpan GetRetrievedDuration(
-            TimeSeriesDataServiceResponse timeSeries,
-            TimeSeriesDataCorrectedServiceRequest dataRequest)
-        {
-            return dataRequest.QueryFrom.HasValue
-                ? timeSeries.NumPoints <= 0
-                    ? TimeSpan.MinValue
-                    : timeSeries.Points.Last().Timestamp.DateTimeOffset
-                        .Subtract(dataRequest.QueryFrom.Value)
-                : TimeSpan.MaxValue;
-        }
-
-        private TimeSeriesDataServiceResponse FetchRecentSignal(
-            TimeSeriesDescription timeSeriesDescription,
-            TimeSeriesDataCorrectedServiceRequest dataRequest,
-            Func<TimeSeriesDataServiceResponse,bool> isDataFetchComplete,
-            string progressMessage)
-        {
-            TimeSeriesDataServiceResponse timeSeries = null;
-
-            if (timeSeriesDescription.RawEndTime < dataRequest.QueryFrom)
-            {
-                dataRequest.QueryFrom = timeSeriesDescription.RawEndTime;
-            }
-
-            foreach (var timeSpan in PeriodsToFetch)
-            {
-                if (timeSpan == TimeSpan.MaxValue)
-                {
-                    dataRequest.QueryFrom = null;
-                }
-
-                Log.Info($"Fetching more than changed points from '{timeSeriesDescription.Identifier}' with QueryFrom={dataRequest.QueryFrom:O} {progressMessage} ...");
-
-                timeSeries = Aquarius.Publish.Get(dataRequest);
-
-                if (timeSpan == TimeSpan.MaxValue || timeSeriesDescription.RawStartTime > dataRequest.QueryFrom || isDataFetchComplete(timeSeries) )
-                    break;
-
-                dataRequest.QueryFrom -= timeSpan;
-            }
-
-            if (timeSeries == null)
-                throw new Exception($"Logic error: Can't fetch time-series data of '{timeSeriesDescription.Identifier}' {progressMessage}");
-
-            return timeSeries;
-        }
-
-        private static readonly TimeSpan[] PeriodsToFetch =
-            Enumerable.Repeat(TimeSpan.FromDays(90), 3)
-                .Concat(Enumerable.Repeat(TimeSpan.FromDays(365), 4))
-                .Concat(Enumerable.Repeat(TimeSpan.FromDays(5 * 365), 4))
-                .Concat(new[] {TimeSpan.MaxValue})
-                .ToArray();
     }
 }
