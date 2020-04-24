@@ -86,6 +86,7 @@ namespace SosExporter
         public bool NeverResync { get; set; }
         public DateTimeOffset? ChangesSince { get; set; }
         public int MaximumPointsPerObservation { get; set; } = 1000;
+        public int MaximumPointsPerSensor { get; set; } = 10000;
         public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(5);
         public TimeSpan? MaximumPollDuration { get; set; }
         public bool ApplyRounding { get; set; } = true;

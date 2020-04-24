@@ -309,6 +309,13 @@ namespace SosExporter
                 },
                 new Option
                 {
+                    Key = nameof(context.MaximumPointsPerSensor),
+                    Setter = value => context.MaximumPointsPerSensor = int.Parse(value),
+                    Getter = () => context.MaximumPointsPerSensor.ToString(),
+                    Description = "The maximum number of points uploaded per SOS sensor"
+                },
+                new Option
+                {
                     Key = nameof(context.MaximumPollDuration),
                     Setter = value => context.MaximumPollDuration = TimeSpan.Parse(value, CultureInfo.InvariantCulture),
                     Getter = () => context.MaximumPollDuration?.Humanize(2),
