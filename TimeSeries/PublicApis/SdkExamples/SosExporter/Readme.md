@@ -6,7 +6,7 @@
 - Reasonable defaults are assumed. By default, all AQTS time-series with Publish=true will be exported.
 - All options can be configured from the command line and/or from configuration files.
 - The exporter works in "incremental" mode when possible, exporting only newly appended points as they appear.
-- When an incremental export is not possible, the entire time-series record is exported, according to the `-MaximumPointDays` configuration.
+- When an incremental export is not possible, the entire time-series record is exported, according to the `-ExportDurationAttributeName` configuration.
 - Changes to the export configuration which break incremental exports will automatically be detected and a full resync will be performed. 
 - The `SosExporter.log` file will contain the output of the most recent export cycle.
 
@@ -74,7 +74,7 @@ C:\> SosExporter @sosconfig.txt /DryRun=True
 The first time the exporter is run, it will need to perform a full resync with the SOS server. This will involve:
 - Deleting all sensors and observations from the SOS server.
 - Re-creating a new sensor for every exported AQTS time-series.
-- Exporting the last `-MaximumPointDays` days worth of points from AQTS. The number of days exported depends upon the frequency of the time-series and is configurable.
+- Exporting the last full set of points from AQTS. The number of days exported depends upon the value of the `-ExportDurationAttributeName` extended attribute value of the time-series. If no value is set for the time-series, the `-DefaultExportDurationDays` value is used.
 
 A full resync cycle can take many hours, depending on the number of time-series configured for export, and the number of points exported. We have observed the exporter taking about an hour to export 5000 time-series with a combined total of 1 million observed points. Your mileage may vary.
 
@@ -91,7 +91,7 @@ The following events will force a full resync:
   - The `GET /Publish/v2/GetTimeSeriesUniqueIdList` settings (like `-Publish` or `-ExtendedFilters`)
   - The inclusion/exclusion filters for time-series identifiers
   - The inclusion/exclusion filters for time-series points based on approvals, grades, and/or qualifiers
-  - The `-MaximumPointDays` configuration, which sets the maximum retrieval time based on the time-series frequency.
+  - The `-ExportDurationAttributeName` and `-DefaultExportDurationDays` configuration, which sets the maximum retrieval time based on the time-series extended attribute value.
   
 ## Run the exporter on a schedule
 
