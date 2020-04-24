@@ -635,13 +635,10 @@ namespace SosExporter
                 .Where(p => p.Timestamp.DateTimeOffset >= earliestDayToUpload)
                 .ToList();
 
-            // Limit points at 10K (that will still hold 7 days of 1-minute data)
-            const int maximumExportCount = 10000;
-
-            if (remainingPoints.Count > maximumExportCount)
+            if (remainingPoints.Count > Context.MaximumPointsPerSensor)
             {
                 remainingPoints = remainingPoints
-                    .Skip(remainingPoints.Count - maximumExportCount)
+                    .Skip(remainingPoints.Count - Context.MaximumPointsPerSensor)
                     .ToList();
             }
 
