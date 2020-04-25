@@ -334,6 +334,17 @@ namespace LocationDeleter
                     return 0;
                 }
 
+                if (IsTimeSeriesBusy(exception))
+                {
+                    var derivedTimeSeries = GetTimeSeriesDerivedFromTimeSeries(timeSeriesDescription);
+
+                    Log.Warn($"Time-series '{timeSeriesDescription.Identifier}' is busy processing. Try again later.");
+
+                    ++LockedTimeSeriesCount;
+
+                    return 0;
+                }
+
                 if (IsTimeSeriesLocked(exception))
                 {
                     Log.Warn($"Time-series '{timeSeriesDescription.Identifier}' has locked data and cannot be deleted.");
@@ -363,15 +374,24 @@ namespace LocationDeleter
             return exception.ErrorCode == "DependentRatingModelException";
         }
 
+        private static bool IsRatingModelLocked(WebServiceException exception)
+        {
+            return exception.ErrorCode == "DeleteLockedRatingModelException";
+        }
+
         private static bool IsTimeSeriesUsedInDerivations(WebServiceException exception)
         {
             return exception.ErrorCode == "DependentTimeSeriesException";
         }
 
-
         private static bool IsTimeSeriesLocked(WebServiceException exception)
         {
             return exception.ErrorCode == "DeleteLockedTimeSeriesException";
+        }
+
+        private static bool IsTimeSeriesBusy(WebServiceException exception)
+        {
+            return exception.ErrorCode == "DeleteBusyTimeSeriesException";
         }
 
         private bool UnlockTimeSeries(TimeSeriesDescription timeSeriesDescription)
@@ -407,6 +427,44 @@ namespace LocationDeleter
             {
                 DeleteTimeSeries(timeSeriesDescription);
                 Log.Info($"Deleted '{timeSeriesDescription.Identifier}' successfully.");
+
+                return true;
+            }
+            catch (WebServiceException)
+            {
+                return false;
+            }
+        }
+
+        private bool UnlockRatingModel(RatingModelInfo ratingModelInfo)
+        {
+            if (Client.ServerVersion.IsLessThan(MinimumApprovalUnlockVersion))
+                return false;
+
+            var lowestApprovalLevel = GetLowestApprovalLevel(ratingModelInfo.LocationId);
+
+            Log.Info($"Unlocking '{ratingModelInfo.Identifier}' to ApprovalLevel={lowestApprovalLevel.Level} ({lowestApprovalLevel.Name})");
+
+            var approvalJob = _siteVisit.RequestAndPollUntilComplete(
+                siteVisit => siteVisit.Post(new PostDatasetApproval
+                {
+                    Id = ratingModelInfo.RatingModelId,
+                    IsMigrationRequest = true,
+                    ApprovalLevelId = lowestApprovalLevel.Id
+                }),
+                (siteVisit, response) => siteVisit.Get(new GetApprovalJob { Id = response.Id }),
+                polledStatus => polledStatus.Complete);
+
+            if (!approvalJob.Success)
+            {
+                Log.Warn($"Can't unlock approvals for '{ratingModelInfo.Identifier}': {string.Join(", ", approvalJob.RelatedDatasets.SelectMany(dataset => dataset.ApprovalRejectionReasons))}");
+                return false;
+            }
+
+            try
+            {
+                DeleteRatingModel(ratingModelInfo.Identifier);
+                Log.Info($"Deleted '{ratingModelInfo.Identifier}' successfully.");
 
                 return true;
             }
@@ -642,6 +700,26 @@ namespace LocationDeleter
                     var derivedTimeSeries = GetTimeSeriesDerivedFromRatingModel(ratingModelInfo.Identifier);
 
                     Log.Warn($"Rating model '{ratingModelInfo.Identifier}' has {derivedTimeSeries.Count} derived time-series and cannot be deleted. You will need to first delete '{string.Join("', '", derivedTimeSeries.Select(ts => ts.Identifier))}'");
+
+                    ++LockedRatingModelCount;
+
+                    return 0;
+                }
+
+                if (IsRatingModelLocked(exception))
+                {
+                    Log.Warn($"Rating model '{ratingModelInfo.Identifier}' has locked data and cannot be deleted.");
+
+                    if (ConfirmAction(
+                        "unlocking of approved regions",
+                        "unlock approved regions",
+                        () => GetRatingModelSummary(ratingModelInfo),
+                        $"the identifier of the rating model",
+                        ratingModelInfo.Identifier))
+                    {
+                        if (UnlockRatingModel(ratingModelInfo))
+                            return 1;
+                    }
 
                     ++LockedRatingModelCount;
 
