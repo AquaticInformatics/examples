@@ -419,7 +419,6 @@ namespace SosExporter
                     var description = timeSeriesDescription;
                     ExportTimeSeries(
                         clearExportedData,
-                        response.NextToken,
                         changeEvents.Single(t => t.UniqueId == description.UniqueId),
                         timeSeriesDescription);
                 }
@@ -510,7 +509,6 @@ namespace SosExporter
         }
 
         private void ExportTimeSeries(bool clearExportedData,
-            DateTime? nextChangesSinceToken,
             TimeSeriesUniqueIds detectedChange,
             TimeSeriesDescription timeSeriesDescription)
         {
@@ -524,12 +522,6 @@ namespace SosExporter
                 QueryFrom = GetInitialQueryFrom(detectedChange),
                 ApplyRounding = Context.ApplyRounding,
             };
-
-            if (nextChangesSinceToken.HasValue)
-            {
-                // This will prevent accidentally capturing anything past the start of the syncing response window
-                dataRequest.QueryTo = new DateTimeOffset(nextChangesSinceToken.Value).AddTicks(-1);
-            }
 
             var existingSensor = Sos.FindExistingSensor(timeSeriesDescription);
             var deleteExistingSensor = clearExportedData && existingSensor != null;
