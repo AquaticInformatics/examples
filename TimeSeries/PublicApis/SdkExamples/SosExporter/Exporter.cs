@@ -134,7 +134,7 @@ namespace SosExporter
             var clearExportedData = !request.ChangesSinceToken.HasValue;
             request.ChangesSinceToken = nextChangesSinceToken;
 
-            ExportToSos(request, response, timeSeriesDescriptions, clearExportedData);
+            ExportToSos(request, response, timeSeriesDescriptions, clearExportedData, nextChangesSinceToken);
 
             SyncStatus.SaveConfiguration(request.ChangesSinceToken.Value);
         }
@@ -397,7 +397,8 @@ namespace SosExporter
             TimeSeriesUniqueIdListServiceRequest request,
             TimeSeriesUniqueIdListServiceResponse response,
             List<TimeSeriesDescription> timeSeriesDescriptions,
-            bool clearExportedData)
+            bool clearExportedData,
+            DateTime nextChangesSinceToken)
         {
             var filteredTimeSeriesDescriptions = FilterTimeSeriesDescriptions(timeSeriesDescriptions);
             var changeEvents = response.TimeSeriesUniqueIds;
@@ -419,6 +420,7 @@ namespace SosExporter
                     var description = timeSeriesDescription;
                     ExportTimeSeries(
                         clearExportedData,
+                        nextChangesSinceToken,
                         changeEvents.Single(t => t.UniqueId == description.UniqueId),
                         timeSeriesDescription);
                 }
@@ -509,12 +511,13 @@ namespace SosExporter
         }
 
         private void ExportTimeSeries(bool clearExportedData,
+            DateTime nextChangesSinceToken,
             TimeSeriesUniqueIds detectedChange,
             TimeSeriesDescription timeSeriesDescription)
         {
             var locationInfo = GetLocationInfo(timeSeriesDescription.LocationIdentifier);
 
-            var exportDuration = GetExportDuration(timeSeriesDescription);
+            var (exportDuration, exportLabel) = GetExportDuration(timeSeriesDescription);
 
             var dataRequest = new TimeSeriesDataCorrectedServiceRequest
             {
@@ -554,13 +557,13 @@ namespace SosExporter
 
             var timeSeries = Aquarius.Publish.Get(dataRequest);
 
-            TrimEarlyPoints(timeSeriesDescription, timeSeries);
+            TrimExcludedPoints(timeSeriesDescription, timeSeries, nextChangesSinceToken);
 
             var createSensor = existingSensor == null || deleteExistingSensor;
 
             TimeSeriesPointFilter.FilterTimeSeriesPoints(timeSeries);
 
-            var exportSummary = $"{timeSeries.NumPoints} points [{timeSeries.Points.FirstOrDefault()?.Timestamp.DateTimeOffset:O} to {timeSeries.Points.LastOrDefault()?.Timestamp.DateTimeOffset:O}] from '{timeSeriesDescription.Identifier}' with ExportDuration={exportDuration.Humanize()}";
+            var exportSummary = $"{timeSeries.NumPoints} points [{timeSeries.Points.FirstOrDefault()?.Timestamp.DateTimeOffset:O} to {timeSeries.Points.LastOrDefault()?.Timestamp.DateTimeOffset:O}] from '{timeSeriesDescription.Identifier}' with ExportDuration={exportLabel}";
 
             ExportedTimeSeriesCount += 1;
             ExportedPointCount += timeSeries.NumPoints ?? 0;
@@ -612,19 +615,27 @@ namespace SosExporter
             return sensor?.PhenomenonTime.LastOrDefault();
         }
 
-        private void TrimEarlyPoints(
+        private void TrimExcludedPoints(
             TimeSeriesDescription timeSeriesDescription,
-            TimeSeriesDataServiceResponse timeSeries)
+            TimeSeriesDataServiceResponse timeSeries,
+            DateTime nextChangesSinceToken)
         {
-            var exportDuration = GetExportDuration(timeSeriesDescription);
+            var (exportDuration, exportLabel) = GetExportDuration(timeSeriesDescription);
 
             if (exportDuration <= TimeSpan.Zero || !timeSeries.Points.Any())
                 return;
 
-            var earliestDayToUpload = timeSeries.Points.Last().Timestamp.DateTimeOffset - exportDuration;
+            var firstTimeToInclude = timeSeries.Points.Last().Timestamp.DateTimeOffset - exportDuration;
+            var firstTimeToExclude = new DateTimeOffset(nextChangesSinceToken);
 
-            var remainingPoints = timeSeries.Points
-                .Where(p => p.Timestamp.DateTimeOffset >= earliestDayToUpload)
+            var nonFuturePoints = timeSeries.Points
+                .Where(p => p.Timestamp.DateTimeOffset < firstTimeToExclude)
+                .ToList();
+
+            var futurePointCount = timeSeries.Points.Count - nonFuturePoints.Count;
+
+            var remainingPoints = nonFuturePoints
+                .Where(p => p.Timestamp.DateTimeOffset >= firstTimeToInclude)
                 .ToList();
 
             if (remainingPoints.Count > Context.MaximumPointsPerSensor)
@@ -634,26 +645,30 @@ namespace SosExporter
                     .ToList();
             }
 
-            var trimmedPointCount = timeSeries.Points.Count - remainingPoints.Count;
+            var earlyPointCount = timeSeries.Points.Count - remainingPoints.Count;
 
-            if (trimmedPointCount <= 0)
+            var excludedPointCount = futurePointCount + earlyPointCount;
+
+            if (excludedPointCount <= 0)
                 return;
 
-            Log.Info($"Trimming '{timeSeriesDescription.Identifier}' {trimmedPointCount} points before {earliestDayToUpload:O} with {remainingPoints.Count} points remaining with ExportDuration={exportDuration.Humanize()}");
+            Log.Info($"Trimming '{timeSeriesDescription.Identifier}' {"point".ToQuantity(earlyPointCount)} before {firstTimeToInclude:O} and {"point".ToQuantity(futurePointCount)} after {firstTimeToExclude:O} with {remainingPoints.Count} points remaining with ExportDuration={exportLabel}");
 
             timeSeries.Points = remainingPoints;
             timeSeries.NumPoints = timeSeries.Points.Count;
         }
 
-        private TimeSpan GetExportDuration(TimeSeriesDescription timeSeriesDescription)
+        private (TimeSpan ExportDuration, string ExportLabel) GetExportDuration(TimeSeriesDescription timeSeriesDescription)
         {
             var durationAttribute = timeSeriesDescription
                 .ExtendedAttributes
                 .FirstOrDefault(a => a.Name.Equals(Context.Config.ExportDurationAttributeName,
                     StringComparison.InvariantCultureIgnoreCase));
 
-            return ParseHumanDuration(durationAttribute?.Value as string) ??
-                   TimeSpan.FromDays(Context.Config.DefaultExportDurationDays);
+            var attributeValue = durationAttribute?.Value as string;
+
+            return (ParseHumanDuration(attributeValue) ?? TimeSpan.FromDays(Context.Config.DefaultExportDurationDays),
+                !string.IsNullOrWhiteSpace(attributeValue) ? attributeValue : nameof(Context.Config.DefaultExportDurationDays));
         }
 
         private TimeSpan? ParseHumanDuration(string text)
@@ -684,6 +699,7 @@ namespace SosExporter
             new Dictionary<string, Func<double, TimeSpan>>(StringComparer.InvariantCultureIgnoreCase)
             {
                 {"day", value => TimeSpan.FromDays(value)},
+                {"week", value => TimeSpan.FromDays(value * 7)},
                 {"month", value => TimeSpan.FromDays(value * 30)},
                 {"year", value => TimeSpan.FromDays(value * 365)},
             };
