@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Aquarius.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
+using Humanizer;
 using log4net;
 using ServiceStack;
 using ServiceStack.Text;
@@ -195,13 +196,44 @@ namespace SosExporter
 
         private void ConfigureOperation(string operation, bool active)
         {
-            JsonClient.Post(new ConfigureOperationRequest
+            var attempts = 0;
+
+            var operationSummary = $"{operation} ({active})";
+
+            while (true)
             {
-                Service = Capabilities.Service,
-                Version = Capabilities.Version,
-                Operation = operation,
-                Active = active
-            });
+                try
+                {
+                    if (attempts > 0)
+                    {
+                        Log.Info($"Attempt #{attempts}: Configuring {operationSummary} ...");
+                    }
+
+                    JsonClient.Post(new ConfigureOperationRequest
+                    {
+                        Service = Capabilities.Service,
+                        Version = Capabilities.Version,
+                        Operation = operation,
+                        Active = active
+                    });
+
+                    if (attempts > 0)
+                    {
+                        Log.Info($"{operationSummary} succeeded after {"attempt".ToQuantity(attempts)}");
+                    }
+
+                    return;
+                }
+                catch (WebException e)
+                {
+                    Log.Warn($"Failed to configure {operationSummary}. {e.Message}");
+
+                    if (attempts > 3)
+                        throw;
+                }
+
+                ++attempts;
+            }
         }
 
         public void DeleteSensor(TimeSeriesDataServiceResponse timeSeries)
