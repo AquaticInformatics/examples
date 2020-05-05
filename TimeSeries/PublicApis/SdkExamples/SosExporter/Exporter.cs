@@ -134,7 +134,7 @@ namespace SosExporter
             var clearExportedData = !request.ChangesSinceToken.HasValue;
             request.ChangesSinceToken = nextChangesSinceToken;
 
-            ExportToSos(request, response, timeSeriesDescriptions, clearExportedData, nextChangesSinceToken);
+            ExportToSos(request, response, timeSeriesDescriptions, clearExportedData);
 
             SyncStatus.SaveConfiguration(request.ChangesSinceToken.Value);
         }
@@ -397,8 +397,7 @@ namespace SosExporter
             TimeSeriesUniqueIdListServiceRequest request,
             TimeSeriesUniqueIdListServiceResponse response,
             List<TimeSeriesDescription> timeSeriesDescriptions,
-            bool clearExportedData,
-            DateTime nextChangesSinceToken)
+            bool clearExportedData)
         {
             var filteredTimeSeriesDescriptions = FilterTimeSeriesDescriptions(timeSeriesDescriptions);
             var changeEvents = response.TimeSeriesUniqueIds;
@@ -420,7 +419,7 @@ namespace SosExporter
                     var description = timeSeriesDescription;
                     ExportTimeSeries(
                         clearExportedData,
-                        nextChangesSinceToken,
+                        request.ChangesSinceToken,
                         changeEvents.Single(t => t.UniqueId == description.UniqueId),
                         timeSeriesDescription);
                 }
@@ -511,7 +510,7 @@ namespace SosExporter
         }
 
         private void ExportTimeSeries(bool clearExportedData,
-            DateTime nextChangesSinceToken,
+            DateTime? nextChangesSinceToken,
             TimeSeriesUniqueIds detectedChange,
             TimeSeriesDescription timeSeriesDescription)
         {
@@ -618,7 +617,7 @@ namespace SosExporter
         private void TrimExcludedPoints(
             TimeSeriesDescription timeSeriesDescription,
             TimeSeriesDataServiceResponse timeSeries,
-            DateTime nextChangesSinceToken)
+            DateTime? nextChangesSinceToken)
         {
             var (exportDuration, exportLabel) = GetExportDuration(timeSeriesDescription);
 
@@ -626,7 +625,9 @@ namespace SosExporter
                 return;
 
             var firstTimeToInclude = timeSeries.Points.Last().Timestamp.DateTimeOffset - exportDuration;
-            var firstTimeToExclude = new DateTimeOffset(nextChangesSinceToken);
+            var firstTimeToExclude = nextChangesSinceToken.HasValue
+                ? new DateTimeOffset(nextChangesSinceToken.Value)
+                : (DateTimeOffset?)null;
 
             var nonFuturePoints = timeSeries.Points
                 .Where(p => p.Timestamp.DateTimeOffset < firstTimeToExclude)
