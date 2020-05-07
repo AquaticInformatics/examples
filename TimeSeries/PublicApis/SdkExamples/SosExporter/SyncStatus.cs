@@ -44,8 +44,8 @@ namespace SosExporter
         public Context Context { get; set; }
 
         private const string SosExporterGroup = "SosExporter";
-        private const string HashKeySuffix = ".Hash";
-        private const string ChangesSinceSuffix = ".ChangesSince";
+        private const string HashKeySuffix = "-Hash";
+        private const string ChangesSinceSuffix = "-ChangesSince";
         private const string CleanupEventGroup = "TimeSeriesEventLog";
         private const string CleanupEventHoursKey = "CleanupEventsOlderThan";
 
@@ -99,7 +99,10 @@ namespace SosExporter
             var savedChangesSince = GetGlobalSetting(SosExporterGroup, Context.ConfigurationName + ChangesSinceSuffix);
 
             if (string.IsNullOrEmpty(savedConfigHash) || string.IsNullOrEmpty(savedChangesSince))
+            {
+                Log.Warn($"No configuration settings restored for '{Context.ConfigurationName}'. Performing full resync.");
                 return null;
+            }
 
             var currentConfigHash = ComputeConfigHash();
 
