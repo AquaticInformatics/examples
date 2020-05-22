@@ -4,7 +4,7 @@
 
 The **AQUARIUS Examples** repository contains example projects demonstrating various integration techniques with the [AQUARIUS Platform](http://aquaticinformatics.com/products/) of environmental monitoring products.
 
-![AQUARIUS Platform](images/aquatic-informatics.png)
+![AQUARIUS Platform](images/aquatic-informatics.svg)
 
 * [AQUARIUS Time-Series](http://aquaticinformatics.com/products/aquarius-time-series/)
 * [AQUARIUS Samples](http://aquaticinformatics.com/products/aquarius-samples/)
