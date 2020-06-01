@@ -14,6 +14,7 @@ namespace PointZilla
         public string Server { get; set; }
         public string Username { get; set; } = "admin";
         public string Password { get; set; } = "admin";
+        public string SessionToken { get; set; }
 
         public bool Wait { get; set; } = true;
         public TimeSpan? AppendTimeout { get; set; }

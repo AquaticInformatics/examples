@@ -36,7 +36,7 @@ namespace PointZilla
 
             Log.Info($"Connecting to {server} to retrieve points ...");
 
-            using (var client = AquariusClient.CreateConnectedClient(server, username, password))
+            using (var client = CreateConnectedClient(server, username, password))
             {
                 Log.Info($"Connected to {server} ({client.ServerVersion})");
 
@@ -44,6 +44,14 @@ namespace PointZilla
                     ? LoadPointsFrom3X(client)
                     : LoadPointsFromNg(client);
             }
+        }
+
+
+        private IAquariusClient CreateConnectedClient(string server, string username, string password)
+        {
+            return string.IsNullOrWhiteSpace(Context.SessionToken) || server != Context.Server
+                ? AquariusClient.CreateConnectedClient(server, username, password)
+                : AquariusClient.ClientFromExistingSession(Context.Server, Context.SessionToken);
         }
 
         private static readonly AquariusServerVersion MinimumNgVersion = AquariusServerVersion.Create("14");

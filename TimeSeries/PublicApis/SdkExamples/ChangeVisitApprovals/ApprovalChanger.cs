@@ -27,7 +27,7 @@ namespace ChangeVisitApprovals
         {
             Log.Info($"Connecting {GetExecutingFileVersion()} to {Context.Server} ...");
 
-            using (Client = AquariusClient.CreateConnectedClient(Context.Server, Context.Username, Context.Password))
+            using (Client = CreateConnectedClient())
             {
                 Log.Info($"Connected to {Context.Server} (v{Client.ServerVersion})");
 
@@ -39,6 +39,13 @@ namespace ChangeVisitApprovals
 
                 ChangeFieldVisitApprovals();
             }
+        }
+
+        private IAquariusClient CreateConnectedClient()
+        {
+            return string.IsNullOrWhiteSpace(Context.SessionToken)
+                ? AquariusClient.CreateConnectedClient(Context.Server, Context.Username, Context.Password)
+                : AquariusClient.ClientFromExistingSession(Context.Server, Context.SessionToken);
         }
 
         private static string GetExecutingFileVersion()

@@ -120,6 +120,12 @@ namespace TimeSeriesChangeMonitor
                 },
                 new Option
                 {
+                    Key = nameof(context.SessionToken),
+                    Setter = value => context.SessionToken = value,
+                    Getter = () => context.SessionToken,
+                },
+                new Option
+                {
                     Key = nameof(context.LocationIdentifier),
                     Setter = value => context.LocationIdentifier = value,
                     Getter = () => context.LocationIdentifier,

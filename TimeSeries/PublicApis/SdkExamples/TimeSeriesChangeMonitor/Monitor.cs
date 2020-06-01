@@ -28,12 +28,19 @@ namespace TimeSeriesChangeMonitor
         {
             Log.Info($"Connecting {GetExecutingFileVersion()} to {Context.Server} ...");
 
-            using (Client = AquariusClient.CreateConnectedClient(Context.Server, Context.Username, Context.Password))
+            using (Client = CreateConnectedClient())
             {
                 Log.Info($"Connected to {Context.Server} ({Client.ServerVersion})");
 
                 PollForChanges();
             }
+        }
+
+        private IAquariusClient CreateConnectedClient()
+        {
+            return string.IsNullOrWhiteSpace(Context.SessionToken)
+                ? AquariusClient.CreateConnectedClient(Context.Server, Context.Username, Context.Password)
+                : AquariusClient.ClientFromExistingSession(Context.Server, Context.SessionToken);
         }
 
         private static string GetExecutingFileVersion()

@@ -52,7 +52,7 @@ namespace PointZilla
 
             Log.Info($"Connecting to {Context.Server} ...");
 
-            using (var client = AquariusClient.CreateConnectedClient(Context.Server, Context.Username, Context.Password))
+            using (var client = CreateConnectedClient())
             {
                 Log.Info($"Connected to {Context.Server} ({client.ServerVersion})");
 
@@ -114,6 +114,13 @@ namespace PointZilla
                 var batchText = isBatched ? $" using {pointBatches.Count} appends" : "";
                 Log.Info($"Appended {numberOfPointsAppended} points (deleting {numberOfPointsDeleted} points) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds{batchText}.");
             }
+        }
+
+        private IAquariusClient CreateConnectedClient()
+        {
+            return string.IsNullOrWhiteSpace(Context.SessionToken)
+                ? AquariusClient.CreateConnectedClient(Context.Server, Context.Username, Context.Password)
+                : AquariusClient.ClientFromExistingSession(Context.Server, Context.SessionToken);
         }
 
         private void ThrowIfInvalidGapInterval()
