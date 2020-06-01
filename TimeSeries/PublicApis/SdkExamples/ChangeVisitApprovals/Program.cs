@@ -83,6 +83,7 @@ namespace ChangeVisitApprovals
                 new Option {Key = nameof(context.Server), Setter = value => context.Server = value, Getter = () => context.Server, Description = "The AQTS app server."},
                 new Option {Key = nameof(context.Username), Setter = value => context.Username = value, Getter = () => context.Username, Description = "AQTS username."},
                 new Option {Key = nameof(context.Password), Setter = value => context.Password = value, Getter = () => context.Password, Description = "AQTS credentials."},
+                new Option {Key = nameof(context.SessionToken), Setter = value => context.SessionToken = value, Getter = () => context.SessionToken},
                 new Option {Key = nameof(context.ApprovalLevel), Setter = value => context.ApprovalLevel = int.Parse(value), Getter = () => context.ApprovalLevel.ToString(), Description = "Sets the target approval level by numeric value."},
                 new Option {Key = nameof(context.ApprovalName), Setter = value => context.ApprovalName = value, Getter = () => context.ApprovalName, Description = "Sets the target approval level by name."},
                 new Option {Key = nameof(context.SkipConfirmation), Setter = value => context.SkipConfirmation = bool.Parse(value), Getter = () => context.SkipConfirmation.ToString(), Description = "When true, skip the confirmation prompt. '/Y' is a shortcut for this option."},
@@ -162,7 +163,7 @@ namespace ChangeVisitApprovals
             if (string.IsNullOrWhiteSpace(context.Server))
                 throw new ExpectedException("No AQTS server specified. See /help or -help for details");
 
-            if (string.IsNullOrWhiteSpace(context.Username) || string.IsNullOrWhiteSpace(context.Password))
+            if (string.IsNullOrWhiteSpace(context.SessionToken) && (string.IsNullOrWhiteSpace(context.Username) || string.IsNullOrWhiteSpace(context.Password)))
                 throw new ExpectedException("Valid AQTS credentials must be supplied.");
 
             if (!context.ApprovalLevel.HasValue && string.IsNullOrWhiteSpace(context.ApprovalName))

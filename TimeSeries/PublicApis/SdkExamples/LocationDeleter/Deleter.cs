@@ -36,7 +36,7 @@ namespace LocationDeleter
         {
             Log.Info($"Connecting {GetExecutingFileVersion()} to {Context.Server} ...");
 
-            using (Client = AquariusClient.CreateConnectedClient(Context.Server, Context.Username, Context.Password))
+            using (Client = CreateConnectedClient())
             {
                 Log.Info($"Connected to {Context.Server} ({Client.ServerVersion})");
 
@@ -50,6 +50,13 @@ namespace LocationDeleter
                 DeleteSpecifiedRatingModels();
                 DeleteSpecifiedLocations();
             }
+        }
+
+        private IAquariusClient CreateConnectedClient()
+        {
+            return string.IsNullOrWhiteSpace(Context.SessionToken)
+                ? AquariusClient.CreateConnectedClient(Context.Server, Context.Username, Context.Password)
+                : AquariusClient.ClientFromExistingSession(Context.Server, Context.SessionToken);
         }
 
         private static string GetExecutingFileVersion()
@@ -336,8 +343,6 @@ namespace LocationDeleter
 
                 if (IsTimeSeriesBusy(exception))
                 {
-                    var derivedTimeSeries = GetTimeSeriesDerivedFromTimeSeries(timeSeriesDescription);
-
                     Log.Warn($"Time-series '{timeSeriesDescription.Identifier}' is busy processing. Try again later.");
 
                     ++LockedTimeSeriesCount;

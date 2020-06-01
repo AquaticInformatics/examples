@@ -8,6 +8,7 @@ namespace ChangeVisitApprovals
         public string Server { get; set; }
         public string Username { get; set; } = "admin";
         public string Password { get; set; } = "admin";
+        public string SessionToken { get; set; }
         public int? ApprovalLevel { get; set; }
         public string ApprovalName { get; set; }
         public bool SkipConfirmation { get; set; }

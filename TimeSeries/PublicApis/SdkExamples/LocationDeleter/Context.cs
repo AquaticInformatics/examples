@@ -8,6 +8,7 @@ namespace LocationDeleter
         public string Server { get; set; }
         public string Username { get; set; } = "admin";
         public string Password { get; set; } = "admin";
+        public string SessionToken { get; set; }
         public bool SkipConfirmation { get; set; }
         public bool DryRun { get; set; }
         public bool RecreateLocations { get; set; }

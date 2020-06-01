@@ -10,6 +10,7 @@ namespace TimeSeriesChangeMonitor
         public string Server { get; set; } = "localhost";
         public string Username { get; set; } = "admin";
         public string Password { get; set; } = "admin";
+        public string SessionToken { get; set; }
         public string LocationIdentifier { get; set; }
         public string Parameter { get; set; }
         public bool? Publish { get; set; }
