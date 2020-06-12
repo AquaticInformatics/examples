@@ -31,13 +31,17 @@ namespace ChangeVisitApprovals
 
                 Environment.ExitCode = 0;
             }
-            catch (ExpectedException ex)
+            catch (WebServiceException exception)
             {
-                Log.Error(ex.Message);
+                Log.Error($"API: ({exception.StatusCode}) {string.Join(" ", exception.StatusDescription, exception.ErrorCode)}: {string.Join(" ", exception.Message, exception.ErrorMessage)}", exception);
             }
-            catch (Exception ex)
+            catch (ExpectedException exception)
             {
-                Log.Error(ex);
+                Log.Error(exception.Message);
+            }
+            catch (Exception exception)
+            {
+                Log.Error(exception);
             }
         }
 

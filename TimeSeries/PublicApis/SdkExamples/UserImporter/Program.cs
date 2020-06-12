@@ -42,6 +42,8 @@ namespace UserImporter
 
                 if (exception is ExpectedException)
                     logAction(exception.Message);
+                else if (exception is WebServiceException webServiceException)
+                    logAction($"API: ({webServiceException.StatusCode}) {string.Join(" ", webServiceException.StatusDescription, webServiceException.ErrorCode)}: {string.Join(" ", webServiceException.Message, webServiceException.ErrorMessage)}");
                 else
                     logAction($"{exception.Message}\n{exception.StackTrace}");
             }
