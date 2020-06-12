@@ -30,7 +30,7 @@ namespace TotalDischargeExternalProcessor
             }
             catch (WebServiceException exception)
             {
-                _log.Error($"{exception.ErrorCode} {exception.ErrorMessage}");
+                _log.Error($"API: ({exception.StatusCode}) {string.Join(" ", exception.StatusDescription, exception.ErrorCode)}: {string.Join(" ", exception.Message, exception.ErrorMessage)}", exception);
             }
             catch (ExpectedException exception)
             {
