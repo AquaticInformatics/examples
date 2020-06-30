@@ -76,12 +76,15 @@ timeseriesClient <- setRefClass("timeseriesClient",
     disconnect = function() {
       
       if (isLegacy) {
-        # 3.X doesn't support proper disconnection, so just abandon the session and allow it to expire in 60 minutes
+        # 3.X doesn't support proper disconnection, so just abandon the session below
       } else {
         # Delete the session immediately, like we should
         r <- DELETE(paste0(publishUri, "/session"))
         stop_for_status(r, "disconnect from AQTS")
       }
+      
+      # Abandon all session cookies associated with the connection
+      handle_reset(publishUri)
     },
 
 #' Auto-configures the proxy to route all requests through Fiddler
@@ -676,19 +679,21 @@ timeseriesClient <- setRefClass("timeseriesClient",
   
       reports = .self$getReportList()$Reports
   
-      for (row in 1:nrow(reports)) {
+      if (length(reports) {
+        for (row in 1:nrow(reports)) {
   
-        if (reports[row, "IsTransient"]) {
-          # Ignore transient reports
-          next
+          if (reports[row, "IsTransient"]) {
+            # Ignore transient reports
+            next
+          }
+    
+          if (reports[row, "Title"] != title) {
+            # Ignore permanent reports whose title does not match
+            next
+          }
+    
+          .self$deleteReport(reports[row, "ReportUniqueId"])
         }
-  
-        if (reports[row, "Title"] != title) {
-          # Ignore permanent reports whose title does not match
-          next
-        }
-  
-        .self$deleteReport(reports[row, "ReportUniqueId"])
       }
     }
   

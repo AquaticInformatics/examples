@@ -679,19 +679,21 @@ timeseriesClient <- setRefClass("timeseriesClient",
   
       reports = .self$getReportList()$Reports
   
-      for (row in 1:nrow(reports)) {
+      if (length(reports) {
+        for (row in 1:nrow(reports)) {
   
-        if (reports[row, "IsTransient"]) {
-          # Ignore transient reports
-          next
+          if (reports[row, "IsTransient"]) {
+            # Ignore transient reports
+            next
+          }
+    
+          if (reports[row, "Title"] != title) {
+            # Ignore permanent reports whose title does not match
+            next
+          }
+    
+          .self$deleteReport(reports[row, "ReportUniqueId"])
         }
-  
-        if (reports[row, "Title"] != title) {
-          # Ignore permanent reports whose title does not match
-          next
-        }
-  
-        .self$deleteReport(reports[row, "ReportUniqueId"])
       }
     }
   
