@@ -679,7 +679,7 @@ timeseriesClient <- setRefClass("timeseriesClient",
   
       reports = .self$getReportList()$Reports
   
-      if (length(reports) {
+      if (length(reports)) {
         for (row in 1:nrow(reports)) {
   
           if (reports[row, "IsTransient"]) {
