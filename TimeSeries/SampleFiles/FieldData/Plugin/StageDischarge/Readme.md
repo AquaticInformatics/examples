@@ -5,6 +5,11 @@ AQUARIUS Time-Series can import field data from Stage/Discharge CSV files.
 One CSV file can contain multiple stage/discharge measurements from multiple locations.
 The CSV format supports stage/discharge pairs, with optional measurement IDs, and optional channel measurements.
 
+# UPDATE: Use the Tabular CV plugin to parse these CSV files
+The [StageDischargeReadings plugin](https://github.com/AquaticInformatics/stage-discharge-readings-field-data-plugin#stage-discharge-readings-field-data-plugin) is now obsolete, having been replaced by the [Tabular CSV plugin](https://github.com/AquaticInformatics/tabular-field-data-plugin#tabular-csv-field-data-plugin) in AQTS 2020.1.
+
+You can use [this example configuration](https://aquaticinformatics.github.io/tabular-field-data-plugin/test-drive/?example=stagedischargereadingsformat) to parse the old StageDischargeReadings CSV format using the Tabular CSV plugin.
+
 ## AQUARIUS location identifiers
 
 The `LocationIdentifier` field should contain the AQUARIUS location identifier in order to support automatic upload from Springboard.
