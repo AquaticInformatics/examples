@@ -78,6 +78,10 @@ artifacts:
     name: WaterWatchPreProcessor
     type: file
 
+  - path: TimeSeries\PublicApis\SdkExamples\NEM12PreProcessor\bin\Release\NEM12PreProcessor.exe
+    name: NEM12PreProcessor
+    type: file
+
   - path: TimeSeries\PublicApis\SdkExamples\TotalDischargeExternalProcessor\bin\Release\TotalDischargeExternalProcessor.exe
     name: TotalDischargeExternalProcessor
     type: file
@@ -99,7 +103,7 @@ deploy:
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: Example utilities $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor, SondeFileImporter, SamplesPlannedSpecimenInstantiator, SamplesObservationExporter, LabFileImporter
+    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor, SondeFileImporter, SamplesPlannedSpecimenInstantiator, SamplesObservationExporter, LabFileImporter, NEM12PreProcessor
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true
