@@ -511,7 +511,7 @@ namespace SosExporter
 
         private void ExportTimeSeries(bool clearExportedData,
             DateTime? nextChangesSinceToken,
-            TimeSeriesUniqueIds detectedChange,
+            TimeSeriesChangeEvent detectedChange,
             TimeSeriesDescription timeSeriesDescription)
         {
             var locationInfo = GetLocationInfo(timeSeriesDescription.LocationIdentifier);
@@ -531,7 +531,7 @@ namespace SosExporter
 
             var lastSensorTime = GetLastSensorTime(existingSensor);
 
-            if (detectedChange.HasAttributeChange ?? lastSensorTime >= detectedChange.FirstPointChanged)
+            if (HaveExistingSosPointsChanged(dataRequest, lastSensorTime, detectedChange, timeSeriesDescription))
             {
                 Log.Warn($"FirstPointChanged={detectedChange.FirstPointChanged:O} AttributeChange={detectedChange.HasAttributeChange} of '{timeSeriesDescription.Identifier}' precedes LastSensorTime={lastSensorTime:O} of '{existingSensor?.Identifier}'. Forcing delete of existing sensor.");
 
@@ -612,6 +612,77 @@ namespace SosExporter
         private static DateTimeOffset? GetLastSensorTime(SensorInfo sensor)
         {
             return sensor?.PhenomenonTime.LastOrDefault();
+        }
+
+        private bool HaveExistingSosPointsChanged(
+            TimeSeriesDataCorrectedServiceRequest dataRequest,
+            DateTimeOffset? lastSensorTime,
+            TimeSeriesChangeEvent detectedChange,
+            TimeSeriesDescription timeSeriesDescription)
+        {
+            if (detectedChange.HasAttributeChange ?? false)
+                return true;
+
+            if (!detectedChange.FirstPointChanged.HasValue || !lastSensorTime.HasValue)
+                return false;
+
+            if (lastSensorTime < detectedChange.FirstPointChanged)
+                return false;
+
+            dataRequest.QueryFrom = lastSensorTime;
+
+            var timeSeriesIdentifier = timeSeriesDescription.Identifier;
+
+            var sosPoints = new Queue<TimeSeriesPoint>(Sos.GetObservations(timeSeriesDescription, detectedChange.FirstPointChanged.Value, lastSensorTime.Value));
+            var aqtsPoints = new Queue<TimeSeriesPoint>(Aquarius.Publish.Get(dataRequest).Points);
+
+            var sosCount = sosPoints.Count;
+            var aqtsCount = aqtsPoints.Count;
+
+            Log.Info($"Fetched {sosCount} SOS points and {aqtsCount} AQUARIUS points for '{timeSeriesIdentifier}' from {lastSensorTime:O} ...");
+
+            while (sosPoints.Any() || aqtsPoints.Any())
+            {
+                var sosPoint = sosPoints.FirstOrDefault();
+                var aqtsPoint = aqtsPoints.FirstOrDefault();
+
+                if (aqtsPoint == null)
+                {
+                    Log.Warn($"'{timeSeriesIdentifier}': AQUARIUS now has fewer points than SOS@{sosPoint?.Timestamp.DateTimeOffset:O}");
+                    return true;
+                }
+
+                if (sosPoint == null)
+                {
+                    break;
+                }
+
+                var aqtsValue = (dataRequest.ApplyRounding ?? false)
+                    ? double.Parse(aqtsPoint.Value.Display)
+                    : aqtsPoint.Value.Numeric;
+
+                var sosValue = sosPoint.Value.Numeric;
+
+                if (sosPoint.Timestamp.DateTimeOffset != aqtsPoint.Timestamp.DateTimeOffset)
+                {
+                    Log.Warn($"'{timeSeriesIdentifier}': Different timestamps: AQUARIUS={aqtsValue}@{aqtsPoint.Timestamp.DateTimeOffset:O} vs SOS={sosValue}@{sosPoint.Timestamp.DateTimeOffset:O}");
+                    return true;
+                }
+
+                if (!DoubleHelper.AreSame(aqtsValue, sosValue))
+                {
+                    Log.Warn($"'{timeSeriesIdentifier}': Different values @ {aqtsPoint.Timestamp.DateTimeOffset:O}: AQUARIUS={aqtsValue} vs SOS={sosValue}");
+                    return true;
+                }
+
+                sosPoints.Dequeue();
+                aqtsPoints.Dequeue();
+            }
+
+            Log.Info($"'{timeSeriesDescription.Identifier}': All {sosCount} SOS points match between SOS and AQUARIUS.");
+            dataRequest.QueryFrom = lastSensorTime.Value.AddTicks(1);
+
+            return false;
         }
 
         private void TrimExcludedPoints(

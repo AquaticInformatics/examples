@@ -83,6 +83,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ChangeEventType.cs" />
+    <Compile Include="DoubleHelper.cs" />
     <Compile Include="Dtos\GetObservationRequest.cs" />
     <Compile Include="Dtos\RequestBase.cs" />
     <Compile Include="ExeHelper.cs" />
