@@ -306,7 +306,7 @@ namespace SosExporter
             return insertedSensor;
         }
 
-        public void InsertObservation(string assignedOffering, LocationDataServiceResponse location, LocationDescription locationDescription, TimeSeriesDataServiceResponse timeSeries, TimeSeriesDescription timeSeriesDescription)
+        public void InsertObservation(string assignedOffering, LocationDataServiceResponse location, LocationDescription locationDescription, TimeSeriesDataServiceResponse timeSeries)
         {
             var xmlTemplatePath = IsSpatialLocationDefined(location)
                 ? @"XmlTemplates\InsertObservation.xml"
@@ -362,6 +362,7 @@ namespace SosExporter
             }
         }
 
+
         private static bool IsSpatialLocationDefined(LocationDataServiceResponse location)
         {
             return // ReSharper disable once CompareOfFloatsByEqualityOperator
@@ -384,8 +385,8 @@ namespace SosExporter
             return new Dictionary<string, string>
             {
                 {ProcedureUniqueIdKey, timeSeriesIdentifier},
-                {"{__featureOfInterestId__}", SanitizeIdentifier(timeSeries.LocationIdentifier)},
-                {"{__observablePropertyName__}", SanitizeIdentifier($"{timeSeries.Parameter}_{timeSeries.Label}")},
+                {"{__featureOfInterestId__}", CreateFeatureOfInterestId(timeSeries.LocationIdentifier)},
+                {"{__observablePropertyName__}", CreateObservedPropertyName(timeSeries.Parameter, timeSeries.Label)},
             };
         }
 
@@ -419,6 +420,16 @@ namespace SosExporter
                 {InterpolationType.PrecedingTotals.ToString(), "TotalPrec"},
                 {InterpolationType.SucceedingConstant.ToString(), "AverageSucc"},
             };
+
+        private static string CreateFeatureOfInterestId(string locationIdentifier)
+        {
+            return SanitizeIdentifier(locationIdentifier);
+        }
+
+        private static string CreateObservedPropertyName(string parameter, string label)
+        {
+            return SanitizeIdentifier($"{parameter}_{label}");
+        }
 
         private static string SanitizeIdentifier(string text)
         {
@@ -508,6 +519,49 @@ namespace SosExporter
                 var xmlSerializer = new System.Xml.Serialization.XmlSerializer(typeof(T));
                 return (T) xmlSerializer.Deserialize(reader);
             }
+        }
+
+        public List<TimeSeriesPoint> GetObservations(TimeSeriesDescription timeSeriesDescription, DateTimeOffset startTime, DateTimeOffset endTime)
+        {
+            var request = new GetObservationRequest
+            {
+                ObservedProperty = CreateObservedPropertyName(timeSeriesDescription.Parameter, timeSeriesDescription.Label),
+                FeatureOfInterest = CreateFeatureOfInterestId(timeSeriesDescription.LocationIdentifier),
+                TemporalFilter = CreateTemporalFilter(startTime, endTime)
+            };
+
+            var response = JsonClient.Get(request);
+
+            if (response == null)
+                return new List<TimeSeriesPoint>();
+
+            var observation = response
+                .Observations
+                ?.FirstOrDefault();
+
+            if (observation?.Result?.Values == null)
+                return new List<TimeSeriesPoint>();
+
+            return observation
+                .Result
+                .Values
+                .Select(p => new TimeSeriesPoint
+                {
+                    Timestamp = new StatisticalDateTimeOffset
+                    {
+                        DateTimeOffset = DateTimeOffset.Parse(p[0])
+                    },
+                    Value = new DoubleWithDisplay
+                    {
+                        Numeric = double.Parse(p[1])
+                    }
+                })
+                .ToList();
+        }
+
+        private string CreateTemporalFilter(DateTimeOffset startTime, DateTimeOffset endTime)
+        {
+            return $"om:phenomenonTime,{startTime:O}/{endTime:O}";
         }
     }
 }

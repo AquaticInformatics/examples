@@ -594,7 +594,7 @@ namespace SosExporter
                 assignedOffering = sensor.AssignedOffering;
             }
 
-            Sos.InsertObservation(assignedOffering, locationInfo.LocationData, locationInfo.LocationDescription, timeSeries, timeSeriesDescription);
+            Sos.InsertObservation(assignedOffering, locationInfo.LocationData, locationInfo.LocationDescription, timeSeries);
         }
 
         private static DateTimeOffset? GetInitialQueryFrom(TimeSeriesChangeEvent detectedChange)

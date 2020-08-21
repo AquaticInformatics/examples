@@ -83,6 +83,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ChangeEventType.cs" />
+    <Compile Include="Dtos\GetObservationRequest.cs" />
     <Compile Include="ExeHelper.cs" />
     <Compile Include="Filter.cs" />
     <Compile Include="SingleInstanceGuard.cs" />
