@@ -16,6 +16,7 @@ using ServiceStack.Text.Common;
 using SosExporter.Dtos;
 using SosExporter.Ogc;
 using InterpolationType = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.InterpolationType;
+using ResponseError = ServiceStack.ResponseError;
 
 namespace SosExporter
 {
@@ -119,9 +120,9 @@ namespace SosExporter
                 Capabilities = JsonClient.Post(new GetCapabilitiesRequest
                 {
                     Sections = new List<string> { "Contents" },
-                    Request = "GetCapabilities",
-                    Service = "SOS"
                 });
+
+                ThrowIfSosException(Capabilities);
             }
         }
 
@@ -521,6 +522,14 @@ namespace SosExporter
             }
         }
 
+        private void ThrowIfSosException(ResponseBase response)
+        {
+            if (response?.Exceptions == null || !response.Exceptions.Any())
+                return;
+
+            throw new ExpectedException($"SOS API Error: {string.Join(", ", response.Exceptions.Select(e => $"{e.Code}@{e.Locator}:{e.Text}"))}");
+        }
+
         public List<TimeSeriesPoint> GetObservations(TimeSeriesDescription timeSeriesDescription, DateTimeOffset startTime, DateTimeOffset endTime)
         {
             var request = new GetObservationRequest
@@ -531,6 +540,8 @@ namespace SosExporter
             };
 
             var response = JsonClient.Get(request);
+
+            ThrowIfSosException(response);
 
             if (response == null)
                 return new List<TimeSeriesPoint>();

@@ -5,21 +5,20 @@ using ServiceStack;
 namespace SosExporter.Dtos
 {
     [Route("/service", HttpMethods.Get)]
-    public class GetObservationRequest : IReturn<GetObservationResponse>
+    public class GetObservationRequest : RequestBase, IReturn<GetObservationResponse>
     {
-        public string Service { get; set; } = "SOS";
-        public string Version { get; set; } = "2.0.0";
-        public string Request { get; set; } = "GetObservation";
+        public GetObservationRequest()
+            : base("GetObservation")
+        {
+        }
+
         public string ObservedProperty { get; set; }
         public string FeatureOfInterest { get; set; }
         public string TemporalFilter { get; set; }
     }
 
-    public class GetObservationResponse
+    public class GetObservationResponse : ResponseBase
     {
-        public string Request { get; set; }
-        public string Version { get; set; }
-        public string Service { get; set; }
         public List<Observation> Observations { get; set; }
     }
 
