@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -82,7 +83,10 @@ namespace SosExporter
 
         private JsConfigScope SosScope()
         {
-            return JsConfig.With(emitCamelCaseNames: true);
+            return JsConfig.With(new ServiceStack.Text.Config
+            {
+                TextCase = TextCase.CamelCase
+            });
         }
 
         public void Connect()
@@ -117,12 +121,18 @@ namespace SosExporter
         {
             using (SosScope())
             {
+                Log.Info("Fetching current SOS configuration ...");
+
+                var stopwatch = Stopwatch.StartNew();
+
                 Capabilities = JsonClient.Post(new GetCapabilitiesRequest
                 {
                     Sections = new List<string> { "Contents" },
                 });
 
                 ThrowIfSosException(Capabilities);
+
+                Log.Info($"Fetched {"SOS sensor".ToQuantity(Capabilities.Contents.Count)} in {stopwatch.Elapsed.Humanize(2)}");
             }
         }
 
