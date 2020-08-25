@@ -292,16 +292,16 @@ namespace PointZilla
 
             while (!parser.EndOfData)
             {
+                var lineNumber = parser.LineNumber;
+
+                var fields = parser.ReadFields();
+                if (fields == null) continue;
+
                 if (skipCount > 0)
                 {
                     --skipCount;
                     continue;
                 }
-
-                var lineNumber = parser.LineNumber;
-
-                var fields = parser.ReadFields();
-                if (fields == null) continue;
 
                 var point = ParsePoint(fields);
 
