@@ -136,6 +136,8 @@ namespace SosExporter
 
             ExportToSos(request, response, timeSeriesDescriptions, clearExportedData);
 
+            RemoveDeletedTimeSeries(response);
+
             SyncStatus.SaveConfiguration(request.ChangesSinceToken.Value);
         }
 
@@ -296,6 +298,7 @@ namespace SosExporter
         private List<TimeSeriesDescription> FetchChangedTimeSeriesDescriptions(TimeSeriesUniqueIdListServiceResponse response)
         {
             var timeSeriesUniqueIdsToFetch = response.TimeSeriesUniqueIds
+                .Where(ts => !(ts.IsDeleted ?? false))
                 .Select(ts => ts.UniqueId)
                 .ToList();
 
@@ -419,7 +422,6 @@ namespace SosExporter
                     var description = timeSeriesDescription;
                     ExportTimeSeries(
                         clearExportedData,
-                        request.ChangesSinceToken,
                         changeEvents.Single(t => t.UniqueId == description.UniqueId),
                         timeSeriesDescription);
                 }
@@ -446,6 +448,8 @@ namespace SosExporter
 
             var newTimeSeriesDescriptions = FilterTimeSeriesDescriptions(FetchChangedTimeSeriesDescriptions(response));
 
+            RemoveDeletedTimeSeries(response);
+
             if (!newTimeSeriesDescriptions.Any())
                 return;
 
@@ -467,6 +471,22 @@ namespace SosExporter
 
                 MergeTimeSeriesChangeEvent(existingEvent, newEvent);
             }
+        }
+
+        private void RemoveDeletedTimeSeries(TimeSeriesUniqueIdListServiceResponse response)
+        {
+            var deletedTimeSeriesUniqueIds = response
+                .TimeSeriesUniqueIds
+                .Where(ts => ts.IsDeleted ?? false)
+                .ToList();
+
+            if (!deletedTimeSeriesUniqueIds.Any())
+                return;
+
+            // TODO: At this point, we only have a time-series GUID, no Identifier.
+            // If the SOS sensor could be configured with some property that would store the GUID, then we could find it and delete it.
+
+            Log.Warn($"{"deleted time-series".ToQuantity(deletedTimeSeriesUniqueIds.Count)} detected. A full resync may be required!");
         }
 
         private static void MergeTimeSeriesChangeEvent(TimeSeriesChangeEvent existingEvent, TimeSeriesChangeEvent newEvent)
@@ -510,7 +530,6 @@ namespace SosExporter
         }
 
         private void ExportTimeSeries(bool clearExportedData,
-            DateTime? nextChangesSinceToken,
             TimeSeriesChangeEvent detectedChange,
             TimeSeriesDescription timeSeriesDescription)
         {
@@ -556,7 +575,7 @@ namespace SosExporter
 
             var timeSeries = Aquarius.Publish.Get(dataRequest);
 
-            TrimExcludedPoints(timeSeriesDescription, timeSeries, nextChangesSinceToken);
+            TrimExcludedPoints(timeSeriesDescription, timeSeries);
 
             var createSensor = existingSensor == null || deleteExistingSensor;
 
@@ -629,17 +648,15 @@ namespace SosExporter
             if (lastSensorTime < detectedChange.FirstPointChanged)
                 return false;
 
-            dataRequest.QueryFrom = lastSensorTime;
-
             var timeSeriesIdentifier = timeSeriesDescription.Identifier;
 
-            var sosPoints = new Queue<TimeSeriesPoint>(Sos.GetObservations(timeSeriesDescription, detectedChange.FirstPointChanged.Value, lastSensorTime.Value));
+            var sosPoints = new Queue<TimeSeriesPoint>(Sos.GetObservations(timeSeriesDescription, detectedChange.FirstPointChanged.Value.AddMilliseconds(-1), lastSensorTime.Value.AddMilliseconds(1)));
             var aqtsPoints = new Queue<TimeSeriesPoint>(Aquarius.Publish.Get(dataRequest).Points);
 
             var sosCount = sosPoints.Count;
             var aqtsCount = aqtsPoints.Count;
 
-            Log.Info($"Fetched {sosCount} SOS points and {aqtsCount} AQUARIUS points for '{timeSeriesIdentifier}' from {lastSensorTime:O} ...");
+            Log.Info($"Fetched {sosCount} SOS points and {aqtsCount} AQUARIUS points for '{timeSeriesIdentifier}' from {dataRequest.QueryFrom:O} ...");
 
             while (sosPoints.Any() || aqtsPoints.Any())
             {
@@ -687,8 +704,7 @@ namespace SosExporter
 
         private void TrimExcludedPoints(
             TimeSeriesDescription timeSeriesDescription,
-            TimeSeriesDataServiceResponse timeSeries,
-            DateTime? nextChangesSinceToken)
+            TimeSeriesDataServiceResponse timeSeries)
         {
             var (exportDuration, exportLabel) = GetExportDuration(timeSeriesDescription);
 
@@ -696,17 +712,8 @@ namespace SosExporter
                 return;
 
             var firstTimeToInclude = timeSeries.Points.Last().Timestamp.DateTimeOffset - exportDuration;
-            var firstTimeToExclude = nextChangesSinceToken.HasValue
-                ? new DateTimeOffset(nextChangesSinceToken.Value)
-                : (DateTimeOffset?)null;
 
-            var nonFuturePoints = timeSeries.Points
-                .Where(p => p.Timestamp.DateTimeOffset < firstTimeToExclude)
-                .ToList();
-
-            var futurePointCount = timeSeries.Points.Count - nonFuturePoints.Count;
-
-            var remainingPoints = nonFuturePoints
+            var remainingPoints = timeSeries.Points
                 .Where(p => p.Timestamp.DateTimeOffset >= firstTimeToInclude)
                 .ToList();
 
@@ -719,12 +726,10 @@ namespace SosExporter
 
             var earlyPointCount = timeSeries.Points.Count - remainingPoints.Count;
 
-            var excludedPointCount = futurePointCount + earlyPointCount;
-
-            if (excludedPointCount <= 0)
+            if (earlyPointCount <= 0)
                 return;
 
-            Log.Info($"Trimming '{timeSeriesDescription.Identifier}' {"point".ToQuantity(earlyPointCount)} before {firstTimeToInclude:O} and {"point".ToQuantity(futurePointCount)} after {firstTimeToExclude:O} with {remainingPoints.Count} points remaining with ExportDuration={exportLabel}");
+            Log.Info($"Trimming '{timeSeriesDescription.Identifier}' {"point".ToQuantity(earlyPointCount)} before {firstTimeToInclude:O} with {remainingPoints.Count} points remaining with ExportDuration={exportLabel}");
 
             timeSeries.Points = remainingPoints;
             timeSeries.NumPoints = timeSeries.Points.Count;
