@@ -5,18 +5,18 @@ using ServiceStack;
 namespace SosExporter.Dtos
 {
     [Route("/service", HttpMethods.Post)]
-    public class GetCapabilitiesRequest : IReturn<GetCapabilitiesResponse>
+    public class GetCapabilitiesRequest : RequestBase, IReturn<GetCapabilitiesResponse>
     {
+        public GetCapabilitiesRequest()
+            : base("GetCapabilities")
+        {
+        }
+
         public List<string> Sections { get; set; }
-        public string Request { get; set; }
-        public string Service { get; set; }
     }
 
-    public class GetCapabilitiesResponse
+    public class GetCapabilitiesResponse : ResponseBase
     {
-        public string Request { get; set; }
-        public string Service { get; set; }
-        public string Version { get; set; }
         public List<SensorInfo> Contents { get; set; }
     }
 
@@ -29,7 +29,7 @@ namespace SosExporter.Dtos
         public List<string> Procedure { get; set; }
         public List<string> ObservableProperty { get; set; }
         public List<string> ResponseFormat { get; set; }
-        public List<string> ObservationtType { get; set; }
+        public List<string> ObservationType { get; set; }
         public List<string> FeatureOfInterestType { get; set; }
         public List<string> ProcedureDescriptionFormat { get; set; }
     }

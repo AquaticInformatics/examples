@@ -136,6 +136,8 @@ namespace SosExporter
 
             ExportToSos(request, response, timeSeriesDescriptions, clearExportedData);
 
+            RemoveDeletedTimeSeries(response);
+
             SyncStatus.SaveConfiguration(request.ChangesSinceToken.Value);
         }
 
@@ -296,6 +298,7 @@ namespace SosExporter
         private List<TimeSeriesDescription> FetchChangedTimeSeriesDescriptions(TimeSeriesUniqueIdListServiceResponse response)
         {
             var timeSeriesUniqueIdsToFetch = response.TimeSeriesUniqueIds
+                .Where(ts => !(ts.IsDeleted ?? false))
                 .Select(ts => ts.UniqueId)
                 .ToList();
 
@@ -419,7 +422,6 @@ namespace SosExporter
                     var description = timeSeriesDescription;
                     ExportTimeSeries(
                         clearExportedData,
-                        request.ChangesSinceToken,
                         changeEvents.Single(t => t.UniqueId == description.UniqueId),
                         timeSeriesDescription);
                 }
@@ -446,6 +448,8 @@ namespace SosExporter
 
             var newTimeSeriesDescriptions = FilterTimeSeriesDescriptions(FetchChangedTimeSeriesDescriptions(response));
 
+            RemoveDeletedTimeSeries(response);
+
             if (!newTimeSeriesDescriptions.Any())
                 return;
 
@@ -467,6 +471,22 @@ namespace SosExporter
 
                 MergeTimeSeriesChangeEvent(existingEvent, newEvent);
             }
+        }
+
+        private void RemoveDeletedTimeSeries(TimeSeriesUniqueIdListServiceResponse response)
+        {
+            var deletedTimeSeriesUniqueIds = response
+                .TimeSeriesUniqueIds
+                .Where(ts => ts.IsDeleted ?? false)
+                .ToList();
+
+            if (!deletedTimeSeriesUniqueIds.Any())
+                return;
+
+            // TODO: At this point, we only have a time-series GUID, no Identifier.
+            // If the SOS sensor could be configured with some property that would store the GUID, then we could find it and delete it.
+
+            Log.Warn($"{"deleted time-series".ToQuantity(deletedTimeSeriesUniqueIds.Count)} detected. A full resync may be required!");
         }
 
         private static void MergeTimeSeriesChangeEvent(TimeSeriesChangeEvent existingEvent, TimeSeriesChangeEvent newEvent)
@@ -510,8 +530,7 @@ namespace SosExporter
         }
 
         private void ExportTimeSeries(bool clearExportedData,
-            DateTime? nextChangesSinceToken,
-            TimeSeriesUniqueIds detectedChange,
+            TimeSeriesChangeEvent detectedChange,
             TimeSeriesDescription timeSeriesDescription)
         {
             var locationInfo = GetLocationInfo(timeSeriesDescription.LocationIdentifier);
@@ -531,7 +550,7 @@ namespace SosExporter
 
             var lastSensorTime = GetLastSensorTime(existingSensor);
 
-            if (detectedChange.HasAttributeChange ?? lastSensorTime >= detectedChange.FirstPointChanged)
+            if (HaveExistingSosPointsChanged(dataRequest, lastSensorTime, detectedChange, timeSeriesDescription))
             {
                 Log.Warn($"FirstPointChanged={detectedChange.FirstPointChanged:O} AttributeChange={detectedChange.HasAttributeChange} of '{timeSeriesDescription.Identifier}' precedes LastSensorTime={lastSensorTime:O} of '{existingSensor?.Identifier}'. Forcing delete of existing sensor.");
 
@@ -556,7 +575,7 @@ namespace SosExporter
 
             var timeSeries = Aquarius.Publish.Get(dataRequest);
 
-            TrimExcludedPoints(timeSeriesDescription, timeSeries, nextChangesSinceToken);
+            TrimExcludedPoints(timeSeriesDescription, timeSeries);
 
             var createSensor = existingSensor == null || deleteExistingSensor;
 
@@ -594,7 +613,7 @@ namespace SosExporter
                 assignedOffering = sensor.AssignedOffering;
             }
 
-            Sos.InsertObservation(assignedOffering, locationInfo.LocationData, locationInfo.LocationDescription, timeSeries, timeSeriesDescription);
+            Sos.InsertObservation(assignedOffering, locationInfo.LocationData, locationInfo.LocationDescription, timeSeries);
         }
 
         private static DateTimeOffset? GetInitialQueryFrom(TimeSeriesChangeEvent detectedChange)
@@ -614,10 +633,78 @@ namespace SosExporter
             return sensor?.PhenomenonTime.LastOrDefault();
         }
 
+        private bool HaveExistingSosPointsChanged(
+            TimeSeriesDataCorrectedServiceRequest dataRequest,
+            DateTimeOffset? lastSensorTime,
+            TimeSeriesChangeEvent detectedChange,
+            TimeSeriesDescription timeSeriesDescription)
+        {
+            if (detectedChange.HasAttributeChange ?? false)
+                return true;
+
+            if (!detectedChange.FirstPointChanged.HasValue || !lastSensorTime.HasValue)
+                return false;
+
+            if (lastSensorTime < detectedChange.FirstPointChanged)
+                return false;
+
+            var timeSeriesIdentifier = timeSeriesDescription.Identifier;
+
+            var sosPoints = new Queue<TimeSeriesPoint>(Sos.GetObservations(timeSeriesDescription, detectedChange.FirstPointChanged.Value.AddMilliseconds(-1), lastSensorTime.Value.AddMilliseconds(1)));
+            var aqtsPoints = new Queue<TimeSeriesPoint>(Aquarius.Publish.Get(dataRequest).Points);
+
+            var sosCount = sosPoints.Count;
+            var aqtsCount = aqtsPoints.Count;
+
+            Log.Info($"Fetched {sosCount} SOS points and {aqtsCount} AQUARIUS points for '{timeSeriesIdentifier}' from {dataRequest.QueryFrom:O} ...");
+
+            while (sosPoints.Any() || aqtsPoints.Any())
+            {
+                var sosPoint = sosPoints.FirstOrDefault();
+                var aqtsPoint = aqtsPoints.FirstOrDefault();
+
+                if (aqtsPoint == null)
+                {
+                    Log.Warn($"'{timeSeriesIdentifier}': AQUARIUS now has fewer points than SOS@{sosPoint?.Timestamp.DateTimeOffset:O}");
+                    return true;
+                }
+
+                if (sosPoint == null)
+                {
+                    break;
+                }
+
+                var aqtsValue = (dataRequest.ApplyRounding ?? false)
+                    ? double.Parse(aqtsPoint.Value.Display)
+                    : aqtsPoint.Value.Numeric;
+
+                var sosValue = sosPoint.Value.Numeric;
+
+                if (sosPoint.Timestamp.DateTimeOffset != aqtsPoint.Timestamp.DateTimeOffset)
+                {
+                    Log.Warn($"'{timeSeriesIdentifier}': Different timestamps: AQUARIUS={aqtsValue}@{aqtsPoint.Timestamp.DateTimeOffset:O} vs SOS={sosValue}@{sosPoint.Timestamp.DateTimeOffset:O}");
+                    return true;
+                }
+
+                if (!DoubleHelper.AreSame(aqtsValue, sosValue))
+                {
+                    Log.Warn($"'{timeSeriesIdentifier}': Different values @ {aqtsPoint.Timestamp.DateTimeOffset:O}: AQUARIUS={aqtsValue} vs SOS={sosValue}");
+                    return true;
+                }
+
+                sosPoints.Dequeue();
+                aqtsPoints.Dequeue();
+            }
+
+            Log.Info($"'{timeSeriesDescription.Identifier}': All {sosCount} SOS points match between SOS and AQUARIUS.");
+            dataRequest.QueryFrom = lastSensorTime.Value.AddTicks(1);
+
+            return false;
+        }
+
         private void TrimExcludedPoints(
             TimeSeriesDescription timeSeriesDescription,
-            TimeSeriesDataServiceResponse timeSeries,
-            DateTime? nextChangesSinceToken)
+            TimeSeriesDataServiceResponse timeSeries)
         {
             var (exportDuration, exportLabel) = GetExportDuration(timeSeriesDescription);
 
@@ -625,17 +712,8 @@ namespace SosExporter
                 return;
 
             var firstTimeToInclude = timeSeries.Points.Last().Timestamp.DateTimeOffset - exportDuration;
-            var firstTimeToExclude = nextChangesSinceToken.HasValue
-                ? new DateTimeOffset(nextChangesSinceToken.Value)
-                : (DateTimeOffset?)null;
 
-            var nonFuturePoints = timeSeries.Points
-                .Where(p => p.Timestamp.DateTimeOffset < firstTimeToExclude)
-                .ToList();
-
-            var futurePointCount = timeSeries.Points.Count - nonFuturePoints.Count;
-
-            var remainingPoints = nonFuturePoints
+            var remainingPoints = timeSeries.Points
                 .Where(p => p.Timestamp.DateTimeOffset >= firstTimeToInclude)
                 .ToList();
 
@@ -648,12 +726,10 @@ namespace SosExporter
 
             var earlyPointCount = timeSeries.Points.Count - remainingPoints.Count;
 
-            var excludedPointCount = futurePointCount + earlyPointCount;
-
-            if (excludedPointCount <= 0)
+            if (earlyPointCount <= 0)
                 return;
 
-            Log.Info($"Trimming '{timeSeriesDescription.Identifier}' {"point".ToQuantity(earlyPointCount)} before {firstTimeToInclude:O} and {"point".ToQuantity(futurePointCount)} after {firstTimeToExclude:O} with {remainingPoints.Count} points remaining with ExportDuration={exportLabel}");
+            Log.Info($"Trimming '{timeSeriesDescription.Identifier}' {"point".ToQuantity(earlyPointCount)} before {firstTimeToInclude:O} with {remainingPoints.Count} points remaining with ExportDuration={exportLabel}");
 
             timeSeries.Points = remainingPoints;
             timeSeries.NumPoints = timeSeries.Points.Count;

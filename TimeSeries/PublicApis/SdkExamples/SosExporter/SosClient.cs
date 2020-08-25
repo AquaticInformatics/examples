@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Aquarius.Helpers;
+using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using Humanizer;
 using log4net;
@@ -16,6 +18,7 @@ using ServiceStack.Text.Common;
 using SosExporter.Dtos;
 using SosExporter.Ogc;
 using InterpolationType = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.InterpolationType;
+using ResponseError = ServiceStack.ResponseError;
 
 namespace SosExporter
 {
@@ -25,12 +28,10 @@ namespace SosExporter
 
         public static ISosClient CreateConnectedClient(Context context)
         {
-            var client = new SosClient(context.Config.SosServer, context.Config.SosUsername, context.Config.SosPassword)
+            var client = new SosClient(context.Config.SosServer, context.Config.SosUsername, context.Config.SosPassword, context.SosServerVersion)
             {
                 MaximumPointsPerObservation = context.MaximumPointsPerObservation,
                 TimeoutMilliseconds = Convert.ToInt32(context.Timeout.TotalMilliseconds),
-                LoginRoute = context.SosLoginRoute ?? "login",
-                LogoutRoute = context.SosLogoutRoute ?? "logout",
             };
 
             client.Connect();
@@ -38,6 +39,8 @@ namespace SosExporter
             return client;
         }
 
+
+        private AquariusServerVersion SosServerVersion { get; }
         private int MaximumPointsPerObservation { get; set; }
         private int TimeoutMilliseconds { get; set; }
         private string LoginRoute { get; set; }
@@ -50,14 +53,39 @@ namespace SosExporter
         private string UserAgent { get; set; }
         private GetCapabilitiesResponse Capabilities { get; set; }
 
-        private SosClient(string hostUrl, string username, string password)
+        private SosClient(string hostUrl, string username, string password, AquariusServerVersion sosServerVersion)
         {
+            SosServerVersion = sosServerVersion;
             HostUrl = hostUrl.TrimEnd('/');
             Username = username;
             Password = password;
 
+            AdaptToSosVersion();
+
+
             ConfigureJsonOnce();
         }
+
+        public static readonly AquariusServerVersion LatestSosVersion = AquariusServerVersion.Create("4.4");
+
+        private void AdaptToSosVersion()
+        {
+            var isOldVersion = SosServerVersion.IsLessThan(LatestSosVersion);
+
+            LoginRoute = isOldVersion ? "j_spring_security_check" : "login";
+            LogoutRoute = isOldVersion ? "j_spring_security_logout" : "logout";
+
+            if (isOldVersion)
+            {
+                GetObservationsFunc = GetObservations40;
+            }
+            else
+            {
+                GetObservationsFunc = GetObservations44;
+            }
+        }
+
+        private Func<TimeSeriesDescription, DateTimeOffset, DateTimeOffset, List<TimeSeriesPoint>> GetObservationsFunc { get; set; }
 
         public static void ConfigureJsonOnce()
         {
@@ -81,7 +109,10 @@ namespace SosExporter
 
         private JsConfigScope SosScope()
         {
-            return JsConfig.With(emitCamelCaseNames: true);
+            return JsConfig.With(new ServiceStack.Text.Config
+            {
+                TextCase = TextCase.CamelCase
+            });
         }
 
         public void Connect()
@@ -116,12 +147,18 @@ namespace SosExporter
         {
             using (SosScope())
             {
+                Log.Info("Fetching current SOS configuration ...");
+
+                var stopwatch = Stopwatch.StartNew();
+
                 Capabilities = JsonClient.Post(new GetCapabilitiesRequest
                 {
                     Sections = new List<string> { "Contents" },
-                    Request = "GetCapabilities",
-                    Service = "SOS"
                 });
+
+                ThrowIfSosException(Capabilities);
+
+                Log.Info($"Fetched {"SOS sensor".ToQuantity(Capabilities.Contents.Count)} in {stopwatch.Elapsed.Humanize(2)}");
             }
         }
 
@@ -306,7 +343,7 @@ namespace SosExporter
             return insertedSensor;
         }
 
-        public void InsertObservation(string assignedOffering, LocationDataServiceResponse location, LocationDescription locationDescription, TimeSeriesDataServiceResponse timeSeries, TimeSeriesDescription timeSeriesDescription)
+        public void InsertObservation(string assignedOffering, LocationDataServiceResponse location, LocationDescription locationDescription, TimeSeriesDataServiceResponse timeSeries)
         {
             var xmlTemplatePath = IsSpatialLocationDefined(location)
                 ? @"XmlTemplates\InsertObservation.xml"
@@ -362,6 +399,7 @@ namespace SosExporter
             }
         }
 
+
         private static bool IsSpatialLocationDefined(LocationDataServiceResponse location)
         {
             return // ReSharper disable once CompareOfFloatsByEqualityOperator
@@ -384,8 +422,8 @@ namespace SosExporter
             return new Dictionary<string, string>
             {
                 {ProcedureUniqueIdKey, timeSeriesIdentifier},
-                {"{__featureOfInterestId__}", SanitizeIdentifier(timeSeries.LocationIdentifier)},
-                {"{__observablePropertyName__}", SanitizeIdentifier($"{timeSeries.Parameter}_{timeSeries.Label}")},
+                {"{__featureOfInterestId__}", CreateFeatureOfInterestId(timeSeries.LocationIdentifier)},
+                {"{__observablePropertyName__}", CreateObservedPropertyName(timeSeries.Parameter, timeSeries.Label)},
             };
         }
 
@@ -419,6 +457,16 @@ namespace SosExporter
                 {InterpolationType.PrecedingTotals.ToString(), "TotalPrec"},
                 {InterpolationType.SucceedingConstant.ToString(), "AverageSucc"},
             };
+
+        private static string CreateFeatureOfInterestId(string locationIdentifier)
+        {
+            return SanitizeIdentifier(locationIdentifier);
+        }
+
+        private static string CreateObservedPropertyName(string parameter, string label)
+        {
+            return SanitizeIdentifier($"{parameter}_{label}");
+        }
 
         private static string SanitizeIdentifier(string text)
         {
@@ -508,6 +556,97 @@ namespace SosExporter
                 var xmlSerializer = new System.Xml.Serialization.XmlSerializer(typeof(T));
                 return (T) xmlSerializer.Deserialize(reader);
             }
+        }
+
+        private void ThrowIfSosException(ResponseBase response)
+        {
+            if (response?.Exceptions == null || !response.Exceptions.Any())
+                return;
+
+            throw new ExpectedException($"SOS API Error: {string.Join(", ", response.Exceptions.Select(e => $"{e.Code}@{e.Locator}:{e.Text}"))}");
+        }
+
+        public List<TimeSeriesPoint> GetObservations(TimeSeriesDescription timeSeriesDescription, DateTimeOffset startTime, DateTimeOffset endTime)
+        {
+            return GetObservationsFunc(timeSeriesDescription, startTime, endTime);
+        }
+
+        private List<TimeSeriesPoint> GetObservations44(TimeSeriesDescription timeSeriesDescription, DateTimeOffset startTime, DateTimeOffset endTime)
+        {
+            var request = new GetObservationRequest44
+            {
+                ObservedProperty =
+                    CreateObservedPropertyName(timeSeriesDescription.Parameter, timeSeriesDescription.Label),
+                FeatureOfInterest = CreateFeatureOfInterestId(timeSeriesDescription.LocationIdentifier),
+                TemporalFilter = CreateTemporalFilter(startTime, endTime)
+            };
+
+            var response = JsonClient.Get(request);
+
+            ThrowIfSosException(response);
+
+            if (response?.Observations == null)
+                return new List<TimeSeriesPoint>();
+
+            return response
+                .Observations
+                .Select(o => new TimeSeriesPoint
+                {
+                    Timestamp = new StatisticalDateTimeOffset
+                    {
+                        DateTimeOffset = o.PhenomenonTime
+                    },
+                    Value = new DoubleWithDisplay
+                    {
+                        Numeric = o.Result?.Value
+                    }
+                })
+                .ToList();
+        }
+
+        private List<TimeSeriesPoint> GetObservations40(TimeSeriesDescription timeSeriesDescription, DateTimeOffset startTime, DateTimeOffset endTime)
+        {
+            var request = new GetObservationRequest40
+            {
+                ObservedProperty =
+                    CreateObservedPropertyName(timeSeriesDescription.Parameter, timeSeriesDescription.Label),
+                FeatureOfInterest = CreateFeatureOfInterestId(timeSeriesDescription.LocationIdentifier),
+                TemporalFilter = CreateTemporalFilter(startTime, endTime)
+            };
+
+            var response = JsonClient.Get(request);
+
+            ThrowIfSosException(response);
+            if (response == null)
+                return new List<TimeSeriesPoint>();
+
+            var observation = response
+                .Observations
+                ?.FirstOrDefault();
+
+            if (observation?.Result?.Values == null)
+                return new List<TimeSeriesPoint>();
+
+            return observation
+                .Result
+                .Values
+                .Select(p => new TimeSeriesPoint
+                {
+                    Timestamp = new StatisticalDateTimeOffset
+                    {
+                        DateTimeOffset = DateTimeOffset.Parse(p[0])
+                    },
+                    Value = new DoubleWithDisplay
+                    {
+                        Numeric = double.Parse(p[1])
+                    }
+                })
+                .ToList();
+        }
+
+        private string CreateTemporalFilter(DateTimeOffset startTime, DateTimeOffset endTime)
+        {
+            return $"om:phenomenonTime,{startTime:O}/{endTime:O}";
         }
     }
 }
