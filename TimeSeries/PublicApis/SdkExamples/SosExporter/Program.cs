@@ -330,17 +330,10 @@ namespace SosExporter
                 },
                 new Option
                 {
-                    Key = nameof(context.SosLoginRoute),
-                    Setter = value => context.SosLoginRoute = value,
-                    Getter = () => context.SosLoginRoute,
-                    Description = "SOS server login route"
-                },
-                new Option
-                {
-                    Key = nameof(context.SosLogoutRoute),
-                    Setter = value => context.SosLogoutRoute = value,
-                    Getter = () => context.SosLogoutRoute,
-                    Description = "SOS server logout route"
+                    Key = nameof(context.SosServerVersion),
+                    Setter = value => context.SosServerVersion = AquariusServerVersion.Create(value),
+                    Getter = () => context.SosServerVersion.ToString(),
+                    Description = "Expected 52North SOS server version"
                 },
             };
 

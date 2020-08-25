@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 
 namespace SosExporter
@@ -90,7 +91,6 @@ namespace SosExporter
         public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(5);
         public TimeSpan? MaximumPollDuration { get; set; }
         public bool ApplyRounding { get; set; } = true;
-        public string SosLoginRoute { get; set; }
-        public string SosLogoutRoute { get; set; }
+        public AquariusServerVersion SosServerVersion { get; set; } = SosClient.LatestSosVersion;
     }
 }

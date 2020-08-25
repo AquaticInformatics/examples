@@ -8,6 +8,7 @@ using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Aquarius.Helpers;
+using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using Humanizer;
 using log4net;
@@ -27,12 +28,10 @@ namespace SosExporter
 
         public static ISosClient CreateConnectedClient(Context context)
         {
-            var client = new SosClient(context.Config.SosServer, context.Config.SosUsername, context.Config.SosPassword)
+            var client = new SosClient(context.Config.SosServer, context.Config.SosUsername, context.Config.SosPassword, context.SosServerVersion)
             {
                 MaximumPointsPerObservation = context.MaximumPointsPerObservation,
                 TimeoutMilliseconds = Convert.ToInt32(context.Timeout.TotalMilliseconds),
-                LoginRoute = context.SosLoginRoute ?? "login",
-                LogoutRoute = context.SosLogoutRoute ?? "logout",
             };
 
             client.Connect();
@@ -40,6 +39,8 @@ namespace SosExporter
             return client;
         }
 
+
+        private AquariusServerVersion SosServerVersion { get; }
         private int MaximumPointsPerObservation { get; set; }
         private int TimeoutMilliseconds { get; set; }
         private string LoginRoute { get; set; }
@@ -52,14 +53,39 @@ namespace SosExporter
         private string UserAgent { get; set; }
         private GetCapabilitiesResponse Capabilities { get; set; }
 
-        private SosClient(string hostUrl, string username, string password)
+        private SosClient(string hostUrl, string username, string password, AquariusServerVersion sosServerVersion)
         {
+            SosServerVersion = sosServerVersion;
             HostUrl = hostUrl.TrimEnd('/');
             Username = username;
             Password = password;
 
+            AdaptToSosVersion();
+
+
             ConfigureJsonOnce();
         }
+
+        public static readonly AquariusServerVersion LatestSosVersion = AquariusServerVersion.Create("4.4");
+
+        private void AdaptToSosVersion()
+        {
+            var isOldVersion = SosServerVersion.IsLessThan(LatestSosVersion);
+
+            LoginRoute = isOldVersion ? "j_spring_security_check" : "login";
+            LogoutRoute = isOldVersion ? "j_spring_security_logout" : "logout";
+
+            if (isOldVersion)
+            {
+                GetObservationsFunc = GetObservations40;
+            }
+            else
+            {
+                GetObservationsFunc = GetObservations44;
+            }
+        }
+
+        private Func<TimeSeriesDescription, DateTimeOffset, DateTimeOffset, List<TimeSeriesPoint>> GetObservationsFunc { get; set; }
 
         public static void ConfigureJsonOnce()
         {
@@ -542,9 +568,15 @@ namespace SosExporter
 
         public List<TimeSeriesPoint> GetObservations(TimeSeriesDescription timeSeriesDescription, DateTimeOffset startTime, DateTimeOffset endTime)
         {
-            var request = new GetObservationRequest
+            return GetObservationsFunc(timeSeriesDescription, startTime, endTime);
+        }
+
+        private List<TimeSeriesPoint> GetObservations44(TimeSeriesDescription timeSeriesDescription, DateTimeOffset startTime, DateTimeOffset endTime)
+        {
+            var request = new GetObservationRequest44
             {
-                ObservedProperty = CreateObservedPropertyName(timeSeriesDescription.Parameter, timeSeriesDescription.Label),
+                ObservedProperty =
+                    CreateObservedPropertyName(timeSeriesDescription.Parameter, timeSeriesDescription.Label),
                 FeatureOfInterest = CreateFeatureOfInterestId(timeSeriesDescription.LocationIdentifier),
                 TemporalFilter = CreateTemporalFilter(startTime, endTime)
             };
@@ -553,6 +585,38 @@ namespace SosExporter
 
             ThrowIfSosException(response);
 
+            if (response?.Observations == null)
+                return new List<TimeSeriesPoint>();
+
+            return response
+                .Observations
+                .Select(o => new TimeSeriesPoint
+                {
+                    Timestamp = new StatisticalDateTimeOffset
+                    {
+                        DateTimeOffset = o.PhenomenonTime
+                    },
+                    Value = new DoubleWithDisplay
+                    {
+                        Numeric = o.Result?.Value
+                    }
+                })
+                .ToList();
+        }
+
+        private List<TimeSeriesPoint> GetObservations40(TimeSeriesDescription timeSeriesDescription, DateTimeOffset startTime, DateTimeOffset endTime)
+        {
+            var request = new GetObservationRequest40
+            {
+                ObservedProperty =
+                    CreateObservedPropertyName(timeSeriesDescription.Parameter, timeSeriesDescription.Label),
+                FeatureOfInterest = CreateFeatureOfInterestId(timeSeriesDescription.LocationIdentifier),
+                TemporalFilter = CreateTemporalFilter(startTime, endTime)
+            };
+
+            var response = JsonClient.Get(request);
+
+            ThrowIfSosException(response);
             if (response == null)
                 return new List<TimeSeriesPoint>();
 

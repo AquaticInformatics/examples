@@ -221,8 +221,7 @@ Supported -option=value settings (/option=value works too):
   -MaximumPointsPerSensor      The maximum number of points uploaded per SOS sensor [default: 10000]
   -MaximumPollDuration         The maximum duration before polling AQTS for more changes, in hh:mm:ss format. Defaults to the AQTS global setting.
   -Timeout                     The timeout used for all web requests, in hh:mm:ss format. [default: 5 minutes]
-  -SosLoginRoute               SOS server login route
-  -SosLogoutRoute              SOS server logout route
+  -SosServerVersion            Expected 52North SOS server version [default: 4.4]
 
 ISO 8601 timestamps use a yyyy'-'mm'-'dd'T'HH':'mm':'ss'.'fffffffzzz format.
 

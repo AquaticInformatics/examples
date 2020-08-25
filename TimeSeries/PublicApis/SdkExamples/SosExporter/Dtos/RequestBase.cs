@@ -19,10 +19,10 @@ namespace SosExporter.Dtos
         public string Request { get; set; }
         public string Version { get; set; }
         public string Service { get; set; }
-        public List<ResponseError> Exceptions { get; set; }
+        public List<ResponseErrorContext> Exceptions { get; set; }
     }
 
-    public class ResponseError
+    public class ResponseErrorContext
     {
         public string Code { get; set; }
         public string Locator { get; set; }
