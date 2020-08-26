@@ -36,7 +36,14 @@ namespace PointZilla
                 ? InstantPattern.ExtendedIsoPattern
                 : InstantPattern.CreateWithInvariantCulture(Context.CsvDateTimeFormat);
 
-            DefaultBias = TimePattern.PatternText.Contains("'Z'")
+            var isTimeFormatUtc = TimePattern.PatternText.Contains("'Z'");
+
+            if(Context.CsvDateOnlyField > 0)
+            {
+                isTimeFormatUtc = Context.CsvDateOnlyFormat.Contains("Z");
+            }
+
+            DefaultBias = isTimeFormatUtc
                 ? Duration.Zero
                 : Duration.FromTimeSpan((Context.UtcOffset ?? Offset.FromTicks(DateTimeOffset.Now.Offset.Ticks)).ToTimeSpan());
         }
