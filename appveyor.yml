@@ -86,12 +86,16 @@ artifacts:
     name: SamplesPlannedSpecimenInstantiator
     type: file
 
+  - path: Samples\DotNetSdk\SamplesObservationExporter\bin\Release\SamplesObservationExporter.exe
+    name: SamplesObservationExporter
+    type: file
+
 deploy:
   - provider: GitHub
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: Example utilities $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor,SondeFileImporter,SamplesPlannedSpecimenInstantiator
+    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor, SondeFileImporter, SamplesPlannedSpecimenInstantiator, SamplesObservationExporter
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true
