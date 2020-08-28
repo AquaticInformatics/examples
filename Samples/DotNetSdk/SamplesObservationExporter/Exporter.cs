@@ -66,7 +66,7 @@ namespace SamplesObservationExporter
 
         private ISamplesClient Connect()
         {
-            Log.Info($"Connecting to {Context.ServerUrl} ...");
+            Log.Info($"{ExeHelper.ExeNameAndVersion} connecting to {Context.ServerUrl} ...");
 
             var client = SamplesClient.CreateConnectedClient(Context.ServerUrl, Context.ApiToken);
 
