@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SamplesPlannedSpecimenInsta
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SondeFileImporter", "SondeFileImporter\SondeFileImporter.csproj", "{6D5F7772-8BD0-4FCB-B2AC-0A173CD0C2E8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SamplesObservationExporter", "SamplesObservationExporter\SamplesObservationExporter.csproj", "{5376E418-B3AB-4318-B436-9F9B950A8087}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{6D5F7772-8BD0-4FCB-B2AC-0A173CD0C2E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6D5F7772-8BD0-4FCB-B2AC-0A173CD0C2E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6D5F7772-8BD0-4FCB-B2AC-0A173CD0C2E8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5376E418-B3AB-4318-B436-9F9B950A8087}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5376E418-B3AB-4318-B436-9F9B950A8087}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5376E418-B3AB-4318-B436-9F9B950A8087}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5376E418-B3AB-4318-B436-9F9B950A8087}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
