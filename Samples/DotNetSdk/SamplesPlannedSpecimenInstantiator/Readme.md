@@ -1,6 +1,6 @@
 ﻿# Samples Planned Specimen Instantiator
 
-Download the [latest SamplesPlannedSpecimenInstantiator.exe release here](../../../../../../releases/latest)
+Download the [latest SamplesPlannedSpecimenInstantiator.exe release here](../../../../../releases/latest)
 
 This Windows GUI tool will:
 

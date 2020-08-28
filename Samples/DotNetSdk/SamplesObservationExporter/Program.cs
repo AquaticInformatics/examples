@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Aquarius.TimeSeries.Client;
+using Humanizer;
 using log4net;
 using NodaTime;
 using NodaTime.Text;
@@ -96,13 +97,13 @@ namespace SamplesObservationExporter
                 new Option {Key = nameof(context.Overwrite), Setter = value => context.Overwrite = ParseBoolean(value), Getter = () => $"{context.Overwrite}", Description = "Overwrite existing files?"},
                 new Option {Key = nameof(context.UtcOffset), Setter = value => context.UtcOffset = ParseOffset(value), Getter = () => string.Empty, Description = $"UTC offset for output times [default: Use system timezone, currently {context.UtcOffset:m}]"},
 
-                new Option(), new Option{Description = "Cumulative filter options: (ie. AND-ed together)"},
+                new Option(), new Option{Description = "Cumulative filter options: (ie. AND-ed together). Can be set multiple times."},
                 new Option {Key = nameof(context.StartTime), Setter = value => context.StartTime = ParseDateTimeOffset(value), Getter = () => string.Empty, Description = "Include observations after this time."},
                 new Option {Key = nameof(context.EndTime), Setter = value => context.EndTime = ParseDateTimeOffset(value), Getter = () => string.Empty, Description = "Include observations before this time."},
-                new Option {Key = nameof(context.LocationIds), Setter = value => ParseListValues(context.LocationIds, value), Getter = () => string.Empty, Description = "Observations matching these locations."},
-                new Option {Key = nameof(context.AnalyticalGroupIds), Setter = value => ParseListValues(context.AnalyticalGroupIds, value), Getter = () => string.Empty, Description = "Observations matching these analytical groups."},
-                new Option {Key = nameof(context.ObservedPropertyIds), Setter = value => ParseListValues(context.ObservedPropertyIds, value), Getter = () => string.Empty, Description = "Observations matching these observed properties."},
-                new Option {Key = nameof(context.ProjectIds), Setter = value => ParseListValues(context.ProjectIds, value), Getter = () => string.Empty, Description = "Observations matching these projects."},
+                new Option {Key = nameof(context.LocationIds).Singularize(), Setter = value => context.LocationIds.Add(value), Getter = () => string.Empty, Description = "Observations matching these locations."},
+                new Option {Key = nameof(context.AnalyticalGroupIds).Singularize(), Setter = value => context.AnalyticalGroupIds.Add(value), Getter = () => string.Empty, Description = "Observations matching these analytical groups."},
+                new Option {Key = nameof(context.ObservedPropertyIds).Singularize(), Setter = value => context.ObservedPropertyIds.Add(value), Getter = () => string.Empty, Description = "Observations matching these observed properties."},
+                new Option {Key = nameof(context.ProjectIds).Singularize(), Setter = value => context.ProjectIds.Add(value), Getter = () => string.Empty, Description = "Observations matching these projects."},
             };
 
             var usageMessage
@@ -209,14 +210,6 @@ namespace SamplesObservationExporter
                 return result.Value;
 
             throw new ExpectedException($"'{text}' is not a valid UTC offset {result.Exception.Message}");
-        }
-
-        private static void ParseListValues(List<string> items, string text)
-        {
-            items.AddRange(text
-                .Split(',')
-                .Select(s => s.Trim())
-                .Where(s => !string.IsNullOrEmpty(s)));
         }
 
         private readonly Context _context;
