@@ -36,8 +36,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Aquarius.Client, Version=20.2.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Aquarius.SDK.20.2.1\lib\net45\Aquarius.Client.dll</HintPath>
+    <Reference Include="Aquarius.Client, Version=20.2.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Aquarius.SDK.20.2.2\lib\net45\Aquarius.Client.dll</HintPath>
     </Reference>
     <Reference Include="Costura, Version=4.1.0.0, Culture=neutral, PublicKeyToken=9919ef960d84173d, processorArchitecture=MSIL">
       <HintPath>..\packages\Costura.Fody.4.1.0\lib\net40\Costura.dll</HintPath>
@@ -108,7 +108,6 @@
     <Compile Include="ExpectedException.cs" />
     <Compile Include="Exporter.cs" />
     <Compile Include="Option.cs" />
-    <Compile Include="PrivateApis\GetUserTokens.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
