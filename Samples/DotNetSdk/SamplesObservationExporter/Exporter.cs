@@ -4,15 +4,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Serialization;
 using System.Text;
-using Aquarius.Helpers;
 using Aquarius.Samples.Client;
 using Aquarius.Samples.Client.ServiceModel;
 using Humanizer;
 using log4net;
 using NodaTime;
-using SamplesObservationExporter.PrivateApis;
 using ServiceStack;
 
 namespace SamplesObservationExporter
@@ -68,24 +65,8 @@ namespace SamplesObservationExporter
         {
             Log.Info($"{ExeHelper.ExeNameAndVersion} connecting to {Context.ServerUrl} ...");
 
-            var client = SamplesClient.CreateConnectedClient(Context.ServerUrl, Context.ApiToken);
-
-            var user = client.Get(new GetUserTokens()).User;
-
-            var serverName = Context.ServerUrl;
-
-            if (client.Client is SdkServiceClient sdkClient)
-            {
-                var serverUri = new Uri(sdkClient.BaseUri);
-
-                serverName = $"{serverUri.Scheme}://{serverUri.Host}";
-            }
-
-            Log.Info($"Connected to {serverName} (v{client.ServerVersion}) as {user.UserProfile.FirstName}");
-
-            return client;
+            return SamplesClient.CreateConnectedClient(Context.ServerUrl, Context.ApiToken);
         }
-
 
         private void ExportAll()
         {
@@ -93,7 +74,7 @@ namespace SamplesObservationExporter
 
             Log.Info($"Exporting observations {summary} ...");
 
-            var response = Client.LazyGet<Observation, GetObservationsV2Hacked, SearchResultObservation>(request);
+            var response = Client.LazyGet<Observation, GetObservationsV2, SearchResultObservation>(request);
 
             Log.Info($"Fetching all {response.TotalCount} matching observations.");
 
@@ -259,12 +240,12 @@ namespace SamplesObservationExporter
             return (row, remainingObservations);
         }
 
-        private (GetObservationsV2Hacked Request, string summary) BuildRequest()
+        private (GetObservationsV2 Request, string summary) BuildRequest()
         {
             var clauses = new List<string>();
             var builder = new StringBuilder();
 
-            var request = new GetObservationsV2Hacked();
+            var request = new GetObservationsV2();
 
             if (Context.StartTime.HasValue)
             {
@@ -383,63 +364,5 @@ namespace SamplesObservationExporter
                 .Distinct()
                 .ToList();
         }
-
-        [DataContract]
-        [Route("/v2/observations", "GET")]
-        public class GetObservationsV2Hacked : IReturn<SearchResultObservation>, IPaginatedRequest
-        {
-            public string ActivityCustomId { get; set; }
-            public List<string> ActivityIds { get; set; }
-            public List<string> ActivityTypes { get; set; }
-            public List<string> AnalysisMethodIds { get; set; }
-            [DataMember(Name = "analyticalGroupIds")]
-            public List<string> AnalyticalGroupIds { get; set; }
-            public List<string> CollectionMethodIds { get; set; }
-            [DataMember(Name = "cursor")]
-            public string Cursor { get; set; }
-            public string CustomId { get; set; }
-            public List<string> DataClassifications { get; set; }
-            public string DepthUnitCustomId { get; set; }
-            public string DepthUnitId { get; set; }
-            public double? DepthValue { get; set; }
-            public DetectionConditionType? DetectionCondition { get; set; }
-            [DataMember(Name = "end-observedTime")]
-            public Instant? EndObservedTime { get; set; }
-            public Instant? EndResultTime { get; set; }
-            public Instant? EndModificationTime { get; set; }
-            public FieldResultType? FieldResultType { get; set; }
-            public string FieldVisitId { get; set; }
-            public string FilterId { get; set; }
-            public List<string> Ids { get; set; }
-            public string ImportHistoryEventId { get; set; }
-            public List<string> LabReportIds { get; set; }
-            public List<string> LabResultLabAnalysisMethodIds { get; set; }
-            public List<string> LabResultLaboratoryIds { get; set; }
-            public int? Limit { get; set; }
-            public List<string> Media { get; set; }
-            [DataMember(Name = "observedPropertyIds")]
-            public List<string> ObservedPropertyIds { get; set; }
-            [DataMember(Name = "projectIds")]
-            public List<string> ProjectIds { get; set; }
-            public List<string> QualityControlTypes { get; set; }
-            public List<string> ResultGrades { get; set; }
-            public List<string> ResultStatuses { get; set; }
-            public SampleFractionType? SampleFraction { get; set; }
-            public List<string> SamplingContextTagIds { get; set; }
-            public List<string> SamplingLocationGroupIds { get; set; }
-            [DataMember(Name= "samplingLocationIds")]
-            public List<string> SamplingLocationIds { get; set; }
-            public List<string> Search { get; set; }
-            public string Sort { get; set; }
-            public List<string> SpecimenIds { get; set; }
-            public string SpecimenName { get; set; }
-            [DataMember(Name = "start-observedTime")]
-            public Instant? StartObservedTime { get; set; }
-            public Instant? StartResultTime { get; set; }
-            public Instant? StartModificationTime { get; set; }
-            public List<string> TaxonIds { get; set; }
-        }
-
-
     }
 }
