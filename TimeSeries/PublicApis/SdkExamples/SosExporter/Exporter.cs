@@ -650,7 +650,7 @@ namespace SosExporter
 
             var timeSeriesIdentifier = timeSeriesDescription.Identifier;
 
-            var sosPoints = new Queue<TimeSeriesPoint>(Sos.GetObservations(timeSeriesDescription, detectedChange.FirstPointChanged.Value.AddMilliseconds(-1), lastSensorTime.Value.AddMilliseconds(1)));
+            var sosPoints = new Queue<TimeSeriesPoint>(Sos.GetObservations(timeSeriesDescription, AddMilliseconds(detectedChange.FirstPointChanged.Value, -1), AddMilliseconds(lastSensorTime.Value, 1)));
             var aqtsPoints = new Queue<TimeSeriesPoint>(Aquarius.Publish.Get(dataRequest).Points);
 
             var sosCount = sosPoints.Count;
@@ -700,6 +700,18 @@ namespace SosExporter
             dataRequest.QueryFrom = lastSensorTime.Value.AddTicks(1);
 
             return false;
+        }
+
+        private static DateTimeOffset AddMilliseconds(DateTimeOffset dateTimeOffset, int milliseconds)
+        {
+            if (milliseconds < 0)
+                return dateTimeOffset == DateTimeOffset.MinValue
+                    ? dateTimeOffset
+                    : dateTimeOffset.AddMilliseconds(milliseconds);
+
+            return dateTimeOffset == DateTimeOffset.MaxValue
+                ? dateTimeOffset
+                : dateTimeOffset.AddMilliseconds(milliseconds);
         }
 
         private void TrimExcludedPoints(
