@@ -97,16 +97,21 @@ namespace LabFileImporter
                 new Option {Key = nameof(context.Files).Singularize(), Setter = context.Files.Add, Description = "Parse the XLXS as lab file results."},
                 new Option {Key = nameof(context.BulkImportIndicator), Setter = value => context.BulkImportIndicator = value, Getter = () => context.BulkImportIndicator, Description = "Cell A6 with this value indicates a bulk import format"},
                 new Option {Key = nameof(context.FieldResultPrefix), Setter = value => context.FieldResultPrefix = value, Getter = () => context.FieldResultPrefix, Description = $"Row 5 methods beginning with this text indicate a {DataClassificationType.FIELD_RESULT}"},
+                new Option {Key = nameof(context.StopOnFirstError), Setter = value => context.StopOnFirstError = ParseBoolean(value), Getter = () => $"{context.StopOnFirstError}", Description = "Stop on first error?"},
+                new Option {Key = nameof(context.ErrorLimit), Setter = value =>  context.ErrorLimit = ParseInteger(value), Getter = () => $"{context.ErrorLimit}", Description = "Maximum number of errors shown."},
+                new Option {Key = nameof(context.StartTime), Setter = value => context.StartTime = ParseDateTimeOffset(value), Getter = () => string.Empty, Description = "Include observations after this time."},
+                new Option {Key = nameof(context.EndTime), Setter = value => context.EndTime = ParseDateTimeOffset(value), Getter = () => string.Empty, Description = "Include observations before this time."},
 
                 new Option(), new Option{Description = "Import options:"},
                 new Option {Key = nameof(context.DryRun), Setter = value => context.DryRun = ParseBoolean(value), Getter = () => $"{context.DryRun}", Description = "Enable a dry-run of the import? /N is a shorthand."},
-                new Option {Key = nameof(context.StopOnFirstError), Setter = value => context.StopOnFirstError = ParseBoolean(value), Getter = () => $"{context.StopOnFirstError}", Description = "Stop on first error?"},
                 new Option {Key = nameof(context.UtcOffset), Setter = value => context.UtcOffset = ParseOffset(value), Getter = () => string.Empty, Description = $"UTC offset for imported times [default: Use system timezone, currently {context.UtcOffset:m}]"},
+                new Option {Key = nameof(context.MaximumObservations), Setter = value =>  context.MaximumObservations = int.TryParse(value, out var number) ? (int?)number : null, Getter = () => $"{context.MaximumObservations}", Description = "When set, limit the number of imported observations."},
                 new Option {Key = nameof(context.ResultGrade), Setter = value => context.ResultGrade = value, Getter = () => context.ResultGrade, Description = $"Result grade when value is not estimated."},
                 new Option {Key = nameof(context.EstimatedGrade), Setter = value => context.EstimatedGrade = value, Getter = () => context.EstimatedGrade, Description = $"Result grade when estimated."},
                 new Option {Key = nameof(context.FieldResultStatus), Setter = value => context.FieldResultStatus = value, Getter = () => context.FieldResultStatus, Description = $"Field result status."},
                 new Option {Key = nameof(context.LabResultStatus), Setter = value => context.FieldResultStatus = value, Getter = () => context.FieldResultStatus, Description = $"Lab result status."},
-                new Option {Key = nameof(context.DefaultLaboratory), Setter = value => context.DefaultLaboratory = value, Getter = () => context.DefaultLaboratory, Description = $"Default laboratory Id for lab results"},
+                new Option {Key = nameof(context.DefaultLaboratory), Setter = value => context.DefaultLaboratory = value, Getter = () => context.DefaultLaboratory, Description = $"Default laboratory ID for lab results"},
+                new Option {Key = nameof(context.DefaultMedium), Setter = value => context.DefaultMedium = value, Getter = () => context.DefaultMedium, Description = $"Default medium for results"},
                 new Option {Key = nameof(context.NonDetectCondition), Setter = value => context.NonDetectCondition = value, Getter = () => context.NonDetectCondition, Description = $"Lab detect condition for non-detect events."},
                 new Option {Key = nameof(context.LabSpecimenName), Setter = value => context.LabSpecimenName = value, Getter = () => context.LabSpecimenName, Description = $"Lab specimen name"},
 
@@ -213,6 +218,22 @@ namespace LabFileImporter
                 return value;
 
             throw new ExpectedException($"'{text}' is not a valid boolean value. Try {true} or {false}");
+        }
+
+        private static int ParseInteger(string text)
+        {
+            if (int.TryParse(text, out var value))
+                return value;
+
+            throw new ExpectedException($"'{text}' is not a valid integer value.");
+        }
+
+        private static DateTimeOffset ParseDateTimeOffset(string text)
+        {
+            if (DateTimeOffset.TryParse(text, out var value))
+                return value;
+
+            throw new ExpectedException($"'{text}' is not a valid date-time. Try yyyy-MM-dd or yyyy-MM-dd HH:mm:ss");
         }
 
         private static Offset ParseOffset(string text)

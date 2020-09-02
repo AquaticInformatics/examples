@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
 using Aquarius.Samples.Client.ServiceModel;
 using ExcelDataReader;
@@ -18,7 +17,53 @@ namespace LabFileImporter
 
         public Context Context { get; set; }
 
-        private bool BulkMode { get; set; }
+        private ImportFormat Format { get; set; }
+
+        private class ImportFormat
+        {
+            public int PropertyStartColumn { get; set; }
+            public Dictionary<string, int> CommonColumns { get; set; }
+        }
+
+        private const string SiteCode = "SiteCode";
+        private const string DateSampleCollected = "DateSampleCollected";
+        private const string TimeSampleCollected = "TimeSampleCollected";
+        private const string SampleMatrix = "SampleMatrix";
+        private const string QcType = "QCType";
+        private const string SiteAlias = "SiteAlias";
+
+        private static readonly ImportFormat IndividualFileFormat = new ImportFormat
+        {
+            PropertyStartColumn = 'M' - 'A',
+            CommonColumns = new (string ColumnName, char ColumnIndex)[]
+                {
+                    (SiteCode, 'K'),
+                    (DateSampleCollected, 'H'),
+                    (TimeSampleCollected, 'L'),
+                    (SampleMatrix, 'J'),
+                    (QcType, 'G'),
+                }
+                .ToDictionary(
+                    column => column.ColumnName,
+                    column => column.ColumnIndex - 'A')
+        };
+
+        private static readonly ImportFormat BulkFormat = new ImportFormat
+        {
+            PropertyStartColumn = 'W' - 'A',
+            CommonColumns = new (string ColumnName, char ColumnIndex)[]
+                {
+                    (SiteCode, 'U'),
+                    (SiteAlias, 'C'),
+                    (DateSampleCollected, 'J'),
+                    (TimeSampleCollected, 'V'),
+                    (SampleMatrix, 'T'),
+                    (QcType, 'G'),
+                }
+                .ToDictionary(
+                    column => column.ColumnName,
+                    column => column.ColumnIndex - 'A')
+        };
 
         private class Property
         {
@@ -46,12 +91,14 @@ namespace LabFileImporter
             using (var reader = CreateReaderFromStream(path, stream))
             {
                 RowNumber = 0;
-                var isHeader = true;
+
+                var headers = new List<List<string>>();
+
                 while (reader.Read())
                 {
                     ++RowNumber;
 
-                    if (!isHeader)
+                    if (Format != null)
                     {
                         foreach (var observation in LoadRow(reader).Where(obs => obs != null))
                         {
@@ -66,42 +113,15 @@ namespace LabFileImporter
                         .Select(i => reader.IsDBNull(i) ? string.Empty : reader.GetValue(i).ToString().Trim())
                         .ToList();
 
-                    if (!columns.Any())
-                        continue;
-
-                    var propertyValues = columns
-                        .Skip(PropertyIndex)
-                        .ToList();
+                    headers.Add(columns);
 
                     switch (RowNumber)
                     {
-                        case 1: // Main column
-                            Properties.AddRange(propertyValues.Select(s => new Property {PropertyId = s}));
-                            break;
-
-                        case 3: // Unit
-                            for (var i = 0; i < propertyValues.Count; ++i)
-                            {
-                                Properties[i].Unit = propertyValues[i];
-                            }
-                            break;
-
-                        case 4: // PQL
-                            break;
-
-                        case 5: // Method
-                            for (var i = 0; i < propertyValues.Count; ++i)
-                            {
-                                Properties[i].Method = propertyValues[i];
-                            }
-                            break;
-
                         case 6:
                             if (!columns[0].Equals(Context.BulkImportIndicator, StringComparison.InvariantCultureIgnoreCase))
                             {
                                 // We are done, this is the single file format
-                                BulkMode = false;
-                                isHeader = false;
+                                CreateProperties(IndividualFileFormat, headers);
 
                                 foreach (var observation in LoadRow(reader).Where(obs => obs != null))
                                 {
@@ -112,8 +132,7 @@ namespace LabFileImporter
                             break;
 
                         case 7:
-                            isHeader = false;
-                            BulkMode = true;
+                            CreateProperties(BulkFormat, headers);
                             break;
                     }
                 }
@@ -131,39 +150,78 @@ namespace LabFileImporter
             }
         }
 
+        private void CreateProperties(ImportFormat format, List<List<string>> headers)
+        {
+            if (headers.Count < 5)
+                throw new ExpectedException($"Unknown file format. Only {headers.Count} header rows encountered.");
+
+            var columnCount = headers.First().Count;
+
+            for (var i = format.PropertyStartColumn; i < columnCount; ++i)
+            {
+                var propertyId = headers[0][i];
+                var unitId = i < headers[2].Count ? headers[2][i] : null;
+                var method = i < headers[4].Count ? headers[4][i] : null;
+
+                if (string.IsNullOrWhiteSpace(propertyId))
+                {
+                    LogErrorOrThrow($"{RowAndCellId(1, i)}: No property Id found");
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(unitId))
+                {
+                    Log.Warn($"{RowAndCellId(3,i)}: No unit found for '{propertyId}'. Ignoring entire {ColumnId(i)} column.");
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(method))
+                {
+                    Log.Warn($"{RowAndCellId(5, i)}: No method found for '{propertyId}'. Ignoring entire {ColumnId(i)} column.");
+                    continue;
+                }
+
+                Properties.Add(new Property
+                {
+                    PropertyId = propertyId,
+                    Unit = unitId,
+                    Method = method,
+                });
+            }
+
+            Format = format;
+        }
+
+
+
 
         private IEnumerable<ObservationV2> LoadRow(IExcelDataReader reader)
         {
-            return BulkMode
-                ? LoadBulkRow(reader)
-                : LoadSingleLocationRow(reader);
-        }
-
-        private IEnumerable<ObservationV2> LoadBulkRow(IExcelDataReader reader)
-        {
             return Properties
-                .Select((property, i) => LoadResult(reader, BulkRowColumns, property, PropertyIndex + i));
+                .Select((property, i) => LoadResult(reader, Format, property, i));
         }
 
-        private IEnumerable<ObservationV2> LoadSingleLocationRow(IExcelDataReader reader)
+        private ObservationV2 LoadResult(IExcelDataReader reader, ImportFormat format, Property property, int propertyIndex)
         {
-            return Properties
-                .Select((property, i) => LoadResult(reader, SingleLocationRowColumns, property, PropertyIndex + i));
-        }
+            var columnIndex = format.PropertyStartColumn + propertyIndex;
 
-        private ObservationV2 LoadResult(IExcelDataReader reader, IReadOnlyDictionary<string, int> commonColumns, Property property, int columnIndex)
-        {
             if (reader.IsDBNull(columnIndex))
                 return null;
 
-            var dateTimeOffset = GetNullableDateTimeOffset(reader, commonColumns[DateSampleCollected], commonColumns[TimeSampleCollected]);
+            var dateTimeOffset = GetNullableDateTimeOffset(reader, format.CommonColumns[DateSampleCollected], format.CommonColumns[TimeSampleCollected]);
 
             if (!dateTimeOffset.HasValue)
                 return null;
 
-            var siteCode = GetNullableString(reader, commonColumns[SiteCode]);
+            if (dateTimeOffset < Context.StartTime)
+                return null;
 
-            if (string.IsNullOrEmpty(siteCode) && commonColumns.TryGetValue(SiteAlias, out var siteAliasIndex))
+            if (dateTimeOffset > Context.EndTime)
+                return null;
+
+            var siteCode = GetNullableString(reader, format.CommonColumns[SiteCode]);
+
+            if (string.IsNullOrEmpty(siteCode) && format.CommonColumns.TryGetValue(SiteAlias, out var siteAliasIndex))
             {
                 siteCode = GetNullableString(reader, siteAliasIndex);
             }
@@ -178,7 +236,7 @@ namespace LabFileImporter
 
             var isFieldResult = property.Method?.StartsWith(Context.FieldResultPrefix, StringComparison.InvariantCultureIgnoreCase) ?? false;
 
-            var sampleMatrix = GetNullableString(reader, commonColumns[SampleMatrix]);
+            var sampleMatrix = GetNullableString(reader, format.CommonColumns[SampleMatrix]);
             var (resultValue, resultGrade, mrl) = GetResult(reader.GetValue(columnIndex));
 
             var observedProperty = property.PropertyId;
@@ -216,7 +274,7 @@ namespace LabFileImporter
                 LabDetectionCondition = isFieldResult ? null : string.IsNullOrEmpty(mrl) ? null : Context.NonDetectCondition,
                 LabMRL = isFieldResult ? null : mrl,
                 LabFromLaboratory = isFieldResult ? null : Context.DefaultLaboratory,
-                QCType = isFieldResult ? null : GetNullableString(reader, commonColumns[QcType]),
+                QCType = isFieldResult ? null : GetNullableString(reader, format.CommonColumns[QcType]),
             };
         }
 
@@ -288,62 +346,28 @@ namespace LabFileImporter
             if (Context.StopOnFirstError)
                 throw new ExpectedException(message);
 
-            Log.Error(message);
+            Log.Warn($"Skipping: {message}");
         }
 
         private string CellId(int columnIndex)
+        {
+            return RowAndCellId(RowNumber, columnIndex);
+        }
+
+        private string RowAndCellId(int rowNumber, int columnIndex)
+        {
+            return $"'{System.IO.Path.GetFileName(Path)}':{ColumnId(columnIndex)}{rowNumber}";
+        }
+
+        private string ColumnId(int columnIndex)
         {
             const int letters = 'Z' - 'A' + 1;
             var extraLetters = (char)(columnIndex / letters);
             var offset = (char)(columnIndex % letters);
 
-            var builder = new StringBuilder($"'{System.IO.Path.GetFileName(Path)}':");
-
-            if (extraLetters > 0)
-            {
-                builder.Append((char)('A' + extraLetters));
-            }
-
-            builder.Append((char)('A' + offset));
-            builder.Append(RowNumber);
-
-            return builder.ToString();
+            return extraLetters > 0
+                ? $"{(char)('A' + extraLetters)}{(char)('A' + offset)}"
+                : $"{(char)('A' + offset)}";
         }
-
-        private const string SiteCode = "SiteCode";
-        private const string DateSampleCollected = "DateSampleCollected";
-        private const string TimeSampleCollected = "TimeSampleCollected";
-        private const string SampleMatrix = "SampleMatrix";
-        private const string QcType = "QCType";
-        private const string SiteAlias = "SiteAlias";
-
-        private const int PropertyIndex = 'M' - 'A';
-
-        private static readonly IReadOnlyDictionary<string, int> SingleLocationRowColumns =
-            new (string ColumnName, char ColumnIndex)[]
-                {
-                    (SiteCode, 'K'),
-                    (DateSampleCollected, 'H'),
-                    (TimeSampleCollected, 'L'),
-                    (SampleMatrix, 'J'),
-                    (QcType, 'G'),
-                }
-                .ToDictionary(
-                    column => column.ColumnName,
-                    column => column.ColumnIndex - 'A');
-
-        private static readonly IReadOnlyDictionary<string, int> BulkRowColumns =
-            new (string ColumnName, char ColumnIndex)[]
-                {
-                    (SiteCode, 'U'),
-                    (SiteAlias, 'C'),
-                    (DateSampleCollected, 'J'),
-                    (TimeSampleCollected, 'V'),
-                    (SampleMatrix, 'T'),
-                    (QcType, 'G'),
-                }
-                .ToDictionary(
-                    column => column.ColumnName,
-                    column => column.ColumnIndex - 'A');
     }
 }

@@ -47,7 +47,7 @@ namespace LabFileImporter
                 {nameof(ObservationV2.QCSourceSampleID), "QC: Source Sample ID"},
             };
 
-            writer.WriteLine(CsvSerializer.SerializeToCsv(observations));
+            writer.Write(CsvSerializer.SerializeToCsv(observations).Trim());
         }
     }
 }
