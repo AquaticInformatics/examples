@@ -37,6 +37,5 @@
         public string LabComment { get; set; }
         public string QCType { get; set; }
         public string QCSourceSampleID { get; set; }
-
     }
 }

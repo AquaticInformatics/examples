@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
+using Aquarius.Samples.Client.ServiceModel;
 using Aquarius.TimeSeries.Client;
 using log4net;
 using Humanizer;
@@ -92,13 +93,28 @@ namespace LabFileImporter
                 new Option {Key = nameof(context.ServerUrl), Setter = value => context.ServerUrl = value, Getter = () => context.ServerUrl, Description = "AQS server URL"},
                 new Option {Key = nameof(context.ApiToken), Setter = value => context.ApiToken = value, Getter = () => context.ApiToken, Description = "AQS API Token"},
 
+                new Option(), new Option{Description = "File parsing options:"},
+                new Option {Key = nameof(context.Files).Singularize(), Setter = context.Files.Add, Description = "Parse the XLXS as lab file results."},
+                new Option {Key = nameof(context.BulkImportIndicator), Setter = value => context.BulkImportIndicator = value, Getter = () => context.BulkImportIndicator, Description = "Cell A6 with this value indicates a bulk import format"},
+                new Option {Key = nameof(context.FieldResultPrefix), Setter = value => context.FieldResultPrefix = value, Getter = () => context.FieldResultPrefix, Description = $"Row 5 methods beginning with this text indicate a {DataClassificationType.FIELD_RESULT}"},
+
                 new Option(), new Option{Description = "Import options:"},
+                new Option {Key = nameof(context.DryRun), Setter = value => context.DryRun = ParseBoolean(value), Getter = () => $"{context.DryRun}", Description = "Enable a dry-run of the import? /N is a shorthand."},
+                new Option {Key = nameof(context.StopOnFirstError), Setter = value => context.StopOnFirstError = ParseBoolean(value), Getter = () => $"{context.StopOnFirstError}", Description = "Stop on first error?"},
                 new Option {Key = nameof(context.UtcOffset), Setter = value => context.UtcOffset = ParseOffset(value), Getter = () => string.Empty, Description = $"UTC offset for imported times [default: Use system timezone, currently {context.UtcOffset:m}]"},
+                new Option {Key = nameof(context.ResultGrade), Setter = value => context.ResultGrade = value, Getter = () => context.ResultGrade, Description = $"Result grade when value is not estimated."},
+                new Option {Key = nameof(context.EstimatedGrade), Setter = value => context.EstimatedGrade = value, Getter = () => context.EstimatedGrade, Description = $"Result grade when estimated."},
+                new Option {Key = nameof(context.FieldResultStatus), Setter = value => context.FieldResultStatus = value, Getter = () => context.FieldResultStatus, Description = $"Field result status."},
+                new Option {Key = nameof(context.LabResultStatus), Setter = value => context.FieldResultStatus = value, Getter = () => context.FieldResultStatus, Description = $"Lab result status."},
+                new Option {Key = nameof(context.DefaultLaboratory), Setter = value => context.DefaultLaboratory = value, Getter = () => context.DefaultLaboratory, Description = $"Default laboratory Id for lab results"},
+                new Option {Key = nameof(context.NonDetectCondition), Setter = value => context.NonDetectCondition = value, Getter = () => context.NonDetectCondition, Description = $"Lab detect condition for non-detect events."},
+                new Option {Key = nameof(context.LabSpecimenName), Setter = value => context.LabSpecimenName = value, Getter = () => context.LabSpecimenName, Description = $"Lab specimen name"},
+
+                new Option(), new Option{Description = "Alias options: (these help you map from your external system to AQUARIUS Samples)"},
                 new Option {Key = nameof(context.LocationAliases).Singularize(), Setter = value => ParseLocationAlias(context, value), Description = "Set a location alias in aliasedLocation;SamplesLocationId format"},
                 new Option {Key = nameof(context.ObservedPropertyAliases).Singularize(), Setter = value => ParseObservedPropertyAlias(context, value), Description = "Set an observed property alias in aliasedProperty;aliasedUnit;SamplesObservedPropertyId format"},
-                new Option {Key = nameof(context.Files).Singularize(), Setter = context.Files.Add, Description = "Parse the specified CSV or XLXS as lab file results."},
 
-                new Option(), new Option{Description = "Output options:"},
+                new Option(), new Option{Description = "CSV output options:"},
                 new Option {Key = nameof(context.CsvOutputPath), Setter = value => context.CsvOutputPath = value, Getter = () => context.CsvOutputPath, Description = $"Path to output file. If not specified, no CSV will be output."},
                 new Option {Key = nameof(context.Overwrite), Setter = value => context.Overwrite = ParseBoolean(value), Getter = () => $"{context.Overwrite}", Description = "Overwrite existing files?"},
             };
@@ -127,6 +143,12 @@ namespace LabFileImporter
                 {
                     if (HelpKeyWords.Contains(arg))
                         throw new ExpectedException(usageMessage);
+
+                    if (DryRunKeyWords.Contains(arg))
+                    {
+                        context.DryRun = true;
+                        continue;
+                    }
 
                     if (File.Exists(arg))
                     {
@@ -161,6 +183,13 @@ namespace LabFileImporter
                 new[] { "?", "h", "help" }
                     .SelectMany(keyword => new[] { "/", "-", "--" }.Select(prefix => prefix + keyword)),
                 StringComparer.InvariantCultureIgnoreCase);
+
+        private static readonly HashSet<string> DryRunKeyWords =
+            new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
+            {
+                "/n",
+                "-n",
+            };
 
         private static IEnumerable<string> ResolveOptionsFromFile(string arg)
         {
@@ -227,19 +256,29 @@ namespace LabFileImporter
         {
             var parts = Split(text);
 
-            if (parts.Length != 3)
-                throw new ExpectedException($"'{text}' is not a valid observed property alias. Try /{nameof(context.ObservedPropertyAliases).Singularize()}=aliasedProperty;aliasedUnit;SamplesObservedPropertyId");
+            if (parts.Length != 4)
+                throw new ExpectedException($"'{text}' is not a valid observed property alias. Try /{nameof(context.ObservedPropertyAliases).Singularize()}=aliasedProperty;aliasedUnit;SamplesPropertyId;SamplesUnitId");
 
             var aliasedProperty = parts[0];
             var aliasedUnit = parts[1];
+
+            var alias = new Context.AliasedProperty
+            {
+                PropertyId = aliasedProperty,
+                UnitId = aliasedUnit
+            };
+
             var samplesObservedPropertyId = parts[2];
+            var samplesUnitId = parts[3];
 
-            var key = $"{aliasedProperty}:{aliasedUnit}";
+            if (context.ObservedPropertyAliases.TryGetValue(alias.Key, out var existingAlias))
+                throw new ExpectedException($"Can't set observed property alias for '{alias.Key}' more than once. This property;unit is already aliased to '{existingAlias.PropertyId};{existingAlias.UnitId}'");
 
-            if (context.LocationAliases.TryGetValue(key, out var existingAlias))
-                throw new ExpectedException($"Can't set observed property alias for '{key}' more than once. This property:unit is already aliased to '{existingAlias}'");
-
-            context.ObservedPropertyAliases[aliasedProperty] = samplesObservedPropertyId;
+            context.ObservedPropertyAliases[alias.Key] = new Context.AliasedProperty
+            {
+                PropertyId = samplesObservedPropertyId,
+                UnitId = samplesUnitId
+            };
         }
 
         private static string[] Split(string text)

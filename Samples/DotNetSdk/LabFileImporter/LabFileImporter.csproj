@@ -110,10 +110,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Context.cs" />
-    <Compile Include="ExcelLoaderBase.cs" />
+    <Compile Include="CsvWriter.cs" />
     <Compile Include="ExeHelper.cs" />
     <Compile Include="ExpectedException.cs" />
+    <Compile Include="ImportClient.cs" />
     <Compile Include="Importer.cs" />
+    <Compile Include="ImportResultResponse.cs" />
+    <Compile Include="ImportStatus.cs" />
     <Compile Include="LabFileLoader.cs" />
     <Compile Include="ObservationV2.cs" />
     <Compile Include="Option.cs" />
