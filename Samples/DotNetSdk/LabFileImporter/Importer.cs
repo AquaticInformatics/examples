@@ -123,12 +123,16 @@ namespace LabFileImporter
                             $"Row {errorItem.RowId}: {error.ErrorMessage} '{error.ErrorFieldValue}' [{errorContext.Key}]")))
                     .ToList();
 
-                var summaryMessages = response
-                    .SummaryReportText
-                    .Split('\n')
-                    .Concat(response.ImportJobErrors?.Select(e => e.ErrorMessage) ?? new string[0])
-                    .Concat(errors?.Count > Context.ErrorLimit ? new[] {$"Showing first {Context.ErrorLimit} of {errors.Count} errors."} : new string[0])
-                    .Concat(errors?.Take(Context.ErrorLimit) ?? new string[0])
+                var emptyList = new string[0];
+
+                var summaryMessages = (response.ImportJobErrors?.Select(e => e.ErrorMessage) ?? emptyList)
+                    .Concat(response
+                        .SummaryReportText
+                        .Split('\n'))
+                    .Concat(errors?.Count > Context.ErrorLimit
+                        ? new[] {$"Showing first {Context.ErrorLimit} of {errors.Count} errors."}
+                        : emptyList)
+                    .Concat(errors?.Take(Context.ErrorLimit) ?? emptyList)
                     .Where(s => !string.IsNullOrEmpty(s))
                     .Select(s => s.Trim())
                     .Where(s => !string.IsNullOrEmpty(s))
@@ -138,12 +142,12 @@ namespace LabFileImporter
                 {
                     Log.Error($"Import completed with errors in {stopwatch.Elapsed.Humanize(2)}.");
                     summaryMessages.ForEach(Log.Error);
+
+                    throw new ExpectedException($"Invalid observations detected: {summaryMessages.FirstOrDefault()}");
                 }
-                else
-                {
-                    Log.Info($"Import completed successfully in {stopwatch.Elapsed.Humanize(2)}.");
-                    summaryMessages.ForEach(Log.Info);
-                }
+
+                Log.Info($"Import completed successfully in {stopwatch.Elapsed.Humanize(2)}.");
+                summaryMessages.ForEach(Log.Info);
             }
         }
         
