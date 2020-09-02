@@ -79,8 +79,8 @@ Supported -option=value settings (/option=value works too):
   -FieldResultPrefix        Row 5 methods beginning with this text indicate a FIELD_RESULT [default: client]
   -StopOnFirstError         Stop on first error? [default: False]
   -ErrorLimit               Maximum number of errors shown. [default: 10]
-  -StartTime                Include observations after this time.
-  -EndTime                  Include observations before this time.
+  -StartTime                When set, only include observations after this time.
+  -EndTime                  When set, only include observations before this time.
 
   ========================= Import options:
   -DryRun                   Enable a dry-run of the import? /N is a shorthand. [default: False]
@@ -94,6 +94,7 @@ Supported -option=value settings (/option=value works too):
   -DefaultMedium            Default medium for results [default: Environmental Water]
   -NonDetectCondition       Lab detect condition for non-detect events. [default: Non-Detect]
   -LabSpecimenName          Lab specimen name [default: Properties]
+  -VerboseErrors            Show row-by-row errors? [default: False]
 
   ========================= Alias options: (these help you map from your external system to AQUARIUS Samples)
   -LocationAlias            Set a location alias in aliasedLocation;SamplesLocationId format
