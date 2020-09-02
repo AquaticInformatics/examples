@@ -115,24 +115,35 @@ namespace LabFileImporter
                 var status = importClient.GetImportStatusUntilComplete(statusUrl);
                 var response = importClient.GetResult(status.ResultUri.ToString());
 
-                var errors = response
+                var rowErrors = response
                     .ErrorImportItems
                     ?.SelectMany(errorItem => errorItem
                         .Errors
                         .SelectMany(errorContext => errorContext.Value.Select(error =>
-                            $"Row {errorItem.RowId}: {error.ErrorMessage} '{error.ErrorFieldValue}' [{errorContext.Key}]")))
+                            $"Row {errorItem.RowId}: {error.ErrorMessage} '{error.ErrorFieldValue}'")))
                     .ToList();
 
-                var emptyList = new string[0];
+                var distinctErrors = response
+                    .ErrorImportItems
+                    ?.SelectMany(errorItem => errorItem
+                        .Errors
+                        .SelectMany(errorContext => errorContext.Value.Select(error =>
+                            $"{error.ErrorMessage} '{error.ErrorFieldValue}'")))
+                    .Distinct()
+                    .ToList();
+
+                var emptyList = new List<string>();
+
+                var errors = (Context.VerboseErrors ? rowErrors : distinctErrors) ?? emptyList;
 
                 var summaryMessages = (response.ImportJobErrors?.Select(e => e.ErrorMessage) ?? emptyList)
                     .Concat(response
                         .SummaryReportText
                         .Split('\n'))
-                    .Concat(errors?.Count > Context.ErrorLimit
-                        ? new[] {$"Showing first {Context.ErrorLimit} of {errors.Count} errors."}
-                        : emptyList)
-                    .Concat(errors?.Take(Context.ErrorLimit) ?? emptyList)
+                    .Concat(errors.Count > Context.ErrorLimit
+                        ? new[] {$"Showing first {Context.ErrorLimit} of {errors.Count} errors:"}
+                        : new string[0])
+                    .Concat(errors.Take(Context.ErrorLimit))
                     .Where(s => !string.IsNullOrEmpty(s))
                     .Select(s => s.Trim())
                     .Where(s => !string.IsNullOrEmpty(s))

@@ -99,8 +99,8 @@ namespace LabFileImporter
                 new Option {Key = nameof(context.FieldResultPrefix), Setter = value => context.FieldResultPrefix = value, Getter = () => context.FieldResultPrefix, Description = $"Row 5 methods beginning with this text indicate a {DataClassificationType.FIELD_RESULT}"},
                 new Option {Key = nameof(context.StopOnFirstError), Setter = value => context.StopOnFirstError = ParseBoolean(value), Getter = () => $"{context.StopOnFirstError}", Description = "Stop on first error?"},
                 new Option {Key = nameof(context.ErrorLimit), Setter = value =>  context.ErrorLimit = ParseInteger(value), Getter = () => $"{context.ErrorLimit}", Description = "Maximum number of errors shown."},
-                new Option {Key = nameof(context.StartTime), Setter = value => context.StartTime = ParseDateTimeOffset(value), Getter = () => string.Empty, Description = "Include observations after this time."},
-                new Option {Key = nameof(context.EndTime), Setter = value => context.EndTime = ParseDateTimeOffset(value), Getter = () => string.Empty, Description = "Include observations before this time."},
+                new Option {Key = nameof(context.StartTime), Setter = value => context.StartTime = ParseDateTimeOffset(value), Getter = () => string.Empty, Description = "When set, only include observations after this time."},
+                new Option {Key = nameof(context.EndTime), Setter = value => context.EndTime = ParseDateTimeOffset(value), Getter = () => string.Empty, Description = "When set, only include observations before this time."},
 
                 new Option(), new Option{Description = "Import options:"},
                 new Option {Key = nameof(context.DryRun), Setter = value => context.DryRun = ParseBoolean(value), Getter = () => $"{context.DryRun}", Description = "Enable a dry-run of the import? /N is a shorthand."},
@@ -114,6 +114,7 @@ namespace LabFileImporter
                 new Option {Key = nameof(context.DefaultMedium), Setter = value => context.DefaultMedium = value, Getter = () => context.DefaultMedium, Description = $"Default medium for results"},
                 new Option {Key = nameof(context.NonDetectCondition), Setter = value => context.NonDetectCondition = value, Getter = () => context.NonDetectCondition, Description = $"Lab detect condition for non-detect events."},
                 new Option {Key = nameof(context.LabSpecimenName), Setter = value => context.LabSpecimenName = value, Getter = () => context.LabSpecimenName, Description = $"Lab specimen name"},
+                new Option {Key = nameof(context.VerboseErrors), Setter = value => context.VerboseErrors = ParseBoolean(value), Getter = () => $"{context.VerboseErrors}", Description = "Show row-by-row errors?"},
 
                 new Option(), new Option{Description = "Alias options: (these help you map from your external system to AQUARIUS Samples)"},
                 new Option {Key = nameof(context.LocationAliases).Singularize(), Setter = value => ParseLocationAlias(context, value), Description = "Set a location alias in aliasedLocation;SamplesLocationId format"},

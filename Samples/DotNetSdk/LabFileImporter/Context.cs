@@ -27,6 +27,7 @@ namespace LabFileImporter
         public string FieldResultPrefix { get; set; } = "client";
         public bool StopOnFirstError { get; set; }
         public int ErrorLimit { get; set; } = 10;
+        public bool VerboseErrors { get; set; }
         public int? MaximumObservations { get; set; }
         public DateTimeOffset? StartTime { get; set; }
         public DateTimeOffset? EndTime { get; set; }
