@@ -24,6 +24,13 @@ namespace LabFileImporter
 
             WriteObservationsAsCsv(observations);
 
+            if (Context.MaximumObservations.HasValue)
+            {
+                observations = observations
+                    .Take(Context.MaximumObservations.Value)
+                    .ToList();
+            }
+
             ImportObservationsToSamples(observations);
         }
 
@@ -56,11 +63,16 @@ namespace LabFileImporter
 
         private IEnumerable<ObservationV2> LoadAllObservations(string path)
         {
-            return new LabFileLoader
+            var observations = new LabFileLoader
                 {
                     Context = Context
                 }
-                .Load(path);
+                .Load(path)
+                .ToList();
+
+            Log.Info($"Loaded {"observation".ToQuantity(observations.Count)} from '{path}'.");
+
+            return observations;
         }
 
         private void WriteObservationsAsCsv(List<ObservationV2> observations)
@@ -103,11 +115,20 @@ namespace LabFileImporter
                 var status = importClient.GetImportStatusUntilComplete(statusUrl);
                 var response = importClient.GetResult(status.ResultUri.ToString());
 
+                var errors = response
+                    .ErrorImportItems
+                    ?.SelectMany(errorItem => errorItem
+                        .Errors
+                        .SelectMany(errorContext => errorContext.Value.Select(error =>
+                            $"Row {errorItem.RowId}: {error.ErrorMessage} '{error.ErrorFieldValue}' [{errorContext.Key}]")))
+                    .ToList();
+
                 var summaryMessages = response
                     .SummaryReportText
                     .Split('\n')
                     .Concat(response.ImportJobErrors?.Select(e => e.ErrorMessage) ?? new string[0])
-                    .Concat(response.ErrorImportItems.Take(10).SelectMany(e => e.Errors.SelectMany(errs => errs.Value.Select(ee => $"Row {e.RowId}: {ee.ErrorMessage} '{ee.ErrorFieldValue}'"))))
+                    .Concat(errors?.Count > Context.ErrorLimit ? new[] {$"Showing first {Context.ErrorLimit} of {errors.Count} errors."} : new string[0])
+                    .Concat(errors?.Take(Context.ErrorLimit) ?? new string[0])
                     .Where(s => !string.IsNullOrEmpty(s))
                     .Select(s => s.Trim())
                     .Where(s => !string.IsNullOrEmpty(s))

@@ -20,11 +20,17 @@ namespace LabFileImporter
         public string FieldResultStatus { get; set; } = "Preliminary";
         public string EstimatedGrade { get; set; } = "Estimated";
         public string DefaultLaboratory { get; set; } = "Unity Water";
+        public string DefaultMedium { get; set; } = "Environmental Water";
         public string NonDetectCondition { get; set; } = "Non-Detect";
         public string LabSpecimenName { get; set; } = "Properties";
         public string BulkImportIndicator { get; set; } = "unity water internal";
         public string FieldResultPrefix { get; set; } = "client";
         public bool StopOnFirstError { get; set; }
+        public int ErrorLimit { get; set; } = 10;
+        public int? MaximumObservations { get; set; }
+        public DateTimeOffset? StartTime { get; set; }
+        public DateTimeOffset? EndTime { get; set; }
+
 
         public class AliasedProperty
         {
