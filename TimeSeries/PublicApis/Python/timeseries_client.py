@@ -70,27 +70,47 @@ class TimeseriesSession(requests.sessions.Session):
         super(TimeseriesSession, self).__init__()
         self.verify = verify
         self.base_url = create_endpoint(hostname, root_path)
+        self.metadata = None
 
     def get(self, url, **kwargs):
+        return self.json_or_none(self._get_raw(url, **kwargs))
+
+    def post(self, url, data=None, json=None, **kwargs):
+        return self.json_or_none(self._post_raw(url, data, json, **kwargs))
+
+    def put(self, url, data=None, **kwargs):
+        return self.json_or_none(self._put_raw(url, data, **kwargs))
+
+    def delete(self, url, **kwargs):
+        return self.json_or_none(self._delete_raw(url, **kwargs))
+
+    @staticmethod
+    def json_or_none(response):
+        if response.status_code == 204:
+            return None
+
+        return response.json()
+
+    def _get_raw(self, url, **kwargs):
         r = super(TimeseriesSession, self).get(self.base_url + url, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
-    def post(self, url, data=None, json=None, **kwargs):
+    def _post_raw(self, url, data=None, json=None, **kwargs):
         r = super(TimeseriesSession, self).post(self.base_url + url, data, json, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
-    def put(self, url, data=None, **kwargs):
+    def _put_raw(self, url, data=None, **kwargs):
         r = super(TimeseriesSession, self).put(self.base_url + url, data, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
-    def delete(self, url, **kwargs):
+    def _delete_raw(self, url, **kwargs):
         r = super(TimeseriesSession, self).delete(self.base_url + url, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def set_session_token(self, token):
         self.headers.update({"X-Authentication-Token": token})
 
-    def send_batch_requests(self, operation_name, requests, batch_size=100, verb="GET"):
+    def send_batch_requests(self, route_or_operation_name, requests, batch_size=100, verb="GET"):
         """
         Performs a batch of identical operations
 
@@ -106,23 +126,46 @@ class TimeseriesSession(requests.sessions.Session):
         >>> # Single-request URL is GET /Publish/v2/GetLocationData?LocationIdentifer=loc1
         >>> # Operation name is "LocationDataServiceRequest"
         >>> requests = [{'LocationIdentifier': 'Loc1'}, {'LocationIdentifier': 'Loc2'}, {'LocationIdentifier': 'Loc3'}]
-        >>> responses = client.publish.send_batch_requests("LocationDataServiceRequest", requests)
-        :param operation_name: The name of operation, from the AQTS Metadata page, to perform multiple times. NOT the route, but the operation name.
+        >>> responses = client.publish.send_batch_requests("/GetLocationData", requests)
+        :param route_or_operation_name: A parameterized route, like "/locations/{uniqueid}", or the name of operation from the AQTS Metadata page, to perform multiple times.
         :param requests: A list of individual request objects
         :param batch_size: Optional batch size (defaults to 100 requests per batch)
         :param verb: Optional HTTP verb of the operation (defaults to "GET")
         :return: A list of all the responses.
         """
+        operation_name = self.get_operation_name(route_or_operation_name, verb)
+
         url = "/json/reply/{0}[]".format(operation_name)
 
         # Split the list into batches
         batched_requests = [requests[i:i + batch_size] for i in range(0, len(requests), batch_size)]
 
         # Get the response batches
-        batched_responses = [self.post(url, json=batch, headers={'X-Http-Method-Override': verb}).json() for batch in batched_requests]
+        batched_responses = [self.post(url, json=batch, headers={'X-Http-Method-Override': verb}) for batch in batched_requests]
 
         # Return the flattened response list
         return [response for batch in batched_responses for response in batch]
+
+    def get_operation_name(self, url, verb='GET'):
+        if self.metadata is None:
+            # Only fetch this once per session
+            self.metadata = self.get('/types/metadata')
+
+        names = [request['Name'] for request in [op['Request'] for op in self.metadata['Operations']] if any(
+            route for route in request['Routes'] if
+            verb.lower() == route['Verbs'].lower() and self.normalize_url(url) == self.normalize_url(route['Path']))]
+
+        if len(names) == 0:
+            return url
+        elif len(names) > 1:
+            raise ModelNotFoundException(url, "Found {0} possible names for URL.".format(len(names)))
+        else:
+            return names[0]
+
+    def normalize_url(self, url):
+        # Fold any /{path}/ parameters into /{}/ so any parameter name will match
+        # Then lowercase it and strip any trailing slash
+        return re.sub('{[^}]+}', '{}', url).rstrip('/').lower()
 
 
 class timeseries_client:
@@ -136,13 +179,13 @@ class timeseries_client:
     provisioning => An authenticated session to the /AQUARIUS/Provisioning/v1 endpoint
 
     >>> timeseries = timeseries_client('localhost', 'admin', 'admin')
-    >>> timeseries.publish.get('/session').json()
+    >>> timeseries.publish.get('/session')
     {u'Username': u'admin', u'Locale': u'en', u'Token': u'GWVheAEXYDkJrqKWxFA1vQ2', u'CanConfigureSystem': True, u'IpAddress': u'172.16.1.90'}
 
     Session resources will be automatically cleaned up if used in WITH statement.
 
     >>> with timeseries_client('localhost', 'admin', 'admin') as timeseries:
-    ...   parameters = timeseries.publish.get('/GetParameterList').json()["Parameters"]
+    ...   parameters = timeseries.publish.get('/GetParameterList')["Parameters"]
     ...   print "There are {0} parameters".format(len(parameters))
     ...
     >>> # The session will be disconnected now, even if an exception was thrown in the body of the WITH statement.
@@ -160,7 +203,7 @@ class timeseries_client:
 
         # Cache the server version
         versionSession = TimeseriesSession(hostname, "/AQUARIUS/apps/v1", verify=verify)
-        self.serverVersion = versionSession.get('/version').json()["ApiVersion"]
+        self.serverVersion = versionSession.get('/version')["ApiVersion"]
 
     def __enter__(self):
         return self
@@ -190,7 +233,7 @@ class timeseries_client:
 
         All subsequent requests to any public endpoint will be authenticated using the stored session token.
         """
-        token = self.publish.post('/session', json={'Username': username, 'EncryptedPassword': password}).text
+        token = self.publish._post_raw('/session', json={'Username': username, 'EncryptedPassword': password}).text
         self.publish.set_session_token(token)
         self.acquisition.set_session_token(token)
         self.provisioning.set_session_token(token)
@@ -295,7 +338,7 @@ class timeseries_client:
         # Get the descriptions from the location
         try:
             descriptions = self.publish.get(
-                '/GetTimeSeriesDescriptionList', params={'LocationIdentifier': location}).json()[
+                '/GetTimeSeriesDescriptionList', params={'LocationIdentifier': location})[
                 "TimeSeriesDescriptions"]
         except requests.exceptions.HTTPError as e:
             raise LocationNotFoundException(location)
@@ -319,7 +362,7 @@ class timeseries_client:
     def getLocationData(self, identifier):
         """Gets the location data"""
         return self.publish.get(
-            "/GetLocationData", params={'LocationIdentifier': identifier}).json()
+            "/GetLocationData", params={'LocationIdentifier': identifier})
 
     def getLocationUniqueId(self, locationIdentifier):
         """Gets the location unique ID for the location"""
@@ -340,7 +383,7 @@ class timeseries_client:
                 'QueryTo': self.coerceQueryTime(queryTo),
                 'InputParameter': inputParameter,
                 'OutputParameter': outputParameter
-            }).json()['RatingModelDescriptions']
+            })['RatingModelDescriptions']
 
         # TODO: Get the rating curves in effect during those times
         return ratingModelDescriptions
@@ -353,7 +396,7 @@ class timeseries_client:
                 'InputValues': inputValues,
                 'EffectiveTime': self.coerceQueryTime(effectiveTime),
                 'ApplyShifts': applyShifts
-            }).json()['OutputValues']
+            })['OutputValues']
 
     def getFieldVisits(self, locationIdentifier, queryFrom=None, queryTo=None, activityType=None):
         fieldVisitDescriptions = self.publish.get(
@@ -363,7 +406,7 @@ class timeseries_client:
                 'QueryFrom': self.coerceQueryTime(queryFrom),
                 'QueryTo': self.coerceQueryTime(queryTo),
                 'ActivityType': activityType
-            }).json()['FieldVisitDescriptions']
+            })['FieldVisitDescriptions']
 
         # TODO: Fetch details for each visit
         return fieldVisitDescriptions
@@ -378,7 +421,7 @@ class timeseries_client:
                 'ComputationIdentifier': computationIdentifier,
                 'ComputationPeriodIdentifier': computationPeriodIdentifier,
                 'ExtendedFilters': self.toJSV(extendedFilters)
-            }).json()['TimeSeriesDescriptions']
+            })['TimeSeriesDescriptions']
 
     def getTimeSeriesData(self, timeSeriesIds, queryFrom=None, queryTo=None, outputUnitIds=None, includeGapMarkers=None):
         if isinstance(timeSeriesIds, list):
@@ -394,7 +437,7 @@ class timeseries_client:
                 'QueryFrom': self.coerceQueryTime(queryFrom),
                 'QueryTo': self.coerceQueryTime(queryTo),
                 'IncludeGapMarkers': includeGapMarkers
-            }).json()
+            })
 
     def getTimeSeriesCorrectedData(self, timeSeriesIdentifier, queryFrom=None, queryTo=None, getParts=None, includeGapMarkers=None):
         return self.publish.get(
@@ -405,11 +448,11 @@ class timeseries_client:
                 'QueryTo': self.coerceQueryTime(queryTo),
                 'GetParts': getParts,
                 'IncludeGapMarkers': includeGapMarkers
-            }).json()
+            })
 
     def getReportList(self):
         """Gets all the generated reports on the system"""
-        return self.publish.get("/GetReportList").json()['Reports']
+        return self.publish.get("/GetReportList")['Reports']
 
     def deleteReport(self, reportUniqueId):
         """Deletes the generated report from the system"""
@@ -424,9 +467,9 @@ class timeseries_client:
 
         return self.acquisition.post("/locations/" + locationUniqueId + "/attachments/reports",
                                      params={'Title': title},
-                                     files={'file': open(pathToFile, 'rb')}).json()
+                                     files={'file': open(pathToFile, 'rb')})
 
     def uploadFieldVisit(self, locationUniqueId, pathToFile):
         """Uploads a file as a field visit to the given location"""
         return self.acquisition.post("/locations/" + locationUniqueId + "/visits/upload/plugins",
-                                     files={'file': open(pathToFile, 'rb')}).json()
+                                     files={'file': open(pathToFile, 'rb')})
