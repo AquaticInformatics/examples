@@ -2,6 +2,8 @@
 # Requires python 2.7+
 # Install required dependencies via: $ pip install requests pytz pyrfc3339
 
+import subprocess
+import os
 import requests
 from requests.exceptions import HTTPError
 import pyrfc3339
@@ -151,7 +153,9 @@ class timeseries_client:
         self.publish = TimeseriesSession(hostname, "/AQUARIUS/Publish/v2", verify=verify)
         self.acquisition = TimeseriesSession(hostname, "/AQUARIUS/Acquisition/v2", verify=verify)
         self.provisioning = TimeseriesSession(hostname, "/AQUARIUS/Provisioning/v1", verify=verify)
+
         # Authenticate once
+        self.configure_proxy()
         self.connect(username, password)
 
         # Cache the server version
@@ -163,6 +167,22 @@ class timeseries_client:
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         self.disconnect()
+
+    def process_exists(self, process_name):
+        call = 'TASKLIST', '/FI', 'imagename eq %s' % process_name
+        # use buildin check_output right away
+        output = subprocess.check_output(call).decode()
+        # check in last line for process name
+        last_line = output.strip().split('\r\n')[-1]
+        # because Fail message could be translated
+        return last_line.lower().startswith(process_name.lower())
+
+    def configure_proxy(self):
+        if any(key in os.environ for key in ['PYTHON_DISABLE_FIDDLER', 'http_proxy', 'https_proxy']) or os.name != 'nt':
+            return
+
+        if self.process_exists('Fiddler.exe'):
+            os.environ['http_proxy'] = os.environ['https_proxy'] = '127.0.0.1:8888'
 
     def connect(self, username, password):
         """
