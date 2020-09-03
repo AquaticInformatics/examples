@@ -42,7 +42,7 @@ The `timeseries` object has `publish`, `acquisition`, and `provisioning` propert
 
 ```python
 # Grab the list of parameters from the server
->>> parameters = timeseries.publish.get('/GetParameterList').json()["Parameters"]
+>>> parameters = timeseries.publish.get('/GetParameterList')["Parameters"]
 ```
 
 ## Disconnecting from your AQTS server
@@ -62,7 +62,7 @@ You can also wrap you code in a python `with` statement, to automatically discon
 
 ```python
 >>> with timeseries_client('localhost', 'admin', 'admin') as timeseries:
-...   parameters = timeseries.publish.get('/GetParameterList').json()["Parameters"]
+...   parameters = timeseries.publish.get('/GetParameterList')["Parameters"]
 ...
 >>> # We're logged out now.
 ```
@@ -93,13 +93,13 @@ The `publish`, `acquisition`, and `provisioning` Session objects expose `get()`,
 
 ### The basic request/response pattern for AQTS API operations
 
-The standard API request/response pattern is essentially `response = timeseries.{endpoint}.{verb}('/route', request params...).json()`
+The standard API request/response pattern is essentially `response = timeseries.{endpoint}.{verb}('/route', request params...)`
 
 - Where `{endpoint}` is one of: `publish`, `acquisition`, or `provisioning`
 - Where `{verb}` is one of: `get`, `post`, `put`, or `delete`
 - Where `/route` is the route required by the REST operation
 - Where `request params...` are any extra request parameters, passed in the URL or in the body. See below for examples.
-- Appending the `.json()` method convert the JSON response stream into a python dictionary.
+- The returned JSON response is automatically converted into a python dictionary, or `None` if a `204 (No Content)` response is received.
 
 Remember that any HTTP errors will automatically be raised by the wrapper class.
  
@@ -114,7 +114,7 @@ Any GET request parameters not contained within the route should be specified as
 ```python
 # Get a list of time-series at a location
 >>> payload = {'LocationIdentifier': 'MyLocation'}
->>> list = timeseries.publish.get('/GetTimeSeriesDescriptionList', params=payload).json()["TimeSeriesDescriptions"]
+>>> list = timeseries.publish.get('/GetTimeSeriesDescriptionList', params=payload)["TimeSeriesDescriptions"]
 ```
 
 #### POST/PUT/DELETE requests use JSON body parameters
@@ -124,13 +124,13 @@ Non-GET requests should specify any request parameters as a Python dictionary in
 ```python
 # Create a new location
 >>> payload = {'LocationIdentifier': 'Loc2', 'LocationName': 'My second location', 'LocationPath': 'All Locations', 'LocationType': 'Hydrology Station'}
->>> location = timeseries.provisioning.post('/locations', json=payload).json()
+>>> location = timeseries.provisioning.post('/locations', json=payload)
 ```
 
 ```python
 # Change the display name of an existing parameter
 # First fetch all the parameters in the system
->>> parameters = timeseries.provisioning.get('/parameters').json()['Results']
+>>> parameters = timeseries.provisioning.get('/parameters')['Results']
 
 # Find the Stage parameter by parameter ID
 >>> stage = next(p for p in parameters if p['ParameterId'] == 'HG')
@@ -251,7 +251,7 @@ Many AQTS APIs which operate on a time-series require this `UniqueId` value as a
 'MyLocation'
 
 # Grab all the time-series at the location
->>> descriptions = timeseries.publish.get('/GetTimeSeriesDescriptionList', json={'LocationIdentifier':location}).json()["TimeSeriesDescriptions"]
+>>> descriptions = timeseries.publish.get('/GetTimeSeriesDescriptionList', json={'LocationIdentifier':location})["TimeSeriesDescriptions"]
 
 # Use a '[list comprehension]' to find the exact match
 >>> ts = [d for d in descriptions if d['Identifier'] == identifier][0]
@@ -303,18 +303,70 @@ Time | Value | Description
  {'Time': timeseries.iso8601(canada_day), 'Value': 149}]
 
 # Append these points to the time-series from Example 1
->>> response = timeseries.acquisition.post('/timeseries/'+ts['UniqueId']+'/append', json={'Points': points}).json()
+>>> response = timeseries.acquisition.post('/timeseries/'+ts['UniqueId']+'/append', json={'Points': points})
 >>> job = response['AppendRequestIdentifier']
 >>> job
 u'775775'
 
 # The points were queued up for processing by AQTS as append request #775775
 # Poll the server for the status of that append job
->>> response = timeseries.acquisition.get('/timeseries/appendstatus/'+job).json()
+>>> response = timeseries.acquisition.get('/timeseries/appendstatus/'+job)
 >>> response
 {u'NumberOfPointsAppended': 2, u'NumberOfPointsDeleted': 0, u'AppendStatus': u'Completed'}
 
 # The job status is no longer 'Pending' so we are done.
 ```
 
+# Example 3 - Fetching data from many locations
 
+This example demonstrates how to fetch data about all the locations in your system.
+
+Some data is not fully available in a single API call.
+One common use case is to find details of all the locations in your system.
+
+Your code will need to make multiple requests, 1 + #NumberOfLocations:
+- An initial `GET /AQUARIUS/Publish/v2/GetLocationDescriptionList` request, to fetch the known location identifiers, unique IDs, names, and folder properties.
+- Multiple `GET /AQUARIUS/Provisioning/v1/locations/{uniqueId}` requests
+- Or multiple `GET /AQUARIUS/Publish/v2/GetLocationData?LocationIdentifer={locationIdentifier}` requests.
+
+That `NumberOfLocations` might be very large for your system. Maybe thousands, or tens of thousands of locations.
+
+(Using the Publish API is a bit slower to retrieve location details than Provisioning API, since the Publish API response also includes location names, datums, and reference point information, which take a bit more time to fetch from the database.)
+
+You could make those multiple requests in a loop, one at a time:
+
+```python
+# Fetch the initial location description list
+locationDescriptions = timeseries.publish.get('/GetLocationDescriptionList')['LocationDescriptions']
+
+# Fetch each location separately 
+locations = [timeseries.provisioning.get('/locations/'+loc['UniqueId']) for loc in locationDescriptions]
+```
+
+That loop may take 5-6 minutes to fetch 20K locations, depending mainly on:
+- the speed of the network between your python code and your AQUARIUS application server
+- the speed of the network between your app server and your database server
+- the speed of your database server
+
+This wrapper also includes a [`send_batch_requests()`](timeseries_client.py#L113) helper method, to make repeated API requests in small batches, which can often double your perceived throughput.
+
+The `send_batch_requests(url, requests)` method takes a URL pattern and a collection of request objects to fetch.
+- `url` is a the url you would normally use in the `get()` method. If the route contains parameters, enclose them in `{curlyBraces}`.
+- `requests` is a collection of request objects
+- `batch_size` is an optional parameter, which defaults to 100 requests per batch.
+- `verb` is an optional parameter, which defaults to `GET`.
+
+The same batch-fetch of Provisioning information may take only 2-or-3 minutes:
+
+```python
+# Fetch the initial location description list
+locationDescriptions = timeseries.publish.get('/GetLocationDescriptionList')['LocationDescriptions']
+
+# Fetch the full location information from the Provisioning API (faster)
+locations = timeseries.provisioning.send_batch_requests('/locations/{Id}', [{'LocationUniqueId': loc['UniqueId']} for loc in locationDescriptions])
+
+# Or, alternatively fetch the full location information from the Publish API, but this is slower
+locationData = timeseries.publish.send_batch_requests('/GetLocationData', [{'LocationIdentifier': loc['Identifier']} for loc in locationDescriptions])
+```
+
+Either approach is fine, but sometimes the batch-fetch might save a few minutes in a long-running script.

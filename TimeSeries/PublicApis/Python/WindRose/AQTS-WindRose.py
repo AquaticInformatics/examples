@@ -24,7 +24,7 @@ with timeseries_client(config['server'], config['username'], config['password'])
         TimeSeriesOutputUnitIds=['m/s', ''],
         QueryFrom=config['eventPeriodStartDay'],
         QueryTo=config['eventPeriodEndDay']
-    )).json()
+    ))
 
     # Throw the points in a Pandas dataframe
     df = pd.DataFrame(json['Points'])
