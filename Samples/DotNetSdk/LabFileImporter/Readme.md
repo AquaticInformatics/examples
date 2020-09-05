@@ -6,6 +6,16 @@ Import lab files to AQUARIUS samples.
 
 The `LabFileImporter` tool is a standalone .NET console utility for importing lab and field observerations from an Excel spreadsheet into your AQUARIUS Samples system.
 
+## Console-mode or GUI-supported
+
+When your command line supplies enough options to the tool that it knows which Excel files to load and which AQUARIUS Samples server to talk with, the tool just runs as console utility, does it work, and exits.
+
+If no Excel files are specified (or if the `/LaunchGui=true` option is specified), a small GUI window will be launched:
+- You can inspect/change most of the configured options.
+- You can drag-and-drop Excel files onto the GUI window and automatically import the results into AQUARIUS Samples.
+
+![Screenshot](Screenshot.png)
+
 ## Requirements
 
 - The .NET 4.7 runtime is required, which is pre-installed on all Windows 10 and Windows Server 2016 systems, and on nearly all up-to-date Windows 7 and Windows Server 2008 systems.
@@ -79,12 +89,12 @@ Supported -option=value settings (/option=value works too):
   -FieldResultPrefix        Row 5 methods beginning with this text indicate a FIELD_RESULT [default: client]
   -StopOnFirstError         Stop on first error? [default: False]
   -ErrorLimit               Maximum number of errors shown. [default: 10]
+  -UtcOffset                UTC offset for imported times [default: Use system timezone, currently -07:00]
   -StartTime                When set, only include observations after this time.
   -EndTime                  When set, only include observations before this time.
 
   ========================= Import options:
   -DryRun                   Enable a dry-run of the import? /N is a shorthand. [default: False]
-  -UtcOffset                UTC offset for imported times [default: Use system timezone, currently -07:00]
   -MaximumObservations      When set, limit the number of imported observations.
   -ResultGrade              Result grade when value is not estimated.
   -EstimatedGrade           Result grade when estimated. [default: Estimated]
@@ -103,6 +113,9 @@ Supported -option=value settings (/option=value works too):
   ========================= CSV output options:
   -CsvOutputPath            Path to output file. If not specified, no CSV will be output.
   -Overwrite                Overwrite existing files? [default: False]
+
+  ========================= GUI options:
+  -LaunchGui                Launch in GUI mode? (Automatic when no Excel files are specified.)
 
 Use the @optionsFile syntax to read more options from a file.
 

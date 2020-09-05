@@ -139,7 +139,7 @@ namespace LabFileImporter
                 new Option {Key = nameof(context.Overwrite), Setter = value => context.Overwrite = ParseBoolean(value), Getter = () => $"{context.Overwrite}", Description = "Overwrite existing files?"},
 
                 new Option(), new Option{Description = "GUI options:"},
-                new Option {Key = nameof(context.LaunchGui), Setter = value => context.LaunchGui = ParseBoolean(value), Getter = () => $"{context.LaunchGui}", Description = "Launch in GUI mode?"},
+                new Option {Key = nameof(context.LaunchGui), Setter = value => context.LaunchGui = ParseBoolean(value), Getter = () => $"{context.LaunchGui}", Description = "Launch in GUI mode? (Automatic when no Excel files are specified.)"},
             };
 
             var usageMessage
