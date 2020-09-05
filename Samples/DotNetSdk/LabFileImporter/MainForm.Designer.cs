@@ -48,7 +48,7 @@
             this.bulkImportIndicatorTextBox = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
-            this.fieldResultPrefioxTextBox = new System.Windows.Forms.TextBox();
+            this.fieldResultPrefixTextBox = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
             this.label7 = new System.Windows.Forms.Label();
@@ -58,11 +58,33 @@
             this.endDateTimePicker = new System.Windows.Forms.DateTimePicker();
             this.utcOffsetComboBox = new System.Windows.Forms.ComboBox();
             this.label4 = new System.Windows.Forms.Label();
+            this.dryRunCheckBox = new System.Windows.Forms.CheckBox();
+            this.verboseErrorsCheckBox = new System.Windows.Forms.CheckBox();
+            this.maxObservationsNumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.maxObservationsCheckBox = new System.Windows.Forms.CheckBox();
+            this.label8 = new System.Windows.Forms.Label();
+            this.label9 = new System.Windows.Forms.Label();
+            this.resultGradeTextBox = new System.Windows.Forms.TextBox();
+            this.estimatedGradeTextBox = new System.Windows.Forms.TextBox();
+            this.fieldResultStatusTextBox = new System.Windows.Forms.TextBox();
+            this.labResultStatusTextBox = new System.Windows.Forms.TextBox();
+            this.defaultLaboratoryTextBox = new System.Windows.Forms.TextBox();
+            this.defaultMediumTextBox = new System.Windows.Forms.TextBox();
+            this.label10 = new System.Windows.Forms.Label();
+            this.label11 = new System.Windows.Forms.Label();
+            this.label12 = new System.Windows.Forms.Label();
+            this.label13 = new System.Windows.Forms.Label();
+            this.label14 = new System.Windows.Forms.Label();
+            this.nonDetectConditionTextBox = new System.Windows.Forms.TextBox();
+            this.label15 = new System.Windows.Forms.Label();
+            this.labSpecimenNameTextBox = new System.Windows.Forms.TextBox();
             this.tabControl.SuspendLayout();
             this.connectionTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.excelParsingTabPage.SuspendLayout();
+            this.imporTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.errorLimitNumericUpDown)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.maxObservationsNumericUpDown)).BeginInit();
             this.SuspendLayout();
             // 
             // outputTextBox
@@ -178,7 +200,7 @@
             this.excelParsingTabPage.Controls.Add(this.label6);
             this.excelParsingTabPage.Controls.Add(this.label5);
             this.excelParsingTabPage.Controls.Add(this.label3);
-            this.excelParsingTabPage.Controls.Add(this.fieldResultPrefioxTextBox);
+            this.excelParsingTabPage.Controls.Add(this.fieldResultPrefixTextBox);
             this.excelParsingTabPage.Controls.Add(this.label2);
             this.excelParsingTabPage.Controls.Add(this.bulkImportIndicatorTextBox);
             this.excelParsingTabPage.Location = new System.Drawing.Point(4, 22);
@@ -191,6 +213,24 @@
             // 
             // imporTabPage
             // 
+            this.imporTabPage.Controls.Add(this.labSpecimenNameTextBox);
+            this.imporTabPage.Controls.Add(this.label15);
+            this.imporTabPage.Controls.Add(this.nonDetectConditionTextBox);
+            this.imporTabPage.Controls.Add(this.label14);
+            this.imporTabPage.Controls.Add(this.label13);
+            this.imporTabPage.Controls.Add(this.label12);
+            this.imporTabPage.Controls.Add(this.label11);
+            this.imporTabPage.Controls.Add(this.label10);
+            this.imporTabPage.Controls.Add(this.defaultMediumTextBox);
+            this.imporTabPage.Controls.Add(this.defaultLaboratoryTextBox);
+            this.imporTabPage.Controls.Add(this.labResultStatusTextBox);
+            this.imporTabPage.Controls.Add(this.fieldResultStatusTextBox);
+            this.imporTabPage.Controls.Add(this.estimatedGradeTextBox);
+            this.imporTabPage.Controls.Add(this.resultGradeTextBox);
+            this.imporTabPage.Controls.Add(this.label9);
+            this.imporTabPage.Controls.Add(this.label8);
+            this.imporTabPage.Controls.Add(this.maxObservationsCheckBox);
+            this.imporTabPage.Controls.Add(this.maxObservationsNumericUpDown);
             this.imporTabPage.Location = new System.Drawing.Point(4, 22);
             this.imporTabPage.Name = "imporTabPage";
             this.imporTabPage.Size = new System.Drawing.Size(471, 217);
@@ -279,11 +319,11 @@
             // 
             // fieldResultPrefioxTextBox
             // 
-            this.fieldResultPrefioxTextBox.Location = new System.Drawing.Point(148, 44);
-            this.fieldResultPrefioxTextBox.Name = "fieldResultPrefioxTextBox";
-            this.fieldResultPrefioxTextBox.Size = new System.Drawing.Size(144, 20);
-            this.fieldResultPrefioxTextBox.TabIndex = 2;
-            this.fieldResultPrefioxTextBox.TextChanged += new System.EventHandler(this.fieldResultPrefioxTextBox_TextChanged);
+            this.fieldResultPrefixTextBox.Location = new System.Drawing.Point(148, 44);
+            this.fieldResultPrefixTextBox.Name = "fieldResultPrefixTextBox";
+            this.fieldResultPrefixTextBox.Size = new System.Drawing.Size(144, 20);
+            this.fieldResultPrefixTextBox.TabIndex = 2;
+            this.fieldResultPrefixTextBox.TextChanged += new System.EventHandler(this.fieldResultPrefixTextBox_TextChanged);
             // 
             // label5
             // 
@@ -373,12 +413,198 @@
             this.label4.TabIndex = 15;
             this.label4.Text = "UTC Offset";
             // 
+            // dryRunCheckBox
+            // 
+            this.dryRunCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.dryRunCheckBox.AutoSize = true;
+            this.dryRunCheckBox.Location = new System.Drawing.Point(93, 350);
+            this.dryRunCheckBox.Name = "dryRunCheckBox";
+            this.dryRunCheckBox.Size = new System.Drawing.Size(202, 17);
+            this.dryRunCheckBox.TabIndex = 5;
+            this.dryRunCheckBox.Text = "Dry-Run mode (no changes imported)";
+            this.dryRunCheckBox.UseVisualStyleBackColor = true;
+            this.dryRunCheckBox.CheckedChanged += new System.EventHandler(this.dryRunCheckBox_CheckedChanged);
+            // 
+            // verboseErrorsCheckBox
+            // 
+            this.verboseErrorsCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.verboseErrorsCheckBox.AutoSize = true;
+            this.verboseErrorsCheckBox.Location = new System.Drawing.Point(302, 350);
+            this.verboseErrorsCheckBox.Name = "verboseErrorsCheckBox";
+            this.verboseErrorsCheckBox.Size = new System.Drawing.Size(94, 17);
+            this.verboseErrorsCheckBox.TabIndex = 6;
+            this.verboseErrorsCheckBox.Text = "Verbose errors";
+            this.verboseErrorsCheckBox.UseVisualStyleBackColor = true;
+            this.verboseErrorsCheckBox.CheckedChanged += new System.EventHandler(this.verboseErrorsCheckBox_CheckedChanged);
+            // 
+            // maxObservationsNumericUpDown
+            // 
+            this.maxObservationsNumericUpDown.Location = new System.Drawing.Point(232, 165);
+            this.maxObservationsNumericUpDown.Maximum = new decimal(new int[] {
+            1000000,
+            0,
+            0,
+            0});
+            this.maxObservationsNumericUpDown.Name = "maxObservationsNumericUpDown";
+            this.maxObservationsNumericUpDown.Size = new System.Drawing.Size(96, 20);
+            this.maxObservationsNumericUpDown.TabIndex = 0;
+            this.maxObservationsNumericUpDown.ValueChanged += new System.EventHandler(this.maxObservationsNumericUpDown_ValueChanged);
+            // 
+            // maxObservationsCheckBox
+            // 
+            this.maxObservationsCheckBox.AutoSize = true;
+            this.maxObservationsCheckBox.Location = new System.Drawing.Point(117, 167);
+            this.maxObservationsCheckBox.Name = "maxObservationsCheckBox";
+            this.maxObservationsCheckBox.Size = new System.Drawing.Size(114, 17);
+            this.maxObservationsCheckBox.TabIndex = 1;
+            this.maxObservationsCheckBox.Text = "Max. Observations";
+            this.maxObservationsCheckBox.UseVisualStyleBackColor = true;
+            this.maxObservationsCheckBox.CheckedChanged += new System.EventHandler(this.maxObservationsCheckBox_CheckedChanged);
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(44, 41);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(69, 13);
+            this.label8.TabIndex = 2;
+            this.label8.Text = "Result Grade";
+            // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(250, 41);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(85, 13);
+            this.label9.TabIndex = 3;
+            this.label9.Text = "Estimated Grade";
+            // 
+            // resultGradeTextBox
+            // 
+            this.resultGradeTextBox.Location = new System.Drawing.Point(119, 38);
+            this.resultGradeTextBox.Name = "resultGradeTextBox";
+            this.resultGradeTextBox.Size = new System.Drawing.Size(100, 20);
+            this.resultGradeTextBox.TabIndex = 4;
+            this.resultGradeTextBox.TextChanged += new System.EventHandler(this.resultGradeTextBox_TextChanged);
+            // 
+            // estimatedGradeTextBox
+            // 
+            this.estimatedGradeTextBox.Location = new System.Drawing.Point(341, 38);
+            this.estimatedGradeTextBox.Name = "estimatedGradeTextBox";
+            this.estimatedGradeTextBox.Size = new System.Drawing.Size(100, 20);
+            this.estimatedGradeTextBox.TabIndex = 5;
+            this.estimatedGradeTextBox.TextChanged += new System.EventHandler(this.estimatedGradeTextBox_TextChanged);
+            // 
+            // fieldResultStatusTextBox
+            // 
+            this.fieldResultStatusTextBox.Location = new System.Drawing.Point(119, 64);
+            this.fieldResultStatusTextBox.Name = "fieldResultStatusTextBox";
+            this.fieldResultStatusTextBox.Size = new System.Drawing.Size(100, 20);
+            this.fieldResultStatusTextBox.TabIndex = 6;
+            this.fieldResultStatusTextBox.TextChanged += new System.EventHandler(this.fieldResultStatusTextBox_TextChanged);
+            // 
+            // labResultStatusTextBox
+            // 
+            this.labResultStatusTextBox.Location = new System.Drawing.Point(341, 64);
+            this.labResultStatusTextBox.Name = "labResultStatusTextBox";
+            this.labResultStatusTextBox.Size = new System.Drawing.Size(100, 20);
+            this.labResultStatusTextBox.TabIndex = 7;
+            this.labResultStatusTextBox.TextChanged += new System.EventHandler(this.labResultStatusTextBox_TextChanged);
+            // 
+            // defaultLaboratoryTextBox
+            // 
+            this.defaultLaboratoryTextBox.Location = new System.Drawing.Point(119, 90);
+            this.defaultLaboratoryTextBox.Name = "defaultLaboratoryTextBox";
+            this.defaultLaboratoryTextBox.Size = new System.Drawing.Size(100, 20);
+            this.defaultLaboratoryTextBox.TabIndex = 8;
+            this.defaultLaboratoryTextBox.TextChanged += new System.EventHandler(this.defaultLaboratoryTextBox_TextChanged);
+            // 
+            // defaultMediumTextBox
+            // 
+            this.defaultMediumTextBox.Location = new System.Drawing.Point(341, 90);
+            this.defaultMediumTextBox.Name = "defaultMediumTextBox";
+            this.defaultMediumTextBox.Size = new System.Drawing.Size(100, 20);
+            this.defaultMediumTextBox.TabIndex = 9;
+            this.defaultMediumTextBox.TextChanged += new System.EventHandler(this.defaultMediumTextBox_TextChanged);
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(18, 67);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(95, 13);
+            this.label10.TabIndex = 10;
+            this.label10.Text = "Field Result Status";
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(244, 67);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(91, 13);
+            this.label11.TabIndex = 11;
+            this.label11.Text = "Lab Result Status";
+            // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.Location = new System.Drawing.Point(18, 93);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(94, 13);
+            this.label12.TabIndex = 12;
+            this.label12.Text = "Default Laboratory";
+            // 
+            // label13
+            // 
+            this.label13.AutoSize = true;
+            this.label13.Location = new System.Drawing.Point(254, 93);
+            this.label13.Name = "label13";
+            this.label13.Size = new System.Drawing.Size(81, 13);
+            this.label13.TabIndex = 13;
+            this.label13.Text = "Default Medium";
+            // 
+            // label14
+            // 
+            this.label14.AutoSize = true;
+            this.label14.Location = new System.Drawing.Point(4, 121);
+            this.label14.Name = "label14";
+            this.label14.Size = new System.Drawing.Size(109, 13);
+            this.label14.TabIndex = 14;
+            this.label14.Text = "Non-Detect Condition";
+            // 
+            // nonDetectConditionTextBox
+            // 
+            this.nonDetectConditionTextBox.Location = new System.Drawing.Point(120, 117);
+            this.nonDetectConditionTextBox.Name = "nonDetectConditionTextBox";
+            this.nonDetectConditionTextBox.Size = new System.Drawing.Size(100, 20);
+            this.nonDetectConditionTextBox.TabIndex = 15;
+            this.nonDetectConditionTextBox.TextChanged += new System.EventHandler(this.nonDetectConditionTextBox_TextChanged);
+            // 
+            // label15
+            // 
+            this.label15.AutoSize = true;
+            this.label15.Location = new System.Drawing.Point(229, 121);
+            this.label15.Name = "label15";
+            this.label15.Size = new System.Drawing.Size(106, 13);
+            this.label15.TabIndex = 16;
+            this.label15.Text = "Lab Specimen Name";
+            // 
+            // labSpecimenNameTextBox
+            // 
+            this.labSpecimenNameTextBox.Location = new System.Drawing.Point(341, 117);
+            this.labSpecimenNameTextBox.Name = "labSpecimenNameTextBox";
+            this.labSpecimenNameTextBox.Size = new System.Drawing.Size(100, 20);
+            this.labSpecimenNameTextBox.TabIndex = 17;
+            this.labSpecimenNameTextBox.TextChanged += new System.EventHandler(this.labSpecimenNameTextBox_TextChanged);
+            // 
             // MainForm
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(504, 381);
+            this.Controls.Add(this.verboseErrorsCheckBox);
+            this.Controls.Add(this.dryRunCheckBox);
             this.Controls.Add(this.importButton);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.tabControl);
@@ -398,7 +624,10 @@
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.excelParsingTabPage.ResumeLayout(false);
             this.excelParsingTabPage.PerformLayout();
+            this.imporTabPage.ResumeLayout(false);
+            this.imporTabPage.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.errorLimitNumericUpDown)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.maxObservationsNumericUpDown)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -430,10 +659,30 @@
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.TextBox fieldResultPrefioxTextBox;
+        private System.Windows.Forms.TextBox fieldResultPrefixTextBox;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox bulkImportIndicatorTextBox;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.ComboBox utcOffsetComboBox;
+        private System.Windows.Forms.CheckBox dryRunCheckBox;
+        private System.Windows.Forms.CheckBox verboseErrorsCheckBox;
+        private System.Windows.Forms.TextBox labSpecimenNameTextBox;
+        private System.Windows.Forms.Label label15;
+        private System.Windows.Forms.TextBox nonDetectConditionTextBox;
+        private System.Windows.Forms.Label label14;
+        private System.Windows.Forms.Label label13;
+        private System.Windows.Forms.Label label12;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.TextBox defaultMediumTextBox;
+        private System.Windows.Forms.TextBox defaultLaboratoryTextBox;
+        private System.Windows.Forms.TextBox labResultStatusTextBox;
+        private System.Windows.Forms.TextBox fieldResultStatusTextBox;
+        private System.Windows.Forms.TextBox estimatedGradeTextBox;
+        private System.Windows.Forms.TextBox resultGradeTextBox;
+        private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.CheckBox maxObservationsCheckBox;
+        private System.Windows.Forms.NumericUpDown maxObservationsNumericUpDown;
     }
 }

@@ -113,12 +113,12 @@ namespace LabFileImporter
                 new Option {Key = nameof(context.FieldResultPrefix), Setter = value => context.FieldResultPrefix = value, Getter = () => context.FieldResultPrefix, Description = $"Row 5 methods beginning with this text indicate a {DataClassificationType.FIELD_RESULT}"},
                 new Option {Key = nameof(context.StopOnFirstError), Setter = value => context.StopOnFirstError = ParseBoolean(value), Getter = () => $"{context.StopOnFirstError}", Description = "Stop on first error?"},
                 new Option {Key = nameof(context.ErrorLimit), Setter = value =>  context.ErrorLimit = ParseInteger(value), Getter = () => $"{context.ErrorLimit}", Description = "Maximum number of errors shown."},
+                new Option {Key = nameof(context.UtcOffset), Setter = value => context.UtcOffset = ParseOffset(value), Getter = () => string.Empty, Description = $"UTC offset for imported times [default: Use system timezone, currently {context.UtcOffset:m}]"},
                 new Option {Key = nameof(context.StartTime), Setter = value => context.StartTime = ParseDateTimeOffset(value), Getter = () => string.Empty, Description = "When set, only include observations after this time."},
                 new Option {Key = nameof(context.EndTime), Setter = value => context.EndTime = ParseDateTimeOffset(value), Getter = () => string.Empty, Description = "When set, only include observations before this time."},
 
                 new Option(), new Option{Description = "Import options:"},
                 new Option {Key = nameof(context.DryRun), Setter = value => context.DryRun = ParseBoolean(value), Getter = () => $"{context.DryRun}", Description = "Enable a dry-run of the import? /N is a shorthand."},
-                new Option {Key = nameof(context.UtcOffset), Setter = value => context.UtcOffset = ParseOffset(value), Getter = () => string.Empty, Description = $"UTC offset for imported times [default: Use system timezone, currently {context.UtcOffset:m}]"},
                 new Option {Key = nameof(context.MaximumObservations), Setter = value =>  context.MaximumObservations = int.TryParse(value, out var number) ? (int?)number : null, Getter = () => $"{context.MaximumObservations}", Description = "When set, limit the number of imported observations."},
                 new Option {Key = nameof(context.ResultGrade), Setter = value => context.ResultGrade = value, Getter = () => context.ResultGrade, Description = $"Result grade when value is not estimated."},
                 new Option {Key = nameof(context.EstimatedGrade), Setter = value => context.EstimatedGrade = value, Getter = () => context.EstimatedGrade, Description = $"Result grade when estimated."},

@@ -91,7 +91,7 @@ namespace LabFileImporter
             apiTokenTextBox.Text = Context.ApiToken ?? string.Empty;
 
             bulkImportIndicatorTextBox.Text = Context.BulkImportIndicator;
-            fieldResultPrefioxTextBox.Text = Context.FieldResultPrefix;
+            fieldResultPrefixTextBox.Text = Context.FieldResultPrefix;
             stopOnFirstErrorCheckBox.Checked = Context.StopOnFirstError;
             errorLimitNumericUpDown.Value = Context.ErrorLimit;
 
@@ -112,6 +112,21 @@ namespace LabFileImporter
                 .IndexOf($"{Context.UtcOffset.ToTimeSpan()}");
 
             utcOffsetComboBox.SelectedIndex = utcIndex;
+
+            dryRunCheckBox.Checked = Context.DryRun;
+            verboseErrorsCheckBox.Checked = Context.VerboseErrors;
+
+            maxObservationsCheckBox.Checked = Context.MaximumObservations.HasValue;
+            maxObservationsNumericUpDown.Value = Context.MaximumObservations ?? 0;
+
+            resultGradeTextBox.Text = Context.ResultGrade;
+            estimatedGradeTextBox.Text = Context.EstimatedGrade;
+            fieldResultStatusTextBox.Text = Context.FieldResultStatus;
+            labResultStatusTextBox.Text = Context.LabResultStatus;
+            defaultLaboratoryTextBox.Text = Context.DefaultLaboratory;
+            defaultMediumTextBox.Text = Context.DefaultMedium;
+            nonDetectConditionTextBox.Text = Context.NonDetectCondition;
+            labSpecimenNameTextBox.Text = Context.LabSpecimenName;
 
             OnServerConfigChanged();
         }
@@ -251,12 +266,12 @@ namespace LabFileImporter
 
         private void bulkImportIndicatorTextBox_TextChanged(object sender, EventArgs e)
         {
-            Context.BulkImportIndicator = bulkImportIndicatorTextBox.Text;
+            Context.BulkImportIndicator = bulkImportIndicatorTextBox.Text.Trim();
         }
 
-        private void fieldResultPrefioxTextBox_TextChanged(object sender, EventArgs e)
+        private void fieldResultPrefixTextBox_TextChanged(object sender, EventArgs e)
         {
-            Context.FieldResultPrefix = fieldResultPrefioxTextBox.Text;
+            Context.FieldResultPrefix = fieldResultPrefixTextBox.Text.Trim();
         }
 
         private void stopOnFirstErrorCheckBox_CheckedChanged(object sender, EventArgs e)
@@ -304,6 +319,68 @@ namespace LabFileImporter
                 return;
 
             Context.UtcOffset = Program.ParseOffset(text);
+        }
+
+        private void dryRunCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            Context.DryRun = dryRunCheckBox.Checked;
+        }
+
+        private void verboseErrorsCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            Context.VerboseErrors = verboseErrorsCheckBox.Checked;
+        }
+
+        private void resultGradeTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Context.ResultGrade = resultGradeTextBox.Text.Trim();
+        }
+
+        private void estimatedGradeTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Context.EstimatedGrade = estimatedGradeTextBox.Text.Trim();
+        }
+
+        private void fieldResultStatusTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Context.FieldResultStatus = fieldResultStatusTextBox.Text.Trim();
+        }
+
+        private void labResultStatusTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Context.LabResultStatus = labResultStatusTextBox.Text.Trim();
+        }
+
+        private void defaultLaboratoryTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Context.DefaultLaboratory = defaultLaboratoryTextBox.Text.Trim();
+        }
+
+        private void defaultMediumTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Context.DefaultMedium = defaultMediumTextBox.Text.Trim();
+        }
+
+        private void nonDetectConditionTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Context.NonDetectCondition = nonDetectConditionTextBox.Text.Trim();
+        }
+
+        private void labSpecimenNameTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Context.LabSpecimenName = labSpecimenNameTextBox.Text.Trim();
+        }
+
+        private void maxObservationsCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            Context.MaximumObservations = maxObservationsCheckBox.Checked
+                ? (int?) maxObservationsNumericUpDown.Value
+                : null;
+        }
+
+        private void maxObservationsNumericUpDown_ValueChanged(object sender, EventArgs e)
+        {
+            Context.MaximumObservations = (int)maxObservationsNumericUpDown.Value;
         }
     }
 }
