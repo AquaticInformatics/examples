@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Windows.Forms;
 using System.Xml;
 using Aquarius.Samples.Client.ServiceModel;
 using Aquarius.TimeSeries.Client;
@@ -20,6 +21,7 @@ namespace LabFileImporter
     {
         private static ILog _log;
 
+        [STAThread]
         public static void Main(string[] args)
         {
             Environment.ExitCode = 1;
@@ -35,17 +37,29 @@ namespace LabFileImporter
 
                 Environment.ExitCode = 0;
             }
-            catch (WebServiceException exception)
-            {
-                _log.Error($"API: ({exception.StatusCode}) {string.Join(" ", exception.StatusDescription, exception.ErrorCode)}: {string.Join(" ", exception.Message, exception.ErrorMessage)}", exception);
-            }
-            catch (ExpectedException exception)
-            {
-                _log.Error(exception.Message);
-            }
             catch (Exception exception)
             {
-                _log.Error("Unhandled exception", exception);
+                var (message, exceptionToLog) = HandleOuterException(exception);
+
+                if (exceptionToLog != null)
+                    _log.Error(message, exceptionToLog);
+                else
+                    _log.Error(message);
+            }
+        }
+
+        private static (string Message, Exception Exception) HandleOuterException(Exception exception)
+        {
+            switch (exception)
+            {
+                case WebServiceException webServiceException:
+                    return ($"API: ({webServiceException.StatusCode}) {string.Join(" ", webServiceException.StatusDescription, webServiceException.ErrorCode)}: {string.Join(" ", webServiceException.Message, webServiceException.ErrorMessage)}", webServiceException);
+
+                case ExpectedException expectedException:
+                    return (expectedException.Message, null);
+
+                default:
+                    return ("Unhandled exception", exception);
             }
         }
 
@@ -123,6 +137,9 @@ namespace LabFileImporter
                 new Option(), new Option{Description = "CSV output options:"},
                 new Option {Key = nameof(context.CsvOutputPath), Setter = value => context.CsvOutputPath = value, Getter = () => context.CsvOutputPath, Description = $"Path to output file. If not specified, no CSV will be output."},
                 new Option {Key = nameof(context.Overwrite), Setter = value => context.Overwrite = ParseBoolean(value), Getter = () => $"{context.Overwrite}", Description = "Overwrite existing files?"},
+
+                new Option(), new Option{Description = "GUI options:"},
+                new Option {Key = nameof(context.LaunchGui), Setter = value => context.LaunchGui = ParseBoolean(value), Getter = () => $"{context.LaunchGui}", Description = "Launch in GUI mode?"},
             };
 
             var usageMessage
@@ -237,7 +254,7 @@ namespace LabFileImporter
             throw new ExpectedException($"'{text}' is not a valid date-time. Try yyyy-MM-dd or yyyy-MM-dd HH:mm:ss");
         }
 
-        private static Offset ParseOffset(string text)
+        public static Offset ParseOffset(string text)
         {
             try
             {
@@ -321,10 +338,64 @@ namespace LabFileImporter
 
         private void Run()
         {
-            new Importer
-                {
-                    Context = _context
-                }
+            var launchGui = _context.LaunchGui ?? !_context.Files.Any();
+
+            if (launchGui)
+            {
+                RunGuiImporter();
+            }
+            else
+            {
+                RunConsoleImporter();
+            }
+        }
+
+        private void RunGuiImporter()
+        {
+            // ConfigureLogging();
+
+            AppDomain.CurrentDomain.UnhandledException +=
+                (sender, args) => HandleUnhandledGuiException(args.ExceptionObject as Exception);
+            Application.ThreadException +=
+                (sender, args) => HandleUnhandledGuiException(args.Exception);
+
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+
+            _log.Info($"Launching GUI mode for {ExeHelper.ExeNameAndVersion} ...");
+
+            Application.Run(new MainForm
+            {
+                Context = _context
+            });
+        }
+
+        private static void HandleUnhandledGuiException(Exception exception)
+        {
+            var (message, exceptionToLog) = HandleOuterException(exception);
+
+            if (exceptionToLog != null)
+                _log.Error(message, exceptionToLog);
+            else
+                _log.Error(message);
+
+            var caption = "Oops. Better check the logs for details.";
+
+            if (exception is WebServiceException)
+            {
+                caption = "AQUARIUS Samples API error";
+            }
+            else if (exception is ExpectedException)
+            {
+                caption = "An error occurred.";
+            }
+
+            MessageBox.Show(message, caption);
+        }
+
+        private void RunConsoleImporter()
+        {
+            new Importer(ServiceStack.Logging.LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType), _context)
                 .Import();
         }
     }

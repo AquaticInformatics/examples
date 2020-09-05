@@ -3,17 +3,21 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Humanizer;
-using log4net;
+using ServiceStack.Logging;
 
 namespace LabFileImporter
 {
     public class Importer
     {
-        private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        public Importer(ILog log, Context context)
+        {
+            Context = context;
+            Log = log;
+        }
 
-        public Context Context { get; set; }
+        private Context Context { get; }
+        private ILog Log { get; }
 
         public void Import()
         {
@@ -63,10 +67,7 @@ namespace LabFileImporter
 
         private IEnumerable<ObservationV2> LoadAllObservations(string path)
         {
-            var observations = new LabFileLoader
-                {
-                    Context = Context
-                }
+            var observations = new LabFileLoader(Log, Context)
                 .Load(path)
                 .ToList();
 
