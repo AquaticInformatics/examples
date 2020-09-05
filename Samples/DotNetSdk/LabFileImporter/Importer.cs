@@ -152,14 +152,14 @@ namespace LabFileImporter
 
                 if (response.ErrorCount > 0)
                 {
-                    Log.Error($"Import completed with errors in {stopwatch.Elapsed.Humanize(2)}.");
                     summaryMessages.ForEach(Log.Error);
+                    Log.Error($"Import completed with errors in {stopwatch.Elapsed.Humanize(2)}.");
 
                     throw new ExpectedException($"Invalid observations detected: {summaryMessages.FirstOrDefault()}");
                 }
 
-                Log.Info($"Import completed successfully in {stopwatch.Elapsed.Humanize(2)}.");
                 summaryMessages.ForEach(Log.Info);
+                Log.Info($"Import completed successfully in {stopwatch.Elapsed.Humanize(2)}.");
             }
         }
         
