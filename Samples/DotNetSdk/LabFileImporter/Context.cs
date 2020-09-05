@@ -31,12 +31,14 @@ namespace LabFileImporter
         public int? MaximumObservations { get; set; }
         public DateTimeOffset? StartTime { get; set; }
         public DateTimeOffset? EndTime { get; set; }
-
+        public bool? LaunchGui { get; set; }
 
         public class AliasedProperty
         {
             public string PropertyId { get; set; }
             public string UnitId { get; set; }
+            public string AliasedPropertyId { get; set; }
+            public string AliasedUnitId { get; set; }
 
             public string Key => $"{PropertyId}:{UnitId}";
         }

@@ -2,20 +2,24 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using Aquarius.Samples.Client.ServiceModel;
 using ExcelDataReader;
 using ExcelDataReader.Exceptions;
-using log4net;
+using ServiceStack.Logging;
 
 namespace LabFileImporter
 {
     public class LabFileLoader
     {
-        private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        public LabFileLoader(ILog log, Context context)
+        {
+            Context = context;
+            Log = log;
+        }
 
-        public Context Context { get; set; }
+        private Context Context { get; }
+        private ILog Log { get; }
 
         private ImportFormat Format { get; set; }
 
