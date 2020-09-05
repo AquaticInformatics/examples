@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 using Aquarius.Helpers;
-using NodaTime.Text;
 using ServiceStack;
 using ServiceStack.Logging;
 
@@ -127,6 +127,9 @@ namespace LabFileImporter
             defaultMediumTextBox.Text = Context.DefaultMedium;
             nonDetectConditionTextBox.Text = Context.NonDetectCondition;
             labSpecimenNameTextBox.Text = Context.LabSpecimenName;
+
+            overwriteCheckBox.Checked = Context.Overwrite;
+            CsvOutputPathTextBox.Text = Context.CsvOutputPath;
 
             OnServerConfigChanged();
         }
@@ -381,6 +384,39 @@ namespace LabFileImporter
         private void maxObservationsNumericUpDown_ValueChanged(object sender, EventArgs e)
         {
             Context.MaximumObservations = (int)maxObservationsNumericUpDown.Value;
+        }
+
+        private void overwriteCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            Context.Overwrite = overwriteCheckBox.Checked;
+        }
+
+        private void CsvOutputPathTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Context.CsvOutputPath = CsvOutputPathTextBox.Text.Trim();
+        }
+
+        private void browseCsvOutputButton_Click(object sender, EventArgs e)
+        {
+            var fileDialog = new SaveFileDialog
+            {
+                RestoreDirectory = true,
+                Filter = @"CSV files (*.csv)|*.xlsx|All Files(*.*)|*.*",
+                Title = @"Choose a CSV file for the exported observations"
+            };
+
+            if (fileDialog.ShowDialog() == DialogResult.OK)
+            {
+                if (File.Exists(fileDialog.FileName))
+                {
+                    Context.Overwrite = true;
+                    overwriteCheckBox.Checked = true;
+                }
+
+                Context.CsvOutputPath = fileDialog.FileName;
+                CsvOutputPathTextBox.Text = fileDialog.FileName;
+            }
+
         }
     }
 }
