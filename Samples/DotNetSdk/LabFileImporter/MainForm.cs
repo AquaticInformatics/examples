@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 using Aquarius.Helpers;
+using Humanizer;
 using ServiceStack;
 using ServiceStack.Logging;
 
@@ -131,7 +132,36 @@ namespace LabFileImporter
             overwriteCheckBox.Checked = Context.Overwrite;
             CsvOutputPathTextBox.Text = Context.CsvOutputPath;
 
+            locationAliasesLabel.Text = $@"{"location alias".ToQuantity(Context.LocationAliases.Count)} defined.";
+
+            foreach (var kvp in Context.LocationAliases.OrderBy(kvp => kvp.Key))
+            {
+                locationAliasesListView.Items.Add(CreateListViewItem(kvp.Key, kvp.Value));
+            }
+
+            propertyAliasesLabel.Text = $@"{"observed property alias".ToQuantity(Context.ObservedPropertyAliases.Count)} defined.";
+
+            foreach (var alias in Context.ObservedPropertyAliases.Values.OrderBy(alias => alias.AliasedPropertyId).ThenBy(alias=> alias.AliasedUnitId))
+            {
+                propertyAliasesListView.Items.Add(CreateListViewItem(alias.AliasedPropertyId, alias.AliasedUnitId, alias.PropertyId, alias.UnitId));
+            }
+
             OnServerConfigChanged();
+        }
+
+        private ListViewItem CreateListViewItem(params string[] columns)
+        {
+            if (columns.Length < 1)
+                throw new InvalidOperationException("Should never happen");
+
+            var item = new ListViewItem(columns.First());
+
+            foreach (var column in columns.Skip(1))
+            {
+                item.SubItems.Add(column);
+            }
+
+            return item;
         }
 
         private void SetDateTimeControl(DateTimePicker dateTimePicker, DateTimeOffset? dateTimeOffset)

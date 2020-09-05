@@ -316,7 +316,9 @@ namespace LabFileImporter
             context.ObservedPropertyAliases[alias.Key] = new Context.AliasedProperty
             {
                 PropertyId = samplesObservedPropertyId,
-                UnitId = samplesUnitId
+                UnitId = samplesUnitId,
+                AliasedPropertyId = alias.PropertyId,
+                AliasedUnitId = alias.UnitId,
             };
         }
 

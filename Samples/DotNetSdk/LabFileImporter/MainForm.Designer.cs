@@ -85,6 +85,16 @@
             this.label17 = new System.Windows.Forms.Label();
             this.label18 = new System.Windows.Forms.Label();
             this.label19 = new System.Windows.Forms.Label();
+            this.locationAliasesListView = new System.Windows.Forms.ListView();
+            this.locationAliasesLabel = new System.Windows.Forms.Label();
+            this.propertyAliasesListView = new System.Windows.Forms.ListView();
+            this.propertyAliasesLabel = new System.Windows.Forms.Label();
+            this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader4 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader5 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader6 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.tabControl.SuspendLayout();
             this.connectionTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
@@ -92,6 +102,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.errorLimitNumericUpDown)).BeginInit();
             this.imporTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.maxObservationsNumericUpDown)).BeginInit();
+            this.locationAliasesTabPage.SuspendLayout();
+            this.propertyAliasesTabPage.SuspendLayout();
             this.csvOutputTabPage.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -105,13 +117,13 @@
             this.outputTextBox.Name = "outputTextBox";
             this.outputTextBox.ReadOnly = true;
             this.outputTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.outputTextBox.Size = new System.Drawing.Size(480, 53);
+            this.outputTextBox.Size = new System.Drawing.Size(480, 65);
             this.outputTextBox.TabIndex = 0;
             // 
             // clearButton
             // 
             this.clearButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.clearButton.Location = new System.Drawing.Point(12, 346);
+            this.clearButton.Location = new System.Drawing.Point(12, 358);
             this.clearButton.Name = "clearButton";
             this.clearButton.Size = new System.Drawing.Size(75, 23);
             this.clearButton.TabIndex = 1;
@@ -531,6 +543,8 @@
             // 
             // locationAliasesTabPage
             // 
+            this.locationAliasesTabPage.Controls.Add(this.locationAliasesLabel);
+            this.locationAliasesTabPage.Controls.Add(this.locationAliasesListView);
             this.locationAliasesTabPage.Location = new System.Drawing.Point(4, 22);
             this.locationAliasesTabPage.Name = "locationAliasesTabPage";
             this.locationAliasesTabPage.Size = new System.Drawing.Size(471, 217);
@@ -541,6 +555,8 @@
             // 
             // propertyAliasesTabPage
             // 
+            this.propertyAliasesTabPage.Controls.Add(this.propertyAliasesLabel);
+            this.propertyAliasesTabPage.Controls.Add(this.propertyAliasesListView);
             this.propertyAliasesTabPage.Location = new System.Drawing.Point(4, 22);
             this.propertyAliasesTabPage.Name = "propertyAliasesTabPage";
             this.propertyAliasesTabPage.Size = new System.Drawing.Size(471, 217);
@@ -580,7 +596,7 @@
             // importButton
             // 
             this.importButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.importButton.Location = new System.Drawing.Point(417, 346);
+            this.importButton.Location = new System.Drawing.Point(417, 358);
             this.importButton.Name = "importButton";
             this.importButton.Size = new System.Drawing.Size(75, 23);
             this.importButton.TabIndex = 4;
@@ -592,7 +608,7 @@
             // 
             this.dryRunCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.dryRunCheckBox.AutoSize = true;
-            this.dryRunCheckBox.Location = new System.Drawing.Point(93, 350);
+            this.dryRunCheckBox.Location = new System.Drawing.Point(93, 362);
             this.dryRunCheckBox.Name = "dryRunCheckBox";
             this.dryRunCheckBox.Size = new System.Drawing.Size(202, 17);
             this.dryRunCheckBox.TabIndex = 5;
@@ -604,7 +620,7 @@
             // 
             this.verboseErrorsCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.verboseErrorsCheckBox.AutoSize = true;
-            this.verboseErrorsCheckBox.Location = new System.Drawing.Point(302, 350);
+            this.verboseErrorsCheckBox.Location = new System.Drawing.Point(302, 362);
             this.verboseErrorsCheckBox.Name = "verboseErrorsCheckBox";
             this.verboseErrorsCheckBox.Size = new System.Drawing.Size(94, 17);
             this.verboseErrorsCheckBox.TabIndex = 6;
@@ -677,12 +693,93 @@
             this.label19.TabIndex = 6;
             this.label19.Text = "- No AQUARIUS Samples credentials are given";
             // 
+            // locationAliasesListView
+            // 
+            this.locationAliasesListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.locationAliasesListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader3,
+            this.columnHeader4});
+            this.locationAliasesListView.HideSelection = false;
+            this.locationAliasesListView.Location = new System.Drawing.Point(4, 26);
+            this.locationAliasesListView.Name = "locationAliasesListView";
+            this.locationAliasesListView.Size = new System.Drawing.Size(464, 188);
+            this.locationAliasesListView.TabIndex = 0;
+            this.locationAliasesListView.UseCompatibleStateImageBehavior = false;
+            this.locationAliasesListView.View = System.Windows.Forms.View.Details;
+            // 
+            // locationAliasesLabel
+            // 
+            this.locationAliasesLabel.AutoSize = true;
+            this.locationAliasesLabel.Location = new System.Drawing.Point(4, 4);
+            this.locationAliasesLabel.Name = "locationAliasesLabel";
+            this.locationAliasesLabel.Size = new System.Drawing.Size(0, 13);
+            this.locationAliasesLabel.TabIndex = 1;
+            // 
+            // propertyAliasesListView
+            // 
+            this.propertyAliasesListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.propertyAliasesListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader1,
+            this.columnHeader2,
+            this.columnHeader5,
+            this.columnHeader6});
+            this.propertyAliasesListView.HideSelection = false;
+            this.propertyAliasesListView.Location = new System.Drawing.Point(4, 25);
+            this.propertyAliasesListView.Name = "propertyAliasesListView";
+            this.propertyAliasesListView.Size = new System.Drawing.Size(464, 189);
+            this.propertyAliasesListView.TabIndex = 0;
+            this.propertyAliasesListView.UseCompatibleStateImageBehavior = false;
+            this.propertyAliasesListView.View = System.Windows.Forms.View.Details;
+            // 
+            // propertyAliasesLabel
+            // 
+            this.propertyAliasesLabel.AutoSize = true;
+            this.propertyAliasesLabel.Location = new System.Drawing.Point(4, 4);
+            this.propertyAliasesLabel.Name = "propertyAliasesLabel";
+            this.propertyAliasesLabel.Size = new System.Drawing.Size(41, 13);
+            this.propertyAliasesLabel.TabIndex = 1;
+            this.propertyAliasesLabel.Text = "label20";
+            // 
+            // columnHeader1
+            // 
+            this.columnHeader1.Text = "External Property";
+            this.columnHeader1.Width = 140;
+            // 
+            // columnHeader2
+            // 
+            this.columnHeader2.Text = "External Unit";
+            this.columnHeader2.Width = 80;
+            // 
+            // columnHeader3
+            // 
+            this.columnHeader3.Text = "External Location";
+            this.columnHeader3.Width = 200;
+            // 
+            // columnHeader4
+            // 
+            this.columnHeader4.Text = "Samples Location";
+            this.columnHeader4.Width = 200;
+            // 
+            // columnHeader5
+            // 
+            this.columnHeader5.Text = "Samples Property";
+            this.columnHeader5.Width = 140;
+            // 
+            // columnHeader6
+            // 
+            this.columnHeader6.Text = "Samples Unit";
+            this.columnHeader6.Width = 80;
+            // 
             // MainForm
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(504, 381);
+            this.ClientSize = new System.Drawing.Size(504, 393);
             this.Controls.Add(this.verboseErrorsCheckBox);
             this.Controls.Add(this.dryRunCheckBox);
             this.Controls.Add(this.importButton);
@@ -708,6 +805,10 @@
             this.imporTabPage.ResumeLayout(false);
             this.imporTabPage.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.maxObservationsNumericUpDown)).EndInit();
+            this.locationAliasesTabPage.ResumeLayout(false);
+            this.locationAliasesTabPage.PerformLayout();
+            this.propertyAliasesTabPage.ResumeLayout(false);
+            this.propertyAliasesTabPage.PerformLayout();
             this.csvOutputTabPage.ResumeLayout(false);
             this.csvOutputTabPage.PerformLayout();
             this.ResumeLayout(false);
@@ -773,5 +874,15 @@
         private System.Windows.Forms.TextBox CsvOutputPathTextBox;
         private System.Windows.Forms.Label label19;
         private System.Windows.Forms.Label label18;
+        private System.Windows.Forms.Label locationAliasesLabel;
+        private System.Windows.Forms.ListView locationAliasesListView;
+        private System.Windows.Forms.Label propertyAliasesLabel;
+        private System.Windows.Forms.ListView propertyAliasesListView;
+        private System.Windows.Forms.ColumnHeader columnHeader1;
+        private System.Windows.Forms.ColumnHeader columnHeader2;
+        private System.Windows.Forms.ColumnHeader columnHeader3;
+        private System.Windows.Forms.ColumnHeader columnHeader4;
+        private System.Windows.Forms.ColumnHeader columnHeader5;
+        private System.Windows.Forms.ColumnHeader columnHeader6;
     }
 }
