@@ -9,6 +9,7 @@ using Aquarius.Samples.Client;
 using Aquarius.Samples.Client.ServiceModel;
 using Humanizer;
 using log4net;
+using MoreLinq.Extensions;
 using NodaTime;
 using ServiceStack;
 
@@ -76,6 +77,14 @@ namespace SamplesObservationExporter
 
             var response = Client.LazyGet<Observation, GetObservationsV2, SearchResultObservation>(request);
 
+            var analyticalGroups = Client.Get(new GetAnalyticalGroups())
+                .DomainObjects;
+
+            var observedPropertiesByGroup = analyticalGroups
+                .OrderBy(ag => ag.Name)
+                .Select(ag => (Group: ag, Properties: new HashSet<string>(ag.AnalyticalGroupItems.Select(i => i.ObservedProperty.CustomId))))
+                .ToList();
+
             Log.Info($"Fetching all {response.TotalCount} matching observations.");
 
             var stopwatch = Stopwatch.StartNew();
@@ -88,9 +97,20 @@ namespace SamplesObservationExporter
             Log.Info($"{items.Count} numeric observations loaded in {stopwatch.Elapsed.Humanize(2)}.");
 
             var resultColumns = items
-                .Select(item => (ObservedPropertyId: item.ObservedProperty.CustomId, Unit: item.ObservedProperty.DefaultUnit?.CustomId))
-                .Distinct()
-                .OrderBy(column => column.ObservedPropertyId)
+                .Select(item => new ResultColumn
+                {
+                    ObservedPropertyId = item.ObservedProperty.CustomId,
+                    Unit = item.ObservedProperty.DefaultUnit?.CustomId,
+                    MethodId = item.AnalysisMethod?.MethodId,
+                    AnalyticalGroup = Context.AnalyticalGroupIds.Any()
+                        ? observedPropertiesByGroup.FirstOrDefault(o => o.Properties.Contains(item.CustomId)).Group?.Name
+                        : null
+                })
+                .DistinctBy(rc => new{rc.ObservedPropertyId, rc.Unit, rc.MethodId, rc.AnalyticalGroup})
+                .OrderBy(column => column.AnalyticalGroup)
+                .ThenBy(column => column.ObservedPropertyId)
+                .ThenBy(column => column.MethodId)
+                .ThenBy(column => column.Unit)
                 .ToList();
 
             if (Context.Overwrite && File.Exists(Context.CsvOutputPath))
@@ -113,26 +133,27 @@ namespace SamplesObservationExporter
                 .Concat(resultColumns.SelectMany(column => new[]
                 {
                     EscapeCsvColumn($"{column.ObservedPropertyId}_Value"),
-                    EscapeCsvColumn($"{column.ObservedPropertyId}_{column.Unit}")
+                    EscapeCsvColumn($"{column.ObservedPropertyId}_{DistinctColumnUnitLabel(resultColumns, column)}")
                 }))
                 .ToList();
 
             Log.Info($"Writing observations to '{Context.CsvOutputPath}' ...");
 
-            using (var writer = new StreamWriter(Context.CsvOutputPath))
+            using (var stream = File.OpenWrite(Context.CsvOutputPath))
+            using (var writer = new StreamWriter(stream, new UTF8Encoding(true)))
             {
-                var headerRow = string.Join(", ", headers);
+                var headerRow = string.Join(",", headers);
                 writer.WriteLine(headerRow);
 
                 var utcOffset = Context.UtcOffset.ToTimeSpan();
 
                 foreach (var group in items.GroupBy(item => new
                 {
-                    item.ObservedTime,
+                    item.FieldVisit.StartTime,
                     item.LabResultDetails?.LabSampleId,
                     item.SamplingLocation.CustomId
                 })
-                    .OrderBy(g => g.Key.ObservedTime)
+                    .OrderBy(g => g.Key.StartTime)
                     .ThenBy(g => g.Key.LabSampleId)
                     .ThenBy(g => g.Key.CustomId))
                 {
@@ -140,10 +161,10 @@ namespace SamplesObservationExporter
                     var first = observations.First();
                     var location = first.SamplingLocation;
 
-                    if (!first.ObservedTime.HasValue)
+                    if (!first.FieldVisit?.StartTime.HasValue ?? true)
                         throw new ExpectedException($"{"observation".ToQuantity(observations.Count)} at location '{location.CustomId}' have no timestamp.");
 
-                    var time = first.ObservedTime.Value.ToDateTimeOffset().Add(utcOffset);
+                    var time = first.FieldVisit.StartTime.Value.ToDateTimeOffset().Add(utcOffset);
 
                     var columns = new List<string>(headerRow.Length)
                     {
@@ -170,6 +191,27 @@ namespace SamplesObservationExporter
             }
         }
 
+        private class ResultColumn
+        {
+            public string ObservedPropertyId { get; set; }
+            public string Unit { get; set; }
+            public string MethodId { get; set; }
+            public string AnalyticalGroup { get; set; }
+        }
+
+        private static string DistinctColumnUnitLabel(List<ResultColumn> resultColumns, ResultColumn column)
+        {
+            var propertiesWithSameUnit = resultColumns
+                .Where(c => c.ObservedPropertyId == column.ObservedPropertyId && !string.IsNullOrEmpty(c.Unit) && c.Unit == column.Unit)
+                .ToList();
+
+            return propertiesWithSameUnit.Count > 1
+                ? $"{column.Unit}_{column.MethodId}"
+                : !string.IsNullOrEmpty(column.Unit)
+                    ? column.Unit
+                    : column.MethodId;
+        }
+
         private static string EscapeCsvColumn(string text)
         {
             if (string.IsNullOrEmpty(text))
@@ -185,7 +227,7 @@ namespace SamplesObservationExporter
 
         private static readonly char[] EscapeCsvChars = {',', '"'};
 
-        private (string Row, List<Observation> RemainingObservations) WriteRow(List<(string ObservedPropertyId, string Unit)> resultColumns, List<Observation> observations, IReadOnlyList<string> commonColumns)
+        private (string Row, List<Observation> RemainingObservations) WriteRow(List<ResultColumn> resultColumns, List<Observation> observations, IReadOnlyList<string> commonColumns)
         {
             var remainingObservations = new List<Observation>();
 
@@ -195,7 +237,9 @@ namespace SamplesObservationExporter
             foreach (var resultColumn in resultColumns)
             {
                 var propertyObservations = observations
-                    .Where(item => item.ObservedProperty.CustomId == resultColumn.ObservedPropertyId)
+                    .Where(item => resultColumn.ObservedPropertyId == item.ObservedProperty.CustomId
+                                   && resultColumn.Unit == item.ObservedProperty.DefaultUnit?.CustomId
+                                   && resultColumn.MethodId == item.AnalysisMethod?.MethodId)
                     .Select(item => (
                         Observation: item,
                         Unit: item.NumericResult.Quantity?.Unit.CustomId,
@@ -235,7 +279,7 @@ namespace SamplesObservationExporter
                 columns.Add(EscapeCsvColumn(propertyObservation.NonDetect));
             }
 
-            var row = string.Join(", ", columns);
+            var row = string.Join(",", columns);
 
             return (row, remainingObservations);
         }
