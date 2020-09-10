@@ -171,7 +171,7 @@ namespace SamplesObservationExporter
                         EscapeCsvColumn(first.LabResultDetails?.LabSampleId),
                         EscapeCsvColumn(location.CustomId),
                         $"{time:yyyy-MM-dd}",
-                        $"{time:HH:mm:ss.fff}",
+                        $"{time:HH:mm:ss}",
                         location.Latitude,
                         location.Longitude,
                         EscapeCsvColumn(location.Address?.CountyCode),
@@ -236,20 +236,15 @@ namespace SamplesObservationExporter
 
             foreach (var resultColumn in resultColumns)
             {
-                var propertyObservations = observations
+                var exportedResults = observations
                     .Where(item => resultColumn.ObservedPropertyId == item.ObservedProperty.CustomId
                                    && resultColumn.Unit == item.ObservedProperty.DefaultUnit?.CustomId
                                    && resultColumn.MethodId == item.AnalysisMethod?.MethodId)
-                    .Select(item => (
-                        Observation: item,
-                        Unit: item.NumericResult.Quantity?.Unit.CustomId,
-                        // ReSharper disable once RedundantExplicitTupleComponentName
-                        Value: item.NumericResult.Quantity?.Value,
-                        NonDetect: item.NumericResult.LowerMethodReportingLimit != null && item.NumericResult.Quantity == null
-                            ? $"< {item.NumericResult.LowerMethodReportingLimit.Value} {item.NumericResult.LowerMethodReportingLimit.Unit.CustomId}"
-                            : null
-                    ))
-                    .Distinct()
+                    .Select(ConvertToExportedResult)
+                    .ToList();
+
+                var propertyObservations = exportedResults
+                    .DistinctBy(er => new {er.Value, er.Unit})
                     .ToList();
 
                 if (propertyObservations.Count == 0)
@@ -267,21 +262,41 @@ namespace SamplesObservationExporter
 
                 var propertyObservation = propertyObservations.First();
 
-                if (propertyObservation.Value.HasValue)
-                {
-                    columns.Add($"{propertyObservation.Value}");
-                    columns.Add(EscapeCsvColumn(propertyObservation.Unit));
-
-                    continue;
-                }
-
-                columns.Add(string.Empty);
-                columns.Add(EscapeCsvColumn(propertyObservation.NonDetect));
+                columns.Add($"{propertyObservation.Value}");
+                columns.Add(EscapeCsvColumn(propertyObservation.Unit));
             }
 
             var row = string.Join(",", columns);
 
             return (row, remainingObservations);
+        }
+
+        private class ExportedResult
+        {
+            public Observation Observation { get; set; }
+            public string Unit { get; set; }
+            public double? Value { get; set; }
+        }
+
+        private ExportedResult ConvertToExportedResult(Observation observation)
+        {
+            var isNonDetect = observation.NumericResult.DetectionCondition == DetectionConditionType.NOT_DETECTED
+                              && observation.NumericResult.MethodDetectionLevel != null;
+
+            var unit = !isNonDetect
+                ? observation.NumericResult.Quantity?.Unit.CustomId
+                : $"< {observation.NumericResult.MethodDetectionLevel.Value} {observation.NumericResult.MethodDetectionLevel.Unit.CustomId}";
+
+            var value = !isNonDetect
+                ? observation.NumericResult.Quantity?.Value
+                : null;
+
+            return new ExportedResult
+            {
+                Observation = observation,
+                Unit = unit,
+                Value = value,
+            };
         }
 
         private (GetObservationsV2 Request, string summary) BuildRequest()
