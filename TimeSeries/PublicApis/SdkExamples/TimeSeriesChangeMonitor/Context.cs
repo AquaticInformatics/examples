@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using NodaTime;
 
@@ -19,9 +18,11 @@ namespace TimeSeriesChangeMonitor
         public ChangeEventType? ChangeEventType { get; set; }
         public List<ExtendedAttributeFilter> ExtendedFilters { get; set; } = new List<ExtendedAttributeFilter>();
         public List<string> TimeSeries { get; set; } = new List<string>();
-        public Instant ChangesSinceTime { get; set; } = Instant.FromDateTimeUtc(DateTime.UtcNow);
+        public Instant? ChangesSinceTime { get; set; }
         public Duration PollInterval { get; set; } = Duration.FromMinutes(5);
         public int MaximumChangeCount { get; set; }
         public bool AllowQuickPolling { get; set; }
+        public string SavedChangesSinceJson { get; set; }
+        public string DetectedChangesCsv { get; set; }
     }
 }

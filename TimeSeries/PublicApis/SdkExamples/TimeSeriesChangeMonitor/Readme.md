@@ -38,6 +38,8 @@ Supported -option=value settings (/option=value works too):
   -PollInterval                The polling interval in ISO 8601 Duration format. [default: PT5M]
   -MaximumChangeCount          When greater than 0, exit after detecting this many changed time-series. [default: 0]
   -AllowQuickPolling           Allows very quick polling. Good for testing, bad for production. [default: False]
+  -SavedChangesSinceJson       Loads the /ChangesSinceTime value from this JSON file.
+  -DetectedChangesCsv          When set, save all detected changes to this CSV file and exit.
 
 ISO 8601 timestamps use a yyyy'-'mm'-'dd'T'HH':'mm':'ss'.'fffffffzzz format.
 

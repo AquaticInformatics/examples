@@ -220,6 +220,20 @@ namespace TimeSeriesChangeMonitor
                     Getter = () => context.AllowQuickPolling.ToString(),
                     Description = "Allows very quick polling. Good for testing, bad for production."
                 },
+                new Option
+                {
+                    Key = nameof(context.SavedChangesSinceJson),
+                    Setter = value => context.SavedChangesSinceJson = value,
+                    Getter = () => context.SavedChangesSinceJson,
+                    Description = $"Loads the /{nameof(context.ChangesSinceTime)} value from this JSON file."
+                },
+                new Option
+                {
+                    Key = nameof(context.DetectedChangesCsv),
+                    Setter = value => context.DetectedChangesCsv = value,
+                    Getter = () => context.DetectedChangesCsv,
+                    Description = $"When set, save all detected changes to this CSV file and exit."
+                },
             };
 
             var usageMessage
@@ -269,6 +283,18 @@ namespace TimeSeriesChangeMonitor
                     if (TimeSeriesIdentifier.TryParse(arg, out var _))
                     {
                         context.TimeSeries.Add(arg);
+                        continue;
+                    }
+
+                    if (arg.EndsWith(".json", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        context.SavedChangesSinceJson = arg;
+                        continue;
+                    }
+
+                    if (arg.EndsWith(".csv", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        context.DetectedChangesCsv = arg;
                         continue;
                     }
 

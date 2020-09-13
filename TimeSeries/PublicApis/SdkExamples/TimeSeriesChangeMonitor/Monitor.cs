@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -11,6 +12,7 @@ using Humanizer;
 using NodaTime;
 using ServiceStack;
 using ServiceStack.Logging;
+using ServiceStack.Text;
 
 namespace TimeSeriesChangeMonitor
 {
@@ -26,6 +28,8 @@ namespace TimeSeriesChangeMonitor
 
         public void Run()
         {
+            Validate();
+
             Log.Info($"Connecting {GetExecutingFileVersion()} to {Context.Server} ...");
 
             using (Client = CreateConnectedClient())
@@ -34,6 +38,15 @@ namespace TimeSeriesChangeMonitor
 
                 PollForChanges();
             }
+        }
+
+        private void Validate()
+        {
+            if (!string.IsNullOrEmpty(Context.DetectedChangesCsv) && Context.MaximumChangeCount > 0)
+                throw new ExpectedException($"Only one of /{nameof(Context.DetectedChangesCsv)}= or /{nameof(Context.MaximumChangeCount)}= should be set.");
+
+            if (!string.IsNullOrEmpty(Context.DetectedChangesCsv))
+                Context.MaximumChangeCount = 1; // Always exit after one detected change
         }
 
         private IAquariusClient CreateConnectedClient()
@@ -158,11 +171,11 @@ namespace TimeSeriesChangeMonitor
                 cancellationTokenSource.Cancel();
             };
 
-            var changesSinceToken = Context.ChangesSinceTime;
+            var changesSinceToken = FetchChangesSinceToken();
 
             while (!cancellationTokenSource.IsCancellationRequested)
             {
-                request.ChangesSinceToken = changesSinceToken.ToDateTimeUtc();
+                request.ChangesSinceToken = changesSinceToken?.ToDateTimeUtc();
 
                 var stopwatch = Stopwatch.StartNew();
                 var response = Client.Publish.Get(request);
@@ -176,14 +189,20 @@ namespace TimeSeriesChangeMonitor
                 if (hasTokenExpired)
                 {
                     Log.Warn($"The changes since token expired. Some data may have been missed. Resetting to 'right now' {changesSinceToken}");
+
+                    SaveAllNewSeries(request);
                     continue;
                 }
 
                 var changedSeries = GetChangedTimeSeries(response.TimeSeriesUniqueIds);
 
+                SaveNextChangesSince(changesSinceToken);
+
                 if (changedSeries.Any())
                 {
                     ShowChangedSeries(changedSeries);
+
+                    SaveDetectedChanges(changedSeries, response);
 
                     if (Context.MaximumChangeCount > 0 && ChangeCount >= Context.MaximumChangeCount)
                         break;
@@ -200,6 +219,39 @@ namespace TimeSeriesChangeMonitor
                 throw new ExpectedException($"Polling canceled by user after detecting {ChangeCount} changed time-series.");
 
             Log.Info($"Exiting after detecting {ChangeCount} changed time-series.");
+        }
+
+        private Instant? FetchChangesSinceToken()
+        {
+            if (Context.ChangesSinceTime.HasValue)
+                return Context.ChangesSinceTime;
+
+            if (!string.IsNullOrEmpty(Context.SavedChangesSinceJson))
+            {
+                if (!File.Exists(Context.SavedChangesSinceJson))
+                    return null;
+
+                var state = File.ReadAllText(Context.SavedChangesSinceJson).FromJson<State>();
+
+                return state.ChangesSince;
+            }
+
+            return Instant.FromDateTimeUtc(DateTime.UtcNow);
+        }
+
+        private void SaveNextChangesSince(Instant? nextChangesSinceToken)
+        {
+            if (string.IsNullOrEmpty(Context.SavedChangesSinceJson))
+                return;
+
+            var state = new State {ChangesSince = nextChangesSinceToken};
+
+            File.WriteAllText(Context.SavedChangesSinceJson, state.ToJson().IndentJson());
+        }
+
+        private class State
+        {
+            public Instant? ChangesSince { get; set; }
         }
 
         private List<TimeSeriesUniqueIds> GetChangedTimeSeries(List<TimeSeriesUniqueIds> allChangedTimeSeries)
@@ -389,10 +441,22 @@ namespace TimeSeriesChangeMonitor
         {
             Log.Info($"Detected {changedSeries.Count} changed time-series");
 
-            FetchAllUnknownSeriesDescriptions(changedSeries.Select(ts => ts.UniqueId));
+            FetchAllUnknownSeriesDescriptions(changedSeries
+                .Where(ts => !(ts.IsDeleted ?? false))
+                .Select(ts => ts.UniqueId));
 
             foreach (var series in changedSeries)
             {
+                if (series.IsDeleted ?? false)
+                {
+                    var identifier = _knownTimeSeries.TryGetValue(series.UniqueId, out var existingDescription)
+                        ? existingDescription.Identifier
+                        : null;
+
+                    Log.Info($"UniqueId={series.UniqueId:N} Deleted {identifier}");
+                    continue;
+                }
+
                 var description = GetTimeSeriesDescription(series.UniqueId);
 
                 var firstPointChange = series.FirstPointChanged.HasValue
@@ -405,6 +469,93 @@ namespace TimeSeriesChangeMonitor
             }
 
             ChangeCount += changedSeries.Count;
+        }
+
+        private void SaveAllNewSeries(TimeSeriesUniqueIdListServiceRequest request)
+        {
+            if (string.IsNullOrEmpty(Context.DetectedChangesCsv))
+                return;
+
+            // Fetch all of the time-series that match the filter
+            request.ChangesSinceToken = null;
+
+            Log.Info($"Fetching all time-series for initial sync ...");
+
+            var response = Client.Publish.Get(request);
+
+            var newSeriesUniqueIds = response
+                .TimeSeriesUniqueIds
+                .Where(ts => !(ts.IsDeleted ?? false))
+                .Select(ts => ts.UniqueId)
+                .ToList();
+
+            FetchAllUnknownSeriesDescriptions(newSeriesUniqueIds);
+
+            var changedSeries = GetChangedTimeSeries(response.TimeSeriesUniqueIds);
+
+            SaveDetectedChanges(changedSeries, response, true);
+        }
+
+        private void SaveDetectedChanges(List<TimeSeriesUniqueIds> changedSeries, TimeSeriesUniqueIdListServiceResponse response, bool isFullSync = false)
+        {
+            if (string.IsNullOrEmpty(Context.DetectedChangesCsv))
+                return;
+
+            if (!response.NextToken.HasValue)
+                isFullSync = true;
+
+            var detectedChanges = changedSeries
+                .Select(ts => Convert(ts, isFullSync))
+                .ToList();
+
+            var csvOutput = CsvSerializer.SerializeToCsv(detectedChanges);
+
+            Log.Info(csvOutput);
+
+            File.WriteAllText(Context.DetectedChangesCsv, csvOutput);
+        }
+
+        private DetectedChange Convert(TimeSeriesUniqueIds detectedEvent, bool isFullSync)
+        {
+            var eventType = (detectedEvent.IsDeleted ?? false)
+                ? DetectedEventType.Deleted
+                : isFullSync
+                    ? DetectedEventType.FullSync
+                    : (detectedEvent.HasAttributeChange ?? false)
+                        ? DetectedEventType.AttributeChanged
+                        : DetectedEventType.DataChanged;
+
+            var timeSeriesIdentifier =
+                _knownTimeSeries.TryGetValue(detectedEvent.UniqueId, out var timeSeriesDescription)
+                    ? timeSeriesDescription.Identifier
+                    : null;
+
+            return new DetectedChange
+            {
+                TimeSeriesUniqueId = detectedEvent.UniqueId,
+                TimeSeriesIdentifier = timeSeriesIdentifier,
+                EventType = eventType,
+                FirstPointChangedUtc = detectedEvent.FirstPointChanged,
+                LastMatchedTimeUtc = detectedEvent.LastMatchedTime,
+            };
+        }
+
+        public class DetectedChange
+        {
+            public Guid TimeSeriesUniqueId { get; set; }
+            public DetectedEventType EventType { get; set; }
+            public string TimeSeriesIdentifier { get; set; }
+            public DateTimeOffset? FirstPointChangedUtc { get; set; }
+            public DateTimeOffset? LastMatchedTimeUtc { get; set; }
+
+        }
+
+        public enum DetectedEventType
+        {
+            FullSync,
+            AttributeChanged,
+            DataChanged,
+            Deleted,
         }
     }
 }
