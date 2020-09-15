@@ -74,7 +74,8 @@ $ SamplesObservationExporter.exe -serverurl=https://ai.aqsamples.com -apitoken=1
 ### Output CSV format
 
 - The CSV output is sorted by time, with some common location columns, and with a pair of value and unit columns for each exported observed property.
-- The more observed  properties exported, the "wider" the CSV file grows. Observed property columns are in sorted order.
+- The more observed  properties exported, the "wider" the CSV file grows.
+- If the `/AnalyticalGroupId=` option is used, observed property columns are sorted by analytical group order. Otherwise the properties are sorted alphabetically.
 - Some columns will be sparesly populated (empty unit and value columns) if that property was not measured at the time.
 - Non-detects will have an empty value column, and the unit column will show the minimum detection limit, like `< 3 mg/L`.
 
