@@ -80,9 +80,20 @@ namespace SamplesObservationExporter
             var analyticalGroups = Client.Get(new GetAnalyticalGroups())
                 .DomainObjects;
 
-            var observedPropertiesByGroup = analyticalGroups
-                .OrderBy(ag => ag.Name)
-                .Select(ag => (Group: ag, Properties: new HashSet<string>(ag.AnalyticalGroupItems.Select(i => i.ObservedProperty.CustomId))))
+            var observedPropertiesByGroup = Context
+                .AnalyticalGroupIds
+                .Select((name, i) =>
+                {
+                    var group = analyticalGroups
+                        .First(ag => ag.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
+
+                    return new AnalyticalGroupInfo
+                    {
+                        Group = group,
+                        GroupOrder = i,
+                        Properties = group.AnalyticalGroupItems.Select(item => item.ObservedProperty.CustomId).ToList()
+                    };
+                })
                 .ToList();
 
             Log.Info($"Fetching all {response.TotalCount} matching observations.");
@@ -97,17 +108,24 @@ namespace SamplesObservationExporter
             Log.Info($"{items.Count} numeric observations loaded in {stopwatch.Elapsed.Humanize(2)}.");
 
             var resultColumns = items
-                .Select(item => new ResultColumn
+                .Select(item =>
                 {
-                    ObservedPropertyId = item.ObservedProperty.CustomId,
-                    Unit = item.ObservedProperty.DefaultUnit?.CustomId,
-                    MethodId = item.AnalysisMethod?.MethodId,
-                    AnalyticalGroup = Context.AnalyticalGroupIds.Any()
-                        ? observedPropertiesByGroup.FirstOrDefault(o => o.Properties.Contains(item.CustomId)).Group?.Name
-                        : null
+                    var groupInfo = observedPropertiesByGroup
+                        .FirstOrDefault(gi => gi.Properties.Contains(item.CustomId));
+
+                    return new ResultColumn
+                    {
+                        ObservedPropertyId = item.ObservedProperty.CustomId,
+                        Unit = item.ObservedProperty.DefaultUnit?.CustomId,
+                        MethodId = item.AnalysisMethod?.MethodId,
+                        AnalyticalGroup = groupInfo?.Group?.Name,
+                        AnalyticalGroupOrder = groupInfo?.GroupOrder ?? 0,
+                        ObservedPropertyOrder = groupInfo?.Properties?.IndexOf(item.CustomId) ?? 0
+                    };
                 })
                 .DistinctBy(rc => new{rc.ObservedPropertyId, rc.Unit, rc.MethodId, rc.AnalyticalGroup})
-                .OrderBy(column => column.AnalyticalGroup)
+                .OrderBy(column => column.AnalyticalGroupOrder)
+                .ThenBy(column => column.ObservedPropertyOrder)
                 .ThenBy(column => column.ObservedPropertyId)
                 .ThenBy(column => column.MethodId)
                 .ThenBy(column => column.Unit)
@@ -191,12 +209,21 @@ namespace SamplesObservationExporter
             }
         }
 
+        private class AnalyticalGroupInfo
+        {
+            public AnalyticalGroup Group { get; set; }
+            public int GroupOrder { get; set; }
+            public List<string> Properties { get; set; }
+        }
+
         private class ResultColumn
         {
             public string ObservedPropertyId { get; set; }
             public string Unit { get; set; }
             public string MethodId { get; set; }
             public string AnalyticalGroup { get; set; }
+            public int AnalyticalGroupOrder { get; set; }
+            public int ObservedPropertyOrder { get; set; }
         }
 
         private static string DistinctColumnUnitLabel(List<ResultColumn> resultColumns, ResultColumn column)
