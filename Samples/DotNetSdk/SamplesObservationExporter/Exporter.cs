@@ -110,8 +110,9 @@ namespace SamplesObservationExporter
             var resultColumns = items
                 .Select(item =>
                 {
+                    var observedPropertyName = item.ObservedProperty.CustomId;
                     var groupInfo = observedPropertiesByGroup
-                        .FirstOrDefault(gi => gi.Properties.Contains(item.CustomId));
+                        .FirstOrDefault(gi => gi.Properties.Contains(observedPropertyName));
 
                     return new ResultColumn
                     {
@@ -120,7 +121,7 @@ namespace SamplesObservationExporter
                         MethodId = item.AnalysisMethod?.MethodId,
                         AnalyticalGroup = groupInfo?.Group?.Name,
                         AnalyticalGroupOrder = groupInfo?.GroupOrder ?? 0,
-                        ObservedPropertyOrder = groupInfo?.Properties?.IndexOf(item.CustomId) ?? 0
+                        ObservedPropertyOrder = groupInfo?.Properties?.IndexOf(observedPropertyName) ?? 0
                     };
                 })
                 .DistinctBy(rc => new{rc.ObservedPropertyId, rc.Unit, rc.MethodId, rc.AnalyticalGroup})
