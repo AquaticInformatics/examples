@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
-using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using log4net;
@@ -84,6 +83,7 @@ namespace TimeSeriesChangeMonitor
 
         private static string GetProgramName()
         {
+            // ReSharper disable once PossibleNullReferenceException
             return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
         }
 
@@ -201,6 +201,13 @@ namespace TimeSeriesChangeMonitor
                 },
                 new Option
                 {
+                    Key = nameof(context.ForceFullSync),
+                    Setter = value => context.ForceFullSync = bool.Parse(value),
+                    Getter = () => context.ForceFullSync.ToString(),
+                    Description = $"When set, force the /{nameof(context.ChangesSinceTime)} value to sync all matching time-series."
+                },
+                new Option
+                {
                     Key = nameof(context.PollInterval),
                     Setter = value => context.PollInterval = value.ToUpperInvariant().ParseDuration(),
                     Getter = () => context.PollInterval.SerializeToString(),
@@ -208,10 +215,17 @@ namespace TimeSeriesChangeMonitor
                 },
                 new Option
                 {
+                    Key = nameof(context.MaximumPollCount),
+                    Setter = value => context.MaximumPollCount = int.Parse(value),
+                    Getter = () => $"{context.MaximumPollCount}",
+                    Description = "When set, exit after this many polling intervals."
+                },
+                new Option
+                {
                     Key = nameof(context.MaximumChangeCount),
                     Setter = value => context.MaximumChangeCount = int.Parse(value),
-                    Getter = () => context.MaximumChangeCount.ToString(),
-                    Description = "When greater than 0, exit after detecting this many changed time-series."
+                    Getter = () => $"{context.MaximumChangeCount}",
+                    Description = "When set, exit after detecting this many changed time-series."
                 },
                 new Option
                 {

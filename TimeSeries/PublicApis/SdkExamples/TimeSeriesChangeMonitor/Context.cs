@@ -20,9 +20,11 @@ namespace TimeSeriesChangeMonitor
         public List<string> TimeSeries { get; set; } = new List<string>();
         public Instant? ChangesSinceTime { get; set; }
         public Duration PollInterval { get; set; } = Duration.FromMinutes(5);
-        public int MaximumChangeCount { get; set; }
+        public int? MaximumChangeCount { get; set; }
+        public int? MaximumPollCount { get; set; }
         public bool AllowQuickPolling { get; set; }
         public string SavedChangesSinceJson { get; set; }
         public string DetectedChangesCsv { get; set; }
+        public bool ForceFullSync { get; set; }
     }
 }

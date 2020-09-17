@@ -12,6 +12,53 @@ The `TimeSeriesChangeMonitor.exe` console utility allows you easily monitor how 
 - Displays polling response summary statistics on exit, to help diagnose overall system performance.
 - All the output is also logged to `TimeSeriesChangeMonitor.log` in the same folder as the EXE.
 
+### Command line option syntax
+
+All command line options are case-insensitive, and support both common shell syntaxes: either `/Name=value` (for CMD.EXE) or `-Name=value` (for bash and PowerShell).
+
+In addition, the [`@options.txt` syntax](https://github.com/AquaticInformatics/examples/wiki/Common-command-line-options) is supported, to read options from a text file. You can mix and match individual `/name=value` and `@somefile.txt` on the same command line.
+
+Try the `/help` option for a detailed list of options and their default values.
+
+## Integrating with other programs
+
+The `TimeSeriesChangeMonitor.exe` tool can be used as the first step of a custom notification workflow.
+
+The basic idea is to configure `TimeSeriesChangeMonitor` with enough options to only detect the conditions you care about, and then use either the `/MaximumChangeCount=` or `/DetectedChangesCsv=` option to cause the tool to exit once the changes have been detected.
+
+Here is an awful example of nagging a colleague whenever rain is detected in the location he is responsible for.
+
+```sh
+#/bin/nash
+
+# Nag Dave with a text every time it's raining
+
+while true
+  # Wait until a new rain data point arrives at Dave's location
+  TimeSeriesChangeMonitor.exe -server=myappserver -LocationIdentifier="DaveLocation" -Parameter="Precip Increm" -ChangeEventType=Data -MaximumChangeCount=1
+
+  # Notify Dave. Dave hates me.
+  SendTextToDave.exe "Hey Dave, it's raining!"
+done
+```
+
+### The `-DetectedChangesCsv=pathToCsv` CSV output format
+
+The `-DetectedChangesCsv=` option will write all detected changes to a CSV file, which can be processed by your integration to take action on the changes detected.
+
+```
+TimeSeriesUniqueId,EventType,TimeSeriesIdentifier,FirstPointChangedUtc,LastMatchedTimeUtc
+2ad74bbf1c3746e98e9d8df75143a51b,FullSync,Stage.Telemetry@G8140001,,
+```
+
+| Column | Description |
+|---|---|
+| **TimeSeriesUniqueId** | 32-character time-series ID. Can be used in subsequent API calls to fetch more relevant info. |
+| **EventType** | One of:<br/>- `DataChanged` - One or more points have changed.<br/>- `AttributeChanged` - Some metadata (eg. Label, comment) has changed.<br/>- `Deleted` - The time-series was deleted from the AQTS system.<br/>- `FullSync` - The event is not a change from the last time, but is a full sync event. |
+| **TimeSeriesIdentifier** | The text identifier of the time-series, in `Parameter.Label@Location` format. |
+| **FirstPointChangedUtc** | When **EventType** is `DataChanged`, this column will have the time of the first point changed in the time-series. |
+| **LastMatchedTimeUtc** | When **EventType** is `Deleted`, this column will have the time the series was deleted. |
+
 ## General help screen
 
 The `/help` option shows the following screen:
@@ -35,8 +82,10 @@ Supported -option=value settings (/option=value works too):
   -ExtendedFilters             Optional extended attribute filter in Name=Value format. Can be set multiple times.
   -TimeSeries                  Optional time-series to monitor. Can be set multiple times.
   -ChangesSinceTime            The starting changes-since time in ISO 8601 format. Defaults to 'right now'
+  -ForceFullSync               When set, force the /ChangesSinceTime value to sync all matching time-series. [default: False]
   -PollInterval                The polling interval in ISO 8601 Duration format. [default: PT5M]
-  -MaximumChangeCount          When greater than 0, exit after detecting this many changed time-series. [default: 0]
+  -MaximumPollCount            When set, exit after this many polling intervals.
+  -MaximumChangeCount          When set, exit after detecting this many changed time-series.
   -AllowQuickPolling           Allows very quick polling. Good for testing, bad for production. [default: False]
   -SavedChangesSinceJson       Loads the /ChangesSinceTime value from this JSON file.
   -DetectedChangesCsv          When set, save all detected changes to this CSV file and exit.
