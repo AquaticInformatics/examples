@@ -72,29 +72,39 @@
             this.maxObservationsCheckBox = new System.Windows.Forms.CheckBox();
             this.maxObservationsNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.locationAliasesTabPage = new System.Windows.Forms.TabPage();
+            this.locationAliasesLabel = new System.Windows.Forms.Label();
+            this.locationAliasesListView = new System.Windows.Forms.ListView();
+            this.columnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader4 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.propertyAliasesTabPage = new System.Windows.Forms.TabPage();
+            this.propertyAliasesLabel = new System.Windows.Forms.Label();
+            this.propertyAliasesListView = new System.Windows.Forms.ListView();
+            this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader5 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader6 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.csvOutputTabPage = new System.Windows.Forms.TabPage();
+            this.label19 = new System.Windows.Forms.Label();
+            this.label18 = new System.Windows.Forms.Label();
+            this.label17 = new System.Windows.Forms.Label();
+            this.label16 = new System.Windows.Forms.Label();
+            this.overwriteCheckBox = new System.Windows.Forms.CheckBox();
+            this.browseCsvOutputButton = new System.Windows.Forms.Button();
+            this.CsvOutputPathTextBox = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.importButton = new System.Windows.Forms.Button();
             this.dryRunCheckBox = new System.Windows.Forms.CheckBox();
             this.verboseErrorsCheckBox = new System.Windows.Forms.CheckBox();
-            this.CsvOutputPathTextBox = new System.Windows.Forms.TextBox();
-            this.browseCsvOutputButton = new System.Windows.Forms.Button();
-            this.overwriteCheckBox = new System.Windows.Forms.CheckBox();
-            this.label16 = new System.Windows.Forms.Label();
-            this.label17 = new System.Windows.Forms.Label();
-            this.label18 = new System.Windows.Forms.Label();
-            this.label19 = new System.Windows.Forms.Label();
-            this.locationAliasesListView = new System.Windows.Forms.ListView();
-            this.locationAliasesLabel = new System.Windows.Forms.Label();
-            this.propertyAliasesListView = new System.Windows.Forms.ListView();
-            this.propertyAliasesLabel = new System.Windows.Forms.Label();
-            this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader4 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader5 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader6 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.methodAliasesTabPage = new System.Windows.Forms.TabPage();
+            this.qcTypeAliasesTabPage = new System.Windows.Forms.TabPage();
+            this.methodAliasesLabel = new System.Windows.Forms.Label();
+            this.methodAliasesListView = new System.Windows.Forms.ListView();
+            this.qcTypeAliasesLabel = new System.Windows.Forms.Label();
+            this.qcTypeAliasesListView = new System.Windows.Forms.ListView();
+            this.columnHeader7 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader8 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader9 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader10 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.tabControl.SuspendLayout();
             this.connectionTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
@@ -105,6 +115,8 @@
             this.locationAliasesTabPage.SuspendLayout();
             this.propertyAliasesTabPage.SuspendLayout();
             this.csvOutputTabPage.SuspendLayout();
+            this.methodAliasesTabPage.SuspendLayout();
+            this.qcTypeAliasesTabPage.SuspendLayout();
             this.SuspendLayout();
             // 
             // outputTextBox
@@ -117,7 +129,7 @@
             this.outputTextBox.Name = "outputTextBox";
             this.outputTextBox.ReadOnly = true;
             this.outputTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.outputTextBox.Size = new System.Drawing.Size(480, 65);
+            this.outputTextBox.Size = new System.Drawing.Size(717, 65);
             this.outputTextBox.TabIndex = 0;
             // 
             // clearButton
@@ -140,11 +152,13 @@
             this.tabControl.Controls.Add(this.imporTabPage);
             this.tabControl.Controls.Add(this.locationAliasesTabPage);
             this.tabControl.Controls.Add(this.propertyAliasesTabPage);
+            this.tabControl.Controls.Add(this.methodAliasesTabPage);
+            this.tabControl.Controls.Add(this.qcTypeAliasesTabPage);
             this.tabControl.Controls.Add(this.csvOutputTabPage);
             this.tabControl.Location = new System.Drawing.Point(13, 13);
             this.tabControl.Name = "tabControl";
             this.tabControl.SelectedIndex = 0;
-            this.tabControl.Size = new System.Drawing.Size(479, 243);
+            this.tabControl.Size = new System.Drawing.Size(716, 243);
             this.tabControl.TabIndex = 2;
             // 
             // connectionTabPage
@@ -157,7 +171,7 @@
             this.connectionTabPage.Location = new System.Drawing.Point(4, 22);
             this.connectionTabPage.Name = "connectionTabPage";
             this.connectionTabPage.Padding = new System.Windows.Forms.Padding(3);
-            this.connectionTabPage.Size = new System.Drawing.Size(471, 217);
+            this.connectionTabPage.Size = new System.Drawing.Size(708, 217);
             this.connectionTabPage.TabIndex = 0;
             this.connectionTabPage.Text = "Connection";
             this.connectionTabPage.UseVisualStyleBackColor = true;
@@ -226,7 +240,7 @@
             this.excelParsingTabPage.Location = new System.Drawing.Point(4, 22);
             this.excelParsingTabPage.Name = "excelParsingTabPage";
             this.excelParsingTabPage.Padding = new System.Windows.Forms.Padding(3);
-            this.excelParsingTabPage.Size = new System.Drawing.Size(471, 217);
+            this.excelParsingTabPage.Size = new System.Drawing.Size(708, 217);
             this.excelParsingTabPage.TabIndex = 1;
             this.excelParsingTabPage.Text = "Excel Parsing";
             this.excelParsingTabPage.UseVisualStyleBackColor = true;
@@ -375,7 +389,7 @@
             this.imporTabPage.Controls.Add(this.maxObservationsNumericUpDown);
             this.imporTabPage.Location = new System.Drawing.Point(4, 22);
             this.imporTabPage.Name = "imporTabPage";
-            this.imporTabPage.Size = new System.Drawing.Size(471, 217);
+            this.imporTabPage.Size = new System.Drawing.Size(708, 217);
             this.imporTabPage.TabIndex = 2;
             this.imporTabPage.Text = "Import Options";
             this.imporTabPage.UseVisualStyleBackColor = true;
@@ -547,11 +561,45 @@
             this.locationAliasesTabPage.Controls.Add(this.locationAliasesListView);
             this.locationAliasesTabPage.Location = new System.Drawing.Point(4, 22);
             this.locationAliasesTabPage.Name = "locationAliasesTabPage";
-            this.locationAliasesTabPage.Size = new System.Drawing.Size(471, 217);
+            this.locationAliasesTabPage.Size = new System.Drawing.Size(708, 217);
             this.locationAliasesTabPage.TabIndex = 3;
             this.locationAliasesTabPage.Text = "Location Aliases";
             this.locationAliasesTabPage.UseVisualStyleBackColor = true;
             this.locationAliasesTabPage.Visible = false;
+            // 
+            // locationAliasesLabel
+            // 
+            this.locationAliasesLabel.AutoSize = true;
+            this.locationAliasesLabel.Location = new System.Drawing.Point(4, 4);
+            this.locationAliasesLabel.Name = "locationAliasesLabel";
+            this.locationAliasesLabel.Size = new System.Drawing.Size(0, 13);
+            this.locationAliasesLabel.TabIndex = 1;
+            // 
+            // locationAliasesListView
+            // 
+            this.locationAliasesListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.locationAliasesListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader3,
+            this.columnHeader4});
+            this.locationAliasesListView.HideSelection = false;
+            this.locationAliasesListView.Location = new System.Drawing.Point(4, 26);
+            this.locationAliasesListView.Name = "locationAliasesListView";
+            this.locationAliasesListView.Size = new System.Drawing.Size(701, 188);
+            this.locationAliasesListView.TabIndex = 0;
+            this.locationAliasesListView.UseCompatibleStateImageBehavior = false;
+            this.locationAliasesListView.View = System.Windows.Forms.View.Details;
+            // 
+            // columnHeader3
+            // 
+            this.columnHeader3.Text = "External Location";
+            this.columnHeader3.Width = 200;
+            // 
+            // columnHeader4
+            // 
+            this.columnHeader4.Text = "Samples Location";
+            this.columnHeader4.Width = 200;
             // 
             // propertyAliasesTabPage
             // 
@@ -559,11 +607,58 @@
             this.propertyAliasesTabPage.Controls.Add(this.propertyAliasesListView);
             this.propertyAliasesTabPage.Location = new System.Drawing.Point(4, 22);
             this.propertyAliasesTabPage.Name = "propertyAliasesTabPage";
-            this.propertyAliasesTabPage.Size = new System.Drawing.Size(471, 217);
+            this.propertyAliasesTabPage.Size = new System.Drawing.Size(708, 217);
             this.propertyAliasesTabPage.TabIndex = 4;
             this.propertyAliasesTabPage.Text = "Property Aliases";
             this.propertyAliasesTabPage.UseVisualStyleBackColor = true;
             this.propertyAliasesTabPage.Visible = false;
+            // 
+            // propertyAliasesLabel
+            // 
+            this.propertyAliasesLabel.AutoSize = true;
+            this.propertyAliasesLabel.Location = new System.Drawing.Point(4, 4);
+            this.propertyAliasesLabel.Name = "propertyAliasesLabel";
+            this.propertyAliasesLabel.Size = new System.Drawing.Size(41, 13);
+            this.propertyAliasesLabel.TabIndex = 1;
+            this.propertyAliasesLabel.Text = "label20";
+            // 
+            // propertyAliasesListView
+            // 
+            this.propertyAliasesListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.propertyAliasesListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader1,
+            this.columnHeader2,
+            this.columnHeader5,
+            this.columnHeader6});
+            this.propertyAliasesListView.HideSelection = false;
+            this.propertyAliasesListView.Location = new System.Drawing.Point(4, 25);
+            this.propertyAliasesListView.Name = "propertyAliasesListView";
+            this.propertyAliasesListView.Size = new System.Drawing.Size(701, 189);
+            this.propertyAliasesListView.TabIndex = 0;
+            this.propertyAliasesListView.UseCompatibleStateImageBehavior = false;
+            this.propertyAliasesListView.View = System.Windows.Forms.View.Details;
+            // 
+            // columnHeader1
+            // 
+            this.columnHeader1.Text = "External Property";
+            this.columnHeader1.Width = 140;
+            // 
+            // columnHeader2
+            // 
+            this.columnHeader2.Text = "External Unit";
+            this.columnHeader2.Width = 80;
+            // 
+            // columnHeader5
+            // 
+            this.columnHeader5.Text = "Samples Property";
+            this.columnHeader5.Width = 140;
+            // 
+            // columnHeader6
+            // 
+            this.columnHeader6.Text = "Samples Unit";
+            this.columnHeader6.Width = 80;
             // 
             // csvOutputTabPage
             // 
@@ -576,11 +671,76 @@
             this.csvOutputTabPage.Controls.Add(this.CsvOutputPathTextBox);
             this.csvOutputTabPage.Location = new System.Drawing.Point(4, 22);
             this.csvOutputTabPage.Name = "csvOutputTabPage";
-            this.csvOutputTabPage.Size = new System.Drawing.Size(471, 217);
+            this.csvOutputTabPage.Size = new System.Drawing.Size(708, 217);
             this.csvOutputTabPage.TabIndex = 5;
             this.csvOutputTabPage.Text = "CSV Output";
             this.csvOutputTabPage.UseVisualStyleBackColor = true;
             this.csvOutputTabPage.Visible = false;
+            // 
+            // label19
+            // 
+            this.label19.AutoSize = true;
+            this.label19.Location = new System.Drawing.Point(49, 143);
+            this.label19.Name = "label19";
+            this.label19.Size = new System.Drawing.Size(230, 13);
+            this.label19.TabIndex = 6;
+            this.label19.Text = "- No AQUARIUS Samples credentials are given";
+            // 
+            // label18
+            // 
+            this.label18.AutoSize = true;
+            this.label18.Location = new System.Drawing.Point(49, 126);
+            this.label18.Name = "label18";
+            this.label18.Size = new System.Drawing.Size(181, 13);
+            this.label18.TabIndex = 5;
+            this.label18.Text = "- No CSV filename is specified above";
+            // 
+            // label17
+            // 
+            this.label17.AutoSize = true;
+            this.label17.Location = new System.Drawing.Point(43, 109);
+            this.label17.Name = "label17";
+            this.label17.Size = new System.Drawing.Size(296, 13);
+            this.label17.TabIndex = 4;
+            this.label17.Text = "\"Observations-{yyyyMMddHHmmSS}.csv\" will be used when:";
+            // 
+            // label16
+            // 
+            this.label16.AutoSize = true;
+            this.label16.Location = new System.Drawing.Point(46, 17);
+            this.label16.Name = "label16";
+            this.label16.Size = new System.Drawing.Size(122, 13);
+            this.label16.TabIndex = 3;
+            this.label16.Text = "CSV output file and path";
+            // 
+            // overwriteCheckBox
+            // 
+            this.overwriteCheckBox.AutoSize = true;
+            this.overwriteCheckBox.Location = new System.Drawing.Point(46, 62);
+            this.overwriteCheckBox.Name = "overwriteCheckBox";
+            this.overwriteCheckBox.Size = new System.Drawing.Size(136, 17);
+            this.overwriteCheckBox.TabIndex = 2;
+            this.overwriteCheckBox.Text = "Overwrite existing files?";
+            this.overwriteCheckBox.UseVisualStyleBackColor = true;
+            this.overwriteCheckBox.CheckedChanged += new System.EventHandler(this.overwriteCheckBox_CheckedChanged);
+            // 
+            // browseCsvOutputButton
+            // 
+            this.browseCsvOutputButton.Location = new System.Drawing.Point(16, 34);
+            this.browseCsvOutputButton.Name = "browseCsvOutputButton";
+            this.browseCsvOutputButton.Size = new System.Drawing.Size(24, 23);
+            this.browseCsvOutputButton.TabIndex = 1;
+            this.browseCsvOutputButton.Text = "...";
+            this.browseCsvOutputButton.UseVisualStyleBackColor = true;
+            this.browseCsvOutputButton.Click += new System.EventHandler(this.browseCsvOutputButton_Click);
+            // 
+            // CsvOutputPathTextBox
+            // 
+            this.CsvOutputPathTextBox.Location = new System.Drawing.Point(46, 36);
+            this.CsvOutputPathTextBox.Name = "CsvOutputPathTextBox";
+            this.CsvOutputPathTextBox.Size = new System.Drawing.Size(404, 20);
+            this.CsvOutputPathTextBox.TabIndex = 0;
+            this.CsvOutputPathTextBox.TextChanged += new System.EventHandler(this.CsvOutputPathTextBox_TextChanged);
             // 
             // label1
             // 
@@ -588,7 +748,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.label1.Location = new System.Drawing.Point(17, 259);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(471, 25);
+            this.label1.Size = new System.Drawing.Size(708, 25);
             this.label1.TabIndex = 3;
             this.label1.Text = "Drag and drop files here to import  them to AQUARIUS Samples";
             this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -596,7 +756,7 @@
             // importButton
             // 
             this.importButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.importButton.Location = new System.Drawing.Point(417, 358);
+            this.importButton.Location = new System.Drawing.Point(654, 358);
             this.importButton.Name = "importButton";
             this.importButton.Size = new System.Drawing.Size(75, 23);
             this.importButton.TabIndex = 4;
@@ -628,158 +788,104 @@
             this.verboseErrorsCheckBox.UseVisualStyleBackColor = true;
             this.verboseErrorsCheckBox.CheckedChanged += new System.EventHandler(this.verboseErrorsCheckBox_CheckedChanged);
             // 
-            // CsvOutputPathTextBox
+            // methodAliasesTabPage
             // 
-            this.CsvOutputPathTextBox.Location = new System.Drawing.Point(46, 36);
-            this.CsvOutputPathTextBox.Name = "CsvOutputPathTextBox";
-            this.CsvOutputPathTextBox.Size = new System.Drawing.Size(404, 20);
-            this.CsvOutputPathTextBox.TabIndex = 0;
-            this.CsvOutputPathTextBox.TextChanged += new System.EventHandler(this.CsvOutputPathTextBox_TextChanged);
+            this.methodAliasesTabPage.Controls.Add(this.methodAliasesListView);
+            this.methodAliasesTabPage.Controls.Add(this.methodAliasesLabel);
+            this.methodAliasesTabPage.Location = new System.Drawing.Point(4, 22);
+            this.methodAliasesTabPage.Name = "methodAliasesTabPage";
+            this.methodAliasesTabPage.Size = new System.Drawing.Size(708, 217);
+            this.methodAliasesTabPage.TabIndex = 6;
+            this.methodAliasesTabPage.Text = "Method Aliases";
+            this.methodAliasesTabPage.UseVisualStyleBackColor = true;
             // 
-            // browseCsvOutputButton
+            // qcTypeAliasesTabPage
             // 
-            this.browseCsvOutputButton.Location = new System.Drawing.Point(16, 34);
-            this.browseCsvOutputButton.Name = "browseCsvOutputButton";
-            this.browseCsvOutputButton.Size = new System.Drawing.Size(24, 23);
-            this.browseCsvOutputButton.TabIndex = 1;
-            this.browseCsvOutputButton.Text = "...";
-            this.browseCsvOutputButton.UseVisualStyleBackColor = true;
-            this.browseCsvOutputButton.Click += new System.EventHandler(this.browseCsvOutputButton_Click);
+            this.qcTypeAliasesTabPage.Controls.Add(this.qcTypeAliasesListView);
+            this.qcTypeAliasesTabPage.Controls.Add(this.qcTypeAliasesLabel);
+            this.qcTypeAliasesTabPage.Location = new System.Drawing.Point(4, 22);
+            this.qcTypeAliasesTabPage.Name = "qcTypeAliasesTabPage";
+            this.qcTypeAliasesTabPage.Size = new System.Drawing.Size(708, 217);
+            this.qcTypeAliasesTabPage.TabIndex = 7;
+            this.qcTypeAliasesTabPage.Text = "QC Type Aliases";
+            this.qcTypeAliasesTabPage.UseVisualStyleBackColor = true;
             // 
-            // overwriteCheckBox
+            // methodAliasesLabel
             // 
-            this.overwriteCheckBox.AutoSize = true;
-            this.overwriteCheckBox.Location = new System.Drawing.Point(46, 62);
-            this.overwriteCheckBox.Name = "overwriteCheckBox";
-            this.overwriteCheckBox.Size = new System.Drawing.Size(136, 17);
-            this.overwriteCheckBox.TabIndex = 2;
-            this.overwriteCheckBox.Text = "Overwrite existing files?";
-            this.overwriteCheckBox.UseVisualStyleBackColor = true;
-            this.overwriteCheckBox.CheckedChanged += new System.EventHandler(this.overwriteCheckBox_CheckedChanged);
+            this.methodAliasesLabel.AutoSize = true;
+            this.methodAliasesLabel.Location = new System.Drawing.Point(4, 4);
+            this.methodAliasesLabel.Name = "methodAliasesLabel";
+            this.methodAliasesLabel.Size = new System.Drawing.Size(41, 13);
+            this.methodAliasesLabel.TabIndex = 0;
+            this.methodAliasesLabel.Text = "label20";
             // 
-            // label16
+            // methodAliasesListView
             // 
-            this.label16.AutoSize = true;
-            this.label16.Location = new System.Drawing.Point(46, 17);
-            this.label16.Name = "label16";
-            this.label16.Size = new System.Drawing.Size(122, 13);
-            this.label16.TabIndex = 3;
-            this.label16.Text = "CSV output file and path";
-            // 
-            // label17
-            // 
-            this.label17.AutoSize = true;
-            this.label17.Location = new System.Drawing.Point(43, 109);
-            this.label17.Name = "label17";
-            this.label17.Size = new System.Drawing.Size(296, 13);
-            this.label17.TabIndex = 4;
-            this.label17.Text = "\"Observations-{yyyyMMddHHmmSS}.csv\" will be used when:";
-            // 
-            // label18
-            // 
-            this.label18.AutoSize = true;
-            this.label18.Location = new System.Drawing.Point(49, 126);
-            this.label18.Name = "label18";
-            this.label18.Size = new System.Drawing.Size(181, 13);
-            this.label18.TabIndex = 5;
-            this.label18.Text = "- No CSV filename is specified above";
-            // 
-            // label19
-            // 
-            this.label19.AutoSize = true;
-            this.label19.Location = new System.Drawing.Point(49, 143);
-            this.label19.Name = "label19";
-            this.label19.Size = new System.Drawing.Size(230, 13);
-            this.label19.TabIndex = 6;
-            this.label19.Text = "- No AQUARIUS Samples credentials are given";
-            // 
-            // locationAliasesListView
-            // 
-            this.locationAliasesListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this.methodAliasesListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.locationAliasesListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader3,
-            this.columnHeader4});
-            this.locationAliasesListView.HideSelection = false;
-            this.locationAliasesListView.Location = new System.Drawing.Point(4, 26);
-            this.locationAliasesListView.Name = "locationAliasesListView";
-            this.locationAliasesListView.Size = new System.Drawing.Size(464, 188);
-            this.locationAliasesListView.TabIndex = 0;
-            this.locationAliasesListView.UseCompatibleStateImageBehavior = false;
-            this.locationAliasesListView.View = System.Windows.Forms.View.Details;
+            this.methodAliasesListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader7,
+            this.columnHeader8});
+            this.methodAliasesListView.HideSelection = false;
+            this.methodAliasesListView.Location = new System.Drawing.Point(7, 32);
+            this.methodAliasesListView.Name = "methodAliasesListView";
+            this.methodAliasesListView.Size = new System.Drawing.Size(698, 182);
+            this.methodAliasesListView.TabIndex = 1;
+            this.methodAliasesListView.UseCompatibleStateImageBehavior = false;
+            this.methodAliasesListView.View = System.Windows.Forms.View.Details;
             // 
-            // locationAliasesLabel
+            // qcTypeAliasesLabel
             // 
-            this.locationAliasesLabel.AutoSize = true;
-            this.locationAliasesLabel.Location = new System.Drawing.Point(4, 4);
-            this.locationAliasesLabel.Name = "locationAliasesLabel";
-            this.locationAliasesLabel.Size = new System.Drawing.Size(0, 13);
-            this.locationAliasesLabel.TabIndex = 1;
+            this.qcTypeAliasesLabel.AutoSize = true;
+            this.qcTypeAliasesLabel.Location = new System.Drawing.Point(4, 4);
+            this.qcTypeAliasesLabel.Name = "qcTypeAliasesLabel";
+            this.qcTypeAliasesLabel.Size = new System.Drawing.Size(41, 13);
+            this.qcTypeAliasesLabel.TabIndex = 0;
+            this.qcTypeAliasesLabel.Text = "label21";
             // 
-            // propertyAliasesListView
+            // qcTypeAliasesListView
             // 
-            this.propertyAliasesListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this.qcTypeAliasesListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.propertyAliasesListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader1,
-            this.columnHeader2,
-            this.columnHeader5,
-            this.columnHeader6});
-            this.propertyAliasesListView.HideSelection = false;
-            this.propertyAliasesListView.Location = new System.Drawing.Point(4, 25);
-            this.propertyAliasesListView.Name = "propertyAliasesListView";
-            this.propertyAliasesListView.Size = new System.Drawing.Size(464, 189);
-            this.propertyAliasesListView.TabIndex = 0;
-            this.propertyAliasesListView.UseCompatibleStateImageBehavior = false;
-            this.propertyAliasesListView.View = System.Windows.Forms.View.Details;
+            this.qcTypeAliasesListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader9,
+            this.columnHeader10});
+            this.qcTypeAliasesListView.HideSelection = false;
+            this.qcTypeAliasesListView.Location = new System.Drawing.Point(7, 28);
+            this.qcTypeAliasesListView.Name = "qcTypeAliasesListView";
+            this.qcTypeAliasesListView.Size = new System.Drawing.Size(698, 186);
+            this.qcTypeAliasesListView.TabIndex = 1;
+            this.qcTypeAliasesListView.UseCompatibleStateImageBehavior = false;
+            this.qcTypeAliasesListView.View = System.Windows.Forms.View.Details;
             // 
-            // propertyAliasesLabel
+            // columnHeader7
             // 
-            this.propertyAliasesLabel.AutoSize = true;
-            this.propertyAliasesLabel.Location = new System.Drawing.Point(4, 4);
-            this.propertyAliasesLabel.Name = "propertyAliasesLabel";
-            this.propertyAliasesLabel.Size = new System.Drawing.Size(41, 13);
-            this.propertyAliasesLabel.TabIndex = 1;
-            this.propertyAliasesLabel.Text = "label20";
+            this.columnHeader7.Text = "External Method";
+            this.columnHeader7.Width = 200;
             // 
-            // columnHeader1
+            // columnHeader8
             // 
-            this.columnHeader1.Text = "External Property";
-            this.columnHeader1.Width = 140;
+            this.columnHeader8.Text = "Samples Method Id";
+            this.columnHeader8.Width = 200;
             // 
-            // columnHeader2
+            // columnHeader9
             // 
-            this.columnHeader2.Text = "External Unit";
-            this.columnHeader2.Width = 80;
+            this.columnHeader9.Text = "External QC Type";
+            this.columnHeader9.Width = 200;
             // 
-            // columnHeader3
+            // columnHeader10
             // 
-            this.columnHeader3.Text = "External Location";
-            this.columnHeader3.Width = 200;
-            // 
-            // columnHeader4
-            // 
-            this.columnHeader4.Text = "Samples Location";
-            this.columnHeader4.Width = 200;
-            // 
-            // columnHeader5
-            // 
-            this.columnHeader5.Text = "Samples Property";
-            this.columnHeader5.Width = 140;
-            // 
-            // columnHeader6
-            // 
-            this.columnHeader6.Text = "Samples Unit";
-            this.columnHeader6.Width = 80;
+            this.columnHeader10.Text = "Samples Quality Control Type";
+            this.columnHeader10.Width = 200;
             // 
             // MainForm
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(504, 393);
+            this.ClientSize = new System.Drawing.Size(741, 393);
             this.Controls.Add(this.verboseErrorsCheckBox);
             this.Controls.Add(this.dryRunCheckBox);
             this.Controls.Add(this.importButton);
@@ -811,6 +917,10 @@
             this.propertyAliasesTabPage.PerformLayout();
             this.csvOutputTabPage.ResumeLayout(false);
             this.csvOutputTabPage.PerformLayout();
+            this.methodAliasesTabPage.ResumeLayout(false);
+            this.methodAliasesTabPage.PerformLayout();
+            this.qcTypeAliasesTabPage.ResumeLayout(false);
+            this.qcTypeAliasesTabPage.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -884,5 +994,15 @@
         private System.Windows.Forms.ColumnHeader columnHeader4;
         private System.Windows.Forms.ColumnHeader columnHeader5;
         private System.Windows.Forms.ColumnHeader columnHeader6;
+        private System.Windows.Forms.TabPage methodAliasesTabPage;
+        private System.Windows.Forms.ListView methodAliasesListView;
+        private System.Windows.Forms.ColumnHeader columnHeader7;
+        private System.Windows.Forms.ColumnHeader columnHeader8;
+        private System.Windows.Forms.Label methodAliasesLabel;
+        private System.Windows.Forms.TabPage qcTypeAliasesTabPage;
+        private System.Windows.Forms.ListView qcTypeAliasesListView;
+        private System.Windows.Forms.ColumnHeader columnHeader9;
+        private System.Windows.Forms.ColumnHeader columnHeader10;
+        private System.Windows.Forms.Label qcTypeAliasesLabel;
     }
 }

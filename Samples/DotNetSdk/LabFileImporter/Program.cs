@@ -133,6 +133,8 @@ namespace LabFileImporter
                 new Option(), new Option{Description = "Alias options: (these help you map from your external system to AQUARIUS Samples)"},
                 new Option {Key = nameof(context.LocationAliases).Singularize(), Setter = value => ParseLocationAlias(context, value), Description = "Set a location alias in aliasedLocation;SamplesLocationId format"},
                 new Option {Key = nameof(context.ObservedPropertyAliases).Singularize(), Setter = value => ParseObservedPropertyAlias(context, value), Description = "Set an observed property alias in aliasedProperty;aliasedUnit;SamplesObservedPropertyId format"},
+                new Option {Key = nameof(context.MethodAliases).Singularize(), Setter = value => ParseMethodAlias(context, value), Description = "Set a method alias in aliasedMethod;SamplesMethodId format"},
+                new Option {Key = nameof(context.QCTypeAliases).Singularize(), Setter = value => ParseQcTypeAlias(context, value), Description = "Set a QC Type alias in aliasedQCType;SamplesQCType format"},
 
                 new Option(), new Option{Description = "CSV output options:"},
                 new Option {Key = nameof(context.CsvOutputPath), Setter = value => context.CsvOutputPath = value, Getter = () => context.CsvOutputPath, Description = $"Path to output file. If not specified, no CSV will be output."},
@@ -289,6 +291,54 @@ namespace LabFileImporter
                 throw new ExpectedException($"Can't set location alias for '{aliasedLocation}' more than once. This location is already aliased to '{existingAlias}'");
 
             context.LocationAliases[aliasedLocation] = samplesLocationId;
+        }
+
+        private static void ParseMethodAlias(Context context, string text)
+        {
+            var parts = Split(text);
+
+            if (parts.Length != 2)
+                throw new ExpectedException($"'{text}' is not a valid method alias. Try /{nameof(context.LocationAliases).Singularize()}=aliasedMethod;SamplesMethodId");
+
+            var aliasedMethod = parts[0];
+            var samplesMethod = parts[1];
+
+            if (context.MethodAliases.TryGetValue(aliasedMethod, out var existingAlias))
+                throw new ExpectedException($"Can't set method alias for '{aliasedMethod}' more than once. This method is already aliased to '{existingAlias}'");
+
+            context.MethodAliases[aliasedMethod] = samplesMethod;
+        }
+
+        private static void ParseQcTypeAlias(Context context, string text)
+        {
+            var parts = Split(text);
+
+            var aliasedQcType = parts.Length > 0 ? parts[0] : null;
+            var samplesQcTypeText = parts.Length > 1 ? parts[1] : null;
+
+            var invalid = string.IsNullOrEmpty(aliasedQcType);
+
+            var samplesQcType = (QualityControlType?) null;
+
+            if (!string.IsNullOrEmpty(samplesQcTypeText))
+            {
+                if (!Enum.TryParse<QualityControlType>(samplesQcTypeText, true, out var qualityControlType))
+                {
+                    invalid = true;
+                }
+                else
+                {
+                    samplesQcType = qualityControlType;
+                }
+            }
+
+            if (invalid)
+                throw new ExpectedException($"'{text}' is not a valid QC Type alias. Try /{nameof(context.LocationAliases).Singularize()}=aliasedQCType;SamplesQCType. Allowed Samples QC types are {string.Join(", ", Enum.GetNames(typeof(QualityControlType)))}");
+
+            if (context.QCTypeAliases.TryGetValue(aliasedQcType, out var existingAlias))
+                throw new ExpectedException($"Can't set QC Type alias for '{aliasedQcType}' more than once. This QC Type is already aliased to '{existingAlias}'");
+
+            context.QCTypeAliases[aliasedQcType] = samplesQcType;
         }
 
         private static void ParseObservedPropertyAlias(Context context, string text)

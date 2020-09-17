@@ -38,9 +38,11 @@ Two options are required to tell the tool how to access your AQUARIUS Samples in
 
 ### Alias options
 
-The tool allows for locations and observed properties to be "aliased", allowing your external system to refer to these items by different names, but still map them to the correct AQUARIUS Samples items.
+The tool allows for several properties to be "aliased", allowing your external system to refer to these items by different names, but still map them to the correct AQUARIUS Samples items.
 
-- The `/LocationAlias=externalName;SamplesName` option will map between external and Samples location IDs
+- The `/LocationAlias=externalName;SamplesName` option will map between external and Samples location IDs.
+- The `/MethodAlias=externalName;SamplesName` option will map between external and Samples Analysis Method IDs.
+- The `/QCTypeAlias=externalName;SamplesName` option will map between external and Samples Quality Control types (`NORMAL`, `REPLICATE`, `BLANK`, `SPIKE`).
 - The `/ObservedPropertyAlias=externalProperty;externalUnit;SamplesProperty;SamplesUnit` option will map between external and Samples observed property/unit combinations.
 - Semi-colons separate the mapped values. Whitespace surrounding the semicolons will be ignored.
 
@@ -109,6 +111,8 @@ Supported -option=value settings (/option=value works too):
   ========================= Alias options: (these help you map from your external system to AQUARIUS Samples)
   -LocationAlias            Set a location alias in aliasedLocation;SamplesLocationId format
   -ObservedPropertyAlias    Set an observed property alias in aliasedProperty;aliasedUnit;SamplesObservedPropertyId format
+  -MethodAlias              Set a method alias in aliasedMethod;SamplesMethodId format
+  -QCTypeAlias              Set a QC Type alias in aliasedQCType;SamplesQCType format
 
   ========================= CSV output options:
   -CsvOutputPath            Path to output file. If not specified, no CSV will be output.

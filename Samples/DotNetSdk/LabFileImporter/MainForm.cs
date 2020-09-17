@@ -146,6 +146,20 @@ namespace LabFileImporter
                 propertyAliasesListView.Items.Add(CreateListViewItem(alias.AliasedPropertyId, alias.AliasedUnitId, alias.PropertyId, alias.UnitId));
             }
 
+            methodAliasesLabel.Text = $@"{"method alias".ToQuantity(Context.MethodAliases.Count)} defined.";
+
+            foreach (var kvp in Context.MethodAliases.OrderBy(kvp => kvp.Key))
+            {
+                methodAliasesListView.Items.Add(CreateListViewItem(kvp.Key, kvp.Value));
+            }
+
+            qcTypeAliasesLabel.Text = $@"{"quality control alias".ToQuantity(Context.QCTypeAliases.Count)} defined.";
+
+            foreach (var kvp in Context.QCTypeAliases.OrderBy(kvp => kvp.Key))
+            {
+                qcTypeAliasesListView.Items.Add(CreateListViewItem(kvp.Key, $"{kvp.Value}"));
+            }
+
             OnServerConfigChanged();
         }
 

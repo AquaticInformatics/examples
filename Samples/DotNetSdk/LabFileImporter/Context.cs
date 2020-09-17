@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Aquarius.Samples.Client.ServiceModel;
 using NodaTime;
 
 namespace LabFileImporter
@@ -13,6 +14,8 @@ namespace LabFileImporter
         public Offset UtcOffset { get; set; } = Offset.FromTicks(DateTimeOffset.Now.Offset.Ticks);
         public Dictionary<string,string> LocationAliases { get; } = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
         public Dictionary<string, AliasedProperty> ObservedPropertyAliases { get; } = new Dictionary<string, AliasedProperty>(StringComparer.InvariantCultureIgnoreCase);
+        public Dictionary<string, string> MethodAliases { get; } = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+        public Dictionary<string, QualityControlType?> QCTypeAliases { get; } = new Dictionary<string, QualityControlType?>(StringComparer.InvariantCultureIgnoreCase);
         public List<string> Files { get; } = new List<string>();
         public bool DryRun { get; set; }
         public string ResultGrade { get; set; }

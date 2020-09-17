@@ -12,14 +12,16 @@ namespace LabFileImporter
 {
     public class LabFileLoader
     {
-        public LabFileLoader(ILog log, Context context)
+        public LabFileLoader(ILog log, Context context, List<AnalysisMethod> analysisMethods)
         {
             Context = context;
             Log = log;
+            AnalysisMethods = analysisMethods;
         }
 
         private Context Context { get; }
         private ILog Log { get; }
+        private List<AnalysisMethod> AnalysisMethods { get; set; }
 
         private ImportFormat Format { get; set; }
 
@@ -196,9 +198,6 @@ namespace LabFileImporter
             Format = format;
         }
 
-
-
-
         private IEnumerable<ObservationV2> LoadRow(IExcelDataReader reader)
         {
             return Properties
@@ -238,6 +237,33 @@ namespace LabFileImporter
             if (string.IsNullOrWhiteSpace(siteCode))
                 return null;
 
+            var labAnalysisMethod = property.Method;
+
+            if (Context.MethodAliases.TryGetValue(labAnalysisMethod, out var aliasedMethod))
+            {
+                labAnalysisMethod = aliasedMethod;
+            }
+
+            var analysisMethod = AnalysisMethods
+                .FirstOrDefault(method =>
+                    method.MethodId.Equals(labAnalysisMethod, StringComparison.InvariantCultureIgnoreCase));
+
+            if (analysisMethod != null)
+            {
+                labAnalysisMethod = $"{analysisMethod.MethodId};{analysisMethod.Name};{analysisMethod.Context}";
+            }
+
+            var qcTypeText = GetNullableString(reader, format.CommonColumns[QcType]);
+
+            if (Context.QCTypeAliases.TryGetValue(qcTypeText, out var aliasedQcType))
+            {
+                qcTypeText = $"{aliasedQcType}";
+            }
+            else if (Enum.TryParse<QualityControlType>(qcTypeText, true, out var qualityControlType))
+            {
+                qcTypeText = $"{qualityControlType}";
+            }
+
             var isFieldResult = property.Method?.StartsWith(Context.FieldResultPrefix, StringComparison.InvariantCultureIgnoreCase) ?? false;
 
             var sampleMatrix = GetNullableString(reader, format.CommonColumns[SampleMatrix]);
@@ -274,11 +300,11 @@ namespace LabFileImporter
                 Medium = sampleMatrix ?? Context.DefaultMedium,
                 LabSampleID = isFieldResult ? null : $"{dateTimeOffset:ddMMMyyyy}-{siteCode}",
                 LabSpecimenName = isFieldResult ? null : Context.LabSpecimenName,
-                LabAnalysisMethod = isFieldResult ? null : property.Method,
+                LabAnalysisMethod = isFieldResult ? null : labAnalysisMethod,
                 LabDetectionCondition = isFieldResult ? null : string.IsNullOrEmpty(mrl) ? null : Context.NonDetectCondition,
                 LabMRL = isFieldResult ? null : mrl,
                 LabFromLaboratory = isFieldResult ? null : Context.DefaultLaboratory,
-                QCType = isFieldResult ? null : GetNullableString(reader, format.CommonColumns[QcType]),
+                QCType = isFieldResult ? null : qcTypeText,
             };
         }
 
