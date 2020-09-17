@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Aquarius.Samples.Client;
+using Aquarius.Samples.Client.ServiceModel;
 using Humanizer;
 using ServiceStack.Logging;
 
@@ -58,16 +60,28 @@ namespace LabFileImporter
                     $"Can't overwrite existing file '{Context.CsvOutputPath}'. Try /{nameof(Context.Overwrite)}={true}");
         }
 
+        private List<AnalysisMethod> AnalysisMethods { get; set; }
+
         private IEnumerable<ObservationV2> LoadAll()
         {
+            AnalysisMethods = GetAnalysisMethods();
+
             return Context
                 .Files
                 .SelectMany(LoadAllObservations);
         }
 
+        private List<AnalysisMethod> GetAnalysisMethods()
+        {
+            using (var client = SamplesClient.CreateConnectedClient(Context.ServerUrl, Context.ApiToken))
+            {
+                return client.Get(new GetAnalysisMethods()).DomainObjects;
+            }
+        }
+
         private IEnumerable<ObservationV2> LoadAllObservations(string path)
         {
-            var observations = new LabFileLoader(Log, Context)
+            var observations = new LabFileLoader(Log, Context, AnalysisMethods)
                 .Load(path)
                 .ToList();
 
