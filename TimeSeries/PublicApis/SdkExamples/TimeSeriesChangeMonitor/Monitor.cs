@@ -160,7 +160,11 @@ namespace TimeSeriesChangeMonitor
             var request = CreateFilterRequest();
             var filterSummary = GetFilterSummary(request);
 
-            Log.Info($"Monitoring {filterSummary} every {pollInterval.Humanize()}");
+            var maximumPollCountSummary = Context.MaximumPollCount > 0
+                ? $", up to {"poll interval".ToQuantity(Context.MaximumPollCount.Value)}"
+                : string.Empty;
+
+            Log.Info($"Monitoring {filterSummary} every {pollInterval.Humanize()}{maximumPollCountSummary}");
             Log.Info("Press Ctrl+C or Ctrl+Break to exit.");
 
             var cancellationTokenSource = new CancellationTokenSource();
@@ -173,8 +177,12 @@ namespace TimeSeriesChangeMonitor
 
             var changesSinceToken = FetchChangesSinceToken();
 
+            var pollIntervalCount = 0;
+
             while (!cancellationTokenSource.IsCancellationRequested)
             {
+                ++pollIntervalCount;
+
                 request.ChangesSinceToken = changesSinceToken?.ToDateTimeUtc();
 
                 var stopwatch = Stopwatch.StartNew();
@@ -207,8 +215,14 @@ namespace TimeSeriesChangeMonitor
                     if (Context.MaximumChangeCount > 0 && ChangeCount >= Context.MaximumChangeCount)
                         break;
 
+                    if (Context.MaximumPollCount >= pollIntervalCount)
+                        break;
+
                     Log.Info($"Sleeping for {pollInterval.Humanize()} ...");
                 }
+
+                if (Context.MaximumPollCount >= pollIntervalCount)
+                    break;
 
                 cancellationTokenSource.Token.WaitHandle.WaitOne(pollInterval);
             }
@@ -223,6 +237,12 @@ namespace TimeSeriesChangeMonitor
 
         private Instant? FetchChangesSinceToken()
         {
+            if (Context.ForceFullSync)
+            {
+                Context.ForceFullSync = false;
+                return null;
+            }
+
             if (Context.ChangesSinceTime.HasValue)
                 return Context.ChangesSinceTime;
 
@@ -427,7 +447,7 @@ namespace TimeSeriesChangeMonitor
             sb.Append(" for ");
 
             sb.Append(Context.MaximumChangeCount > 0
-                ? $"up to {"change".ToQuantity(Context.MaximumChangeCount)}"
+                ? $"up to {"change".ToQuantity(Context.MaximumChangeCount.Value)}"
                 : "changes");
 
             sb.Append(TimeSeries.Any() ? $" in {TimeSeries.Count}" : " in any");
@@ -509,8 +529,6 @@ namespace TimeSeriesChangeMonitor
                 .ToList();
 
             var csvOutput = CsvSerializer.SerializeToCsv(detectedChanges);
-
-            Log.Info(csvOutput);
 
             File.WriteAllText(Context.DetectedChangesCsv, csvOutput);
         }
