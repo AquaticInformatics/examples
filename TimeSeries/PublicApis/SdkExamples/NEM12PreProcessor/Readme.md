@@ -14,7 +14,6 @@ The register value for meter interval is output on a separate line.
 
 ```csv
 NationalMeteringIdentifier, RegisterId, UnitOfMeasure, Time, Value, QualityMethod, ReasonCode, ReasonDescription
-6203772322, E1, KWH, 2018-10-04 00:00, 30.256, A, , 
 6203772322, E1, KWH, 2018-10-04 00:30, 30.784, A, , 
 6203772322, E1, KWH, 2018-10-04 01:00, 30.432, A, , 
 6203772322, E1, KWH, 2018-10-04 01:30, 30.864, A, , 

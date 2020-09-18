@@ -52,11 +52,12 @@ namespace NEM12PreProcessor
 
                 var recordParsers = new Dictionary<int, (int MinimumFieldCount, Action<string[]> Parser)>
                 {
-                    {100, (2,Record100)},
-                    {200, (9,Record200)},
-                    {300, (2,Record300)},
-                    {400, (6,Record400)},
-                    {900, (1,Record900)},
+                    {100, (2,HeaderRecord)},
+                    {200, (9,DataDetailsRecord)},
+                    {300, (2,IntervalDataRecord)},
+                    {400, (6,IntervalEventRecord)},
+                    {500, (3,B2BDetailsRecord)},
+                    {900, (1,EndOfDataRecord)},
                 };
 
                 while (!parser.EndOfData)
@@ -98,6 +99,11 @@ namespace NEM12PreProcessor
             Log.Error($"Line {LineNumber}: {message}");
         }
 
+        private void Warn(string message)
+        {
+            Log.Warn($"Line {LineNumber}: {message}");
+        }
+
         private bool TryParseInt(string text, out int value)
         {
             if (int.TryParse(text, out value))
@@ -116,13 +122,28 @@ namespace NEM12PreProcessor
             return false;
         }
 
-        private void Record100(string[] fields)
+        private bool TryParseDateTime(string text, out DateTime value)
         {
-            if (fields[2] != "NEM12")
-                Error($"'{fields[2]}' is not a supported file format.");
+            if (DateTime.TryParseExact(text, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out value))
+            {
+                value = value + TimeSpan.FromSeconds(1);
+                return true;
+            }
+
+            if (DateTime.TryParseExact(text, "yyyyMMddHHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None, out value))
+                return true;
+
+            Error($"'{text}' is not a valid meter reading datetime.");
+            return false;
         }
 
-        private void Record200(string[] fields)
+        private void HeaderRecord(string[] fields)
+        {
+            if (fields[1] != "NEM12")
+                Error($"'{fields[1]}' is not a supported file format.");
+        }
+
+        private void DataDetailsRecord(string[] fields)
         {
             Flush();
 
@@ -148,7 +169,7 @@ namespace NEM12PreProcessor
             };
         }
 
-        private void Record300(string[] fields)
+        private void IntervalDataRecord(string[] fields)
         {
             Flush();
 
@@ -193,7 +214,7 @@ namespace NEM12PreProcessor
 
                 Meter.Points.Add(new Point
                 {
-                    Time = date + TimeSpan.FromMinutes(Meter.IntervalMinutes * i),
+                    Time = date + TimeSpan.FromMinutes(Meter.IntervalMinutes * (i+1)),
                     Value = value,
                     QualityMethod = qualityFlag,
                     ReasonCode = reasonCode,
@@ -202,7 +223,7 @@ namespace NEM12PreProcessor
             }
         }
 
-        private void Record400(string[] fields)
+        private void IntervalEventRecord(string[] fields)
         {
             if (!TryParseInt(fields[1], out var startInterval))
                 return;
@@ -240,7 +261,20 @@ namespace NEM12PreProcessor
             }
         }
 
-        private void Record900(string[] fields)
+        private void B2BDetailsRecord(string[] fields)
+        {
+            var transCode = fields[1];
+            var retServiceOrder = fields[2];
+            var readDateTime = fields.Length > 3 ? fields[3] : null;
+            var indexRead = fields.Length > 4 ? fields[4] : null;
+
+            if (!TryParseDateTime(readDateTime, out var _))
+                return;
+
+            Warn($"Ignoring B2BDetails: {string.Join(", ", fields)}");
+        }
+
+        private void EndOfDataRecord(string[] fields)
         {
             Flush();
         }
