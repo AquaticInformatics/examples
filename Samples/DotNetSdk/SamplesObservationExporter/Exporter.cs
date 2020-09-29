@@ -44,6 +44,11 @@ namespace SamplesObservationExporter
 
             if (!Context.Overwrite)
                 ThrowIfFileExists(Context.CsvOutputPath);
+
+            if (Context.ProjectIds.Any() && Context.LocationIds.Any() && !Context.StartTime.HasValue && !Context.EndTime.HasValue)
+            {
+                throw new ExpectedException($"You must specify a /{nameof(Context.StartTime)}=date and/or /{nameof(Context.EndTime)}=date filter when filtering by both project and sampling locations.");
+            }
         }
 
         private void ThrowIfEmpty(string name, string value)
@@ -71,14 +76,16 @@ namespace SamplesObservationExporter
 
         private void ExportAll()
         {
-            var (request, summary) = BuildRequest();
+            var analyticalGroups = Client.Get(new GetAnalyticalGroups())
+                .DomainObjects;
+
+            var (requests, summary) = BuildRequestsAndSummary(analyticalGroups);
 
             Log.Info($"Exporting observations {summary} ...");
 
-            var response = Client.LazyGet<Observation, GetObservationsV2, SearchResultObservation>(request);
-
-            var analyticalGroups = Client.Get(new GetAnalyticalGroups())
-                .DomainObjects;
+            var responses = requests
+                .Select(request => Client.LazyGet<Observation, GetObservationsV2, SearchResultObservation>(request))
+                .ToList();
 
             var observedPropertiesByGroup = Context
                 .AnalyticalGroupIds
@@ -96,13 +103,15 @@ namespace SamplesObservationExporter
                 })
                 .ToList();
 
-            Log.Info($"Fetching all {response.TotalCount} matching observations.");
+            Log.Info($"Loading all {responses.Sum(response => response.TotalCount)} matching observations ...");
 
             var stopwatch = Stopwatch.StartNew();
 
-            var items = response
-                .DomainObjects
-                .Where(item => item.NumericResult != null)
+            var items = responses
+                .SelectMany(response => response
+                    .DomainObjects
+                    .Where(item => item.NumericResult != null)
+                )
                 .ToList();
 
             Log.Info($"{items.Count} numeric observations loaded in {stopwatch.Elapsed.Humanize(2)}.");
@@ -156,7 +165,10 @@ namespace SamplesObservationExporter
                 }))
                 .ToList();
 
-            Log.Info($"Writing observations to '{Context.CsvOutputPath}' ...");
+            Log.Info($"Exporting observations to '{Context.CsvOutputPath}' ...");
+
+            var rowCount = 0;
+            var observationCount = 0;
 
             using (var stream = File.OpenWrite(Context.CsvOutputPath))
             using (var writer = new StreamWriter(stream, new UTF8Encoding(true)))
@@ -200,14 +212,19 @@ namespace SamplesObservationExporter
 
                     do
                     {
-                        var (row, remainingObservations) = WriteRow(resultColumns, observations, columns);
+                        var (row, remainingObservations, writtenObservations) = WriteRow(resultColumns, observations, columns);
 
                         writer.WriteLine(row);
+
+                        ++rowCount;
+                        observationCount += writtenObservations;
 
                         observations = remainingObservations;
                     } while (observations.Any());
                 }
             }
+
+            Log.Info($"Exported {"distinct observation".ToQuantity(observationCount)} observations over {"row".ToQuantity(rowCount)} to '{Context.CsvOutputPath}'.");
         }
 
         private class AnalyticalGroupInfo
@@ -255,12 +272,14 @@ namespace SamplesObservationExporter
 
         private static readonly char[] EscapeCsvChars = {',', '"'};
 
-        private (string Row, List<Observation> RemainingObservations) WriteRow(List<ResultColumn> resultColumns, List<Observation> observations, IReadOnlyList<string> commonColumns)
+        private (string Row, List<Observation> RemainingObservations, int WrittenObservations) WriteRow(List<ResultColumn> resultColumns, List<Observation> observations, IReadOnlyList<string> commonColumns)
         {
             var remainingObservations = new List<Observation>();
 
             var columns = new List<string>(commonColumns.Count + resultColumns.Count);
             columns.AddRange(commonColumns);
+
+            var writtenObservations = 0;
 
             foreach (var resultColumn in resultColumns)
             {
@@ -292,11 +311,12 @@ namespace SamplesObservationExporter
 
                 columns.Add($"{propertyObservation.Value}");
                 columns.Add(EscapeCsvColumn(propertyObservation.Unit));
+                ++writtenObservations;
             }
 
             var row = string.Join(",", columns);
 
-            return (row, remainingObservations);
+            return (row, remainingObservations, writtenObservations);
         }
 
         private class ExportedResult
@@ -327,23 +347,24 @@ namespace SamplesObservationExporter
             };
         }
 
-        private (GetObservationsV2 Request, string summary) BuildRequest()
+        private (List<GetObservationsV2> Requests, string summary) BuildRequestsAndSummary(List<AnalyticalGroup> analyticalGroups)
         {
             var clauses = new List<string>();
             var builder = new StringBuilder();
 
-            var request = new GetObservationsV2();
+            var startObservedTime = (Instant?) null;
+            var endObservedTime = (Instant?)null;
 
             if (Context.StartTime.HasValue)
             {
                 clauses.Add($"after {Context.StartTime:O}");
-                request.StartObservedTime = Instant.FromDateTimeOffset(Context.StartTime.Value);
+                startObservedTime = Instant.FromDateTimeOffset(Context.StartTime.Value);
             }
 
             if (Context.EndTime.HasValue)
             {
                 clauses.Add($"before {Context.EndTime:O}");
-                request.EndObservedTime = Instant.FromDateTimeOffset(Context.EndTime.Value);
+                endObservedTime = Instant.FromDateTimeOffset(Context.EndTime.Value);
             }
 
             if (clauses.Any())
@@ -352,48 +373,102 @@ namespace SamplesObservationExporter
                 clauses.Clear();
             }
 
-            if (Context.LocationIds.Any())
+            var analyticalGroupIds = new List<string>();
+            var observedPropertyIds = new List<string>();
+            var samplingLocationIds = new List<string>();
+            var projectIds = new List<string>();
+
+            if (Context.AnalyticalGroupIds.Any() || Context.ObservedPropertyIds.Any())
             {
-                request.SamplingLocationIds =
-                    GetPaginatedItemIds<SamplingLocation, GetSamplingLocations, SearchResultSamplingLocation>(
-                        "location",
-                        clauses,
-                        Context.LocationIds,
-                        item => item.CustomId,
-                        item => item.Id);
+                var analyticalGroupClauses = new List<string>();
+                var observedPropertyClauses = new List<string>();
+
+                if (Context.AnalyticalGroupIds.Any())
+                {
+                    analyticalGroupIds =
+                        GetItemIds<AnalyticalGroup, GetAnalyticalGroups, SearchResultAnalyticalGroup>(
+                            "analytical group",
+                            analyticalGroupClauses,
+                            Context.AnalyticalGroupIds,
+                            item => item.Name,
+                            item => item.Id);
+                }
+
+                if (Context.ObservedPropertyIds.Any())
+                {
+                    observedPropertyIds =
+                        GetItemIds<ObservedProperty, GetObservedProperties, SearchResultObservedProperty>(
+                            "observed property",
+                            observedPropertyClauses,
+                            Context.ObservedPropertyIds,
+                            item => item.CustomId,
+                            item => item.Id);
+                }
+
+                var namedAnalyticalGroups = analyticalGroupIds
+                    .Select(id => analyticalGroups.First(analyticalGroup => analyticalGroup.Id == id))
+                    .ToList();
+
+                var allObservedPropertiesContainedInAnalyticalGroups = observedPropertyIds
+                    .All(propertyId => namedAnalyticalGroups.Any(group =>
+                        group.AnalyticalGroupItems.Any(item => item.ObservedProperty.Id == propertyId)));
+
+                if (allObservedPropertiesContainedInAnalyticalGroups)
+                {
+                    // This will avoid one unnecessary lazy-load sequence
+                    observedPropertyIds.Clear();
+                    observedPropertyClauses.Clear();
+                }
+
+                if (analyticalGroupClauses.Any() && observedPropertyClauses.Any())
+                {
+                    clauses.Add($"({string.Join(" and ", analyticalGroupClauses)} or {string.Join(" and ", observedPropertyClauses)})");
+                }
+                else
+                {
+                    clauses.AddRange(analyticalGroupClauses.Any()
+                        ? analyticalGroupClauses
+                        : observedPropertyClauses);
+                }
             }
 
-            if (Context.AnalyticalGroupIds.Any())
+            if (Context.LocationIds.Any() || Context.ProjectIds.Any())
             {
-                request.AnalyticalGroupIds =
-                    GetItemIds<AnalyticalGroup, GetAnalyticalGroups, SearchResultAnalyticalGroup>(
-                        "analytical group",
-                        clauses,
-                        Context.AnalyticalGroupIds,
-                        item => item.Name,
-                        item => item.Id);
-            }
+                var locationClauses = new List<string>();
+                var projectClauses = new List<string>();
 
-            if (Context.ObservedPropertyIds.Any())
-            {
-                request.ObservedPropertyIds =
-                    GetItemIds<ObservedProperty, GetObservedProperties, SearchResultObservedProperty>(
-                        "observed property",
-                        clauses,
-                        Context.ObservedPropertyIds,
-                        item => item.CustomId,
-                        item => item.Id);
-            }
+                if (Context.LocationIds.Any())
+                {
+                    samplingLocationIds =
+                        GetPaginatedItemIds<SamplingLocation, GetSamplingLocations, SearchResultSamplingLocation>(
+                            "location",
+                            locationClauses,
+                            Context.LocationIds,
+                            item => item.CustomId,
+                            item => item.Id);
+                }
 
-            if (Context.ProjectIds.Any())
-            {
-                request.ProjectIds =
-                    GetItemIds<Project, GetProjects, SearchResultProject>(
-                        "project",
-                        clauses,
-                        Context.ProjectIds,
-                        item => item.CustomId,
-                        item => item.Id);
+                if (Context.ProjectIds.Any())
+                {
+                    projectIds =
+                        GetItemIds<Project, GetProjects, SearchResultProject>(
+                            "project",
+                            projectClauses,
+                            Context.ProjectIds,
+                            item => item.CustomId,
+                            item => item.Id);
+                }
+
+                if (locationClauses.Any() && projectClauses.Any())
+                {
+                    clauses.Add($"({string.Join(" and ", locationClauses)} or {string.Join(" and ", projectClauses)})");
+                }
+                else
+                {
+                    clauses.AddRange(locationClauses.Any()
+                        ? locationClauses
+                        : projectClauses);
+                }
             }
 
             if (clauses.Any())
@@ -404,7 +479,121 @@ namespace SamplesObservationExporter
                 builder.Append($"with {string.Join(" and ", clauses)}");
             }
 
-            return (request, builder.ToString());
+            var summary = builder.ToString();
+
+            var requests = BuildRequests(
+                startObservedTime,
+                endObservedTime,
+                analyticalGroupIds,
+                observedPropertyIds,
+                projectIds,
+                samplingLocationIds);
+
+            return (requests, summary);
+        }
+
+        private List<GetObservationsV2> BuildRequests(
+            Instant? startObservedTime,
+            Instant? endObservedTime,
+            List<string> analyticalGroupIds,
+            List<string> observedPropertyIds, 
+            List<string> projectIds,
+            List<string> samplingLocationIds)
+        {
+            var baseRequest = new GetObservationsV2
+            {
+                StartObservedTime = startObservedTime,
+                EndObservedTime = endObservedTime,
+            };
+
+            var requests = new List<GetObservationsV2>();
+
+            if (analyticalGroupIds.Any() || observedPropertyIds.Any())
+            {
+                if (analyticalGroupIds.Any() && observedPropertyIds.Any())
+                {
+                    CloneAndAddRequest(requests, baseRequest, request =>
+                    {
+                        request.AnalyticalGroupIds = analyticalGroupIds;
+                        request.ObservedPropertyIds = observedPropertyIds;
+                    });
+                }
+
+                if (analyticalGroupIds.Any())
+                {
+                    CloneAndAddRequest(requests, baseRequest, request => request.AnalyticalGroupIds = analyticalGroupIds);
+                }
+
+                if (observedPropertyIds.Any())
+                {
+                    CloneAndAddRequest(requests, baseRequest, request => request.ObservedPropertyIds = observedPropertyIds);
+                }
+            }
+
+            if (!requests.Any())
+            {
+                // At this point, we can start with the base time-filtered request
+                requests.Add(baseRequest);
+            }
+
+            if (projectIds.Any() || samplingLocationIds.Any())
+            {
+                var extraRequests = new List<GetObservationsV2>();
+
+                if (projectIds.Any() && samplingLocationIds.Any())
+                {
+                    foreach (var existingRequest in requests)
+                    {
+                        CloneAndAddRequest(extraRequests, existingRequest, request =>
+                        {
+                            request.ProjectIds = projectIds;
+                            request.SamplingLocationIds = samplingLocationIds;
+                        });
+                    }
+                }
+
+                if (projectIds.Any())
+                {
+                    foreach (var request in requests)
+                    {
+                        request.ProjectIds = projectIds;
+                    }
+                }
+
+                if (samplingLocationIds.Any())
+                {
+                    foreach (var request in requests)
+                    {
+                        request.SamplingLocationIds = samplingLocationIds;
+                    }
+                }
+
+                requests.AddRange(extraRequests);
+            }
+
+            return requests;
+        }
+
+        private void CloneAndAddRequest(List<GetObservationsV2> requests, GetObservationsV2 request, Action<GetObservationsV2> action)
+        {
+            var clone = Clone(request);
+
+            requests.Add(clone);
+
+            action(clone);
+        }
+
+        private GetObservationsV2 Clone(GetObservationsV2 request)
+        {
+            return new GetObservationsV2
+            {
+                StartObservedTime = request.StartObservedTime,
+                EndObservedTime = request.EndObservedTime,
+                AnalyticalGroupIds = request.AnalyticalGroupIds,
+                ObservedPropertyIds = request.ObservedPropertyIds,
+                SamplingLocationIds = request.SamplingLocationIds,
+                ProjectIds = request.ProjectIds,
+            };
         }
 
         private List<string> GetPaginatedItemIds<TDomainObject, TRequest, TResponse>(string type, List<string> clauses, List<string> names, Func<TDomainObject,string> nameSelector, Func<TDomainObject,string> idSelector)
