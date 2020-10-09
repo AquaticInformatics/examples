@@ -2,6 +2,8 @@
 
 The `UserImporter` example app can be used to import a number of AQTS users from a CSV file.
 
+Download the latest release [here](https://github.com/AquaticInformatics/examples/releases/latest)
+
 All three AQTS authentication methods are supported:
 - Aquarius credentials
 - Active Directory authentication
