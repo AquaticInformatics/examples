@@ -328,7 +328,8 @@ namespace SamplesObservationExporter
 
         private ExportedResult ConvertToExportedResult(Observation observation)
         {
-            var isNonDetect = observation.NumericResult.DetectionCondition == DetectionConditionType.NOT_DETECTED
+            var isNonDetect = "NOT_DETECTED".Equals(observation.NumericResult.DetectionCondition?.SystemCode,
+                                  StringComparison.InvariantCultureIgnoreCase)
                               && observation.NumericResult.MethodDetectionLevel != null;
 
             var unit = !isNonDetect
