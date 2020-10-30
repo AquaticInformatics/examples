@@ -27,8 +27,9 @@ namespace SamplesObservationExporter
         {
             Validate();
             using (Client = Connect())
+            using (var progressReporter = new ProgressBarReporter())
             {
-                ExportAll();
+                ExportAll(progressReporter);
             }
         }
 
@@ -74,7 +75,7 @@ namespace SamplesObservationExporter
             return SamplesClient.CreateConnectedClient(Context.ServerUrl, Context.ApiToken);
         }
 
-        private void ExportAll()
+        private void ExportAll(ProgressBarReporter progressBarReporter)
         {
             var analyticalGroups = Client.Get(new GetAnalyticalGroups())
                 .DomainObjects;
@@ -84,7 +85,7 @@ namespace SamplesObservationExporter
             Log.Info($"Exporting observations {summary} ...");
 
             var responses = requests
-                .Select(request => Client.LazyGet<Observation, GetObservationsV2, SearchResultObservation>(request))
+                .Select(request => Client.LazyGet<Observation, GetObservationsV2, SearchResultObservation>(request, progressReporter: progressBarReporter))
                 .ToList();
 
             var observedPropertiesByGroup = Context
@@ -103,7 +104,9 @@ namespace SamplesObservationExporter
                 })
                 .ToList();
 
-            Log.Info($"Loading all {responses.Sum(response => response.TotalCount)} matching observations ...");
+            progressBarReporter.ExpectedCount = responses.Sum(response => response.TotalCount);
+
+            Log.Info($"Loading all {progressBarReporter.ExpectedCount} matching observations ...");
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -113,6 +116,8 @@ namespace SamplesObservationExporter
                     .Where(item => item.NumericResult != null)
                 )
                 .ToList();
+
+            progressBarReporter.Dispose();
 
             Log.Info($"{items.Count} numeric observations loaded in {stopwatch.Elapsed.Humanize(2)}.");
 
@@ -370,7 +375,7 @@ namespace SamplesObservationExporter
 
             if (clauses.Any())
             {
-                builder.Append(string.Join(" matching ", clauses));
+                builder.Append(string.Join(" and ", clauses));
                 clauses.Clear();
             }
 
@@ -555,21 +560,21 @@ namespace SamplesObservationExporter
 
                 if (projectIds.Any())
                 {
-                    foreach (var request in requests)
+                    foreach (var existingRequest in requests)
                     {
-                        request.ProjectIds = projectIds;
+                        CloneAndAddRequest(extraRequests, existingRequest, request => request.ProjectIds = projectIds);
                     }
                 }
 
                 if (samplingLocationIds.Any())
                 {
-                    foreach (var request in requests)
+                    foreach (var existingRequest in requests)
                     {
-                        request.SamplingLocationIds = samplingLocationIds;
+                        CloneAndAddRequest(extraRequests, existingRequest, request => request.SamplingLocationIds = samplingLocationIds);
                     }
                 }
 
-                requests.AddRange(extraRequests);
+                requests = extraRequests;
             }
 
             return requests;
