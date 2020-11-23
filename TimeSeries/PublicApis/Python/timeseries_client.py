@@ -225,7 +225,7 @@ class timeseries_client:
             return
 
         if self.process_exists('Fiddler.exe'):
-            os.environ['http_proxy'] = os.environ['https_proxy'] = '127.0.0.1:8888'
+            os.environ['http_proxy'] = os.environ['https_proxy'] = 'http://127.0.0.1:8888'
 
     def connect(self, username, password):
         """
