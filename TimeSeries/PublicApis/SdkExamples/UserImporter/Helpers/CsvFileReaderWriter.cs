@@ -32,7 +32,8 @@ namespace UserImporter.Helpers
             if (!File.Exists(_csvFileName))
                 throw new ExpectedException($"CSV file '{_csvFileName}' does not exist.");
 
-            using (var reader = new StreamReader(_csvFileName))
+            using (var stream = File.Open(_csvFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var reader = new StreamReader(stream))
             using (var recordEngine = new FileHelperAsyncEngine<TRecordType>())
             {
                 if (ignoreFirstLine)

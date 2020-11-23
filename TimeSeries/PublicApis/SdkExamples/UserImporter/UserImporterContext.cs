@@ -71,6 +71,12 @@ namespace UserImporter
 
                 if (!match.Success)
                 {
+                    if (File.Exists(arg) && ".csv".Equals(Path.GetExtension(arg), StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        UsersFile = arg;
+                        continue;
+                    }
+
                     throw new ExpectedException($"Unknown argument: {arg}\n\n{usageMessage}");
                 }
 
