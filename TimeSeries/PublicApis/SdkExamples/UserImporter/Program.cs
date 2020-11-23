@@ -20,7 +20,7 @@ namespace UserImporter
             {
                 ConfigureLogging();
 
-                _log.Info("Starting user synchronization ...");
+                _log.Info($"{ExeHelper.ExeNameAndVersion}: Starting user synchronization ...");
 
                 var context = new UserImporterContext(args);
 
