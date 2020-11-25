@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -219,26 +220,38 @@ namespace SamplesTripScheduler
 
         private void LoadTripsWithPlannedVisits()
         {
-            var allTrips = _client.Get(new GetFieldTrips()).DomainObjects;
-
             var plannedVisits = _client.Get(new GetFieldVisits
             {
                 PlanningStatuses = new List<string> {$"{PlanningStatusType.PLANNED}"}
             }).DomainObjects;
 
-            var plannedTripIds = plannedVisits
-                .Where(v => v.FieldTrip != null)
-                .Select(v => v.FieldTrip)
-                .Select(t => t.Id)
+            var plannedTripVisits = plannedVisits
+                .Where(v => v.StartTime.HasValue && v.FieldTrip != null)
                 .ToList();
 
-            var tripsWithPlannedVisits = allTrips
-                .Where(t => plannedTripIds.Contains(t.Id) && t.FieldVisits.Any(IsCandidateVisit))
+            var plannedTripIds = new HashSet<string>(plannedTripVisits
+                .Select(v => v.FieldTrip.Id)
+                .Distinct());
+
+            Info($"Fetching {"visit detail".ToQuantity(plannedTripVisits.Count)} ...");
+
+            var stopwatch = Stopwatch.StartNew();
+
+            var plannedVisitsWithStartTimes = plannedTripVisits
+                .Select(v => _client.Get(new GetFieldVisit {Id = v.Id}))
                 .ToList();
+
+            Info($"Fetched {"visit".ToQuantity(plannedTripVisits.Count)} in {stopwatch.Elapsed.Humanize(2)}");
+
+            var tripsWithPlannedVisits = plannedTripIds
+                .ToDictionary(
+                    tripId => tripId,
+                    tripId => plannedVisitsWithStartTimes
+                        .Where(v => tripId == v.FieldTrip.Id && IsCandidateVisit(v))
+                        .ToList());
 
             var items = tripsWithPlannedVisits
-                .SelectMany(t => t.FieldVisits)
-                .Where(IsCandidateVisit)
+                .SelectMany(t => t.Value)
                 .Select(v => new TableItem
                 {
                     Trip = v.FieldTrip.CustomId,
@@ -259,7 +272,7 @@ namespace SamplesTripScheduler
             tripDataGridView.Columns[4].Visible = false;
             tripDataGridView.Enabled = true;
 
-            Info($"{"trip".ToQuantity(tripsWithPlannedVisits.Count)} with planned visits.");
+            Info($"{"trip".ToQuantity(tripsWithPlannedVisits.Sum(k => k.Value.Count))} with planned visits.");
         }
 
         private bool IsCandidateVisit(FieldVisit visit)
