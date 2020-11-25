@@ -6,6 +6,7 @@
         Append,
         OverwriteAppend,
         Reflected,
-        DeleteAllPoints
+        DeleteAllPoints,
+        DeleteTimeRange,
     }
 }

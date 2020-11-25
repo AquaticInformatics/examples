@@ -324,13 +324,11 @@ With great power ... yada yada yada. Please don't wipe out your production data 
 ## Deleting a range of points in a time-series
 
 You can delete a range of points in a basic or reflected time-series by:
-- specifying the `/NumberOfPeriods=0` option to generate no new points
+- specifying the `DeleteTimeRange` command
 - specifying the `/TimeRange=startTime/endTime` option to define the exact time range to be replaced with no points at all
-- specifying either the `/Command=OverwriteAppend` option for basic time-series or `/Command=Reflected` for reflected time-series.
 
 ```sh
-$ ./PointZilla.exe -server=myserver Stage.Label@Location -TimeRange=2018-04-25T00:00:00Z/2018-04-29T00:00:00Z -numberofperiods=0 overwriteappend
-17:02:23.301 INFO  - Generated 0 SineWave points.
+$ ./PointZilla.exe -server=myserver Stage.Label@Location DeleteTimeRange -TimeRange=2018-04-25T00:00:00Z/2018-04-29T00:00:00Z
 17:02:23.889 INFO  - Connected to myserver (2018.1.98.0)
 17:02:24.076 INFO  - Appending 0 points within TimeRange=2018-04-25T00:00:00Z/2018-04-29T00:00:00Z to Stage.Label@Location (ProcessorBasic) ...
 17:02:24.719 INFO  - Appended 0 points (deleting 1440 points) in 0.6 seconds.
@@ -359,7 +357,7 @@ Supported -option=value settings (/option=value works too):
   ========================= Time-series options:
   -TimeSeries               Target time-series identifier or unique ID
   -TimeRange                Time-range for overwrite in ISO8061/ISO8601 (defaults to start/end points)
-  -Command                  Append operation to perform.  One of Auto, Append, OverwriteAppend, Reflected, DeleteAllPoints. [default: Auto]
+  -Command                  Append operation to perform.  One of Auto, Append, OverwriteAppend, Reflected, DeleteAllPoints, DeleteTimeRange. [default: Auto]
   -GradeCode                Optional grade code for all appended points
   -Qualifiers               Optional qualifier list for all appended points
 
