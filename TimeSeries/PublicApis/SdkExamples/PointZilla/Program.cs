@@ -151,11 +151,11 @@ namespace PointZilla
 
                 new Option(), new Option {Description = "Copy points from another time-series:"},
                 new Option {Key = nameof(context.SourceTimeSeries), Setter = value => {if (TimeSeriesIdentifier.TryParse(value, out var tsi)) context.SourceTimeSeries = tsi; }, Getter = () => context.SourceTimeSeries?.ToString(), Description = "Source time-series to copy. Prefix with [server2] or [server2:username2:password2] to copy from another server"},
-                new Option {Key = nameof(context.SourceQueryFrom), Setter = value => context.SourceQueryFrom = value.FromJson<Instant>(), Getter = () => context.SourceQueryFrom?.ToJson(), Description = "Start time of extracted points in ISO8601 format."},
-                new Option {Key = nameof(context.SourceQueryTo), Setter = value => context.SourceQueryTo = value.FromJson<Instant>(), Getter = () => context.SourceQueryTo?.ToJson(), Description = "End time of extracted points"},
+                new Option {Key = nameof(context.SourceQueryFrom), Setter = value => context.SourceQueryFrom = ParseInstant(value), Getter = () => context.SourceQueryFrom?.ToJson(), Description = "Start time of extracted points in ISO8601 format."},
+                new Option {Key = nameof(context.SourceQueryTo), Setter = value => context.SourceQueryTo = ParseInstant(value), Getter = () => context.SourceQueryTo?.ToJson(), Description = "End time of extracted points"},
 
                 new Option(), new Option {Description = "Point-generator options:"},
-                new Option {Key = nameof(context.StartTime), Setter = value => context.StartTime = value.FromJson<Instant>(), Getter = () => string.Empty, Description = "Start time of generated points, in ISO8601 format. [default: the current time]"},
+                new Option {Key = nameof(context.StartTime), Setter = value => context.StartTime = ParseInstant(value), Getter = () => string.Empty, Description = "Start time of generated points, in ISO8601 format. [default: the current time]"},
                 new Option {Key = nameof(context.PointInterval), Setter = value => context.PointInterval = TimeSpan.Parse(value), Getter = () => context.PointInterval.ToString(), Description = "Interval between generated points, in .NET TimeSpan format."},
                 new Option {Key = nameof(context.NumberOfPoints), Setter = value => context.NumberOfPoints = int.Parse(value), Getter = () => context.NumberOfPoints.ToString(), Description = $"Number of points to generate. If 0, use {nameof(context.NumberOfPeriods)}"},
                 new Option {Key = nameof(context.NumberOfPeriods), Setter = value => context.NumberOfPeriods = double.Parse(value), Getter = () => context.NumberOfPeriods.ToString(CultureInfo.InvariantCulture), Description = "Number of waveform periods to generate."},
@@ -431,6 +431,14 @@ namespace PointZilla
             context.ManualPoints.Add(new TimeSeriesPoint{Type = PointType.Gap});
         }
 
+        private static Instant ParseInstant(string text)
+        {
+            if (DateTimeOffset.TryParse(text, out var dateTimeOffset))
+                return Instant.FromDateTimeOffset(dateTimeOffset);
+
+            throw new ExpectedException($"'{text}' can't be parsed as an unambiguous date time");
+        }
+
         private static Interval ParseInterval(string text)
         {
             var components = text.Split(new[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
@@ -438,9 +446,13 @@ namespace PointZilla
             if (components.Length != 2)
                 throw new ExpectedException($"'{text}' is an invalid Interval format. Use 'StartInstant/EndInstant' (two ISO8601 timestamps, separated by a forward slash)");
 
-            return new Interval(
-                components[0].FromJson<Instant>(),
-                components[1].FromJson<Instant>());
+            var start = ParseInstant(components[0]);
+            var end = ParseInstant(components[1]);
+
+            if (end < start)
+                throw new ExpectedException($"Invalid {nameof(Context.TimeRange)}: Start={start} must be less than or equal to End={end}.");
+
+            return new Interval(start, end);
         }
 
         private static void ParseExtendedAttributeValue(Context context, string text)

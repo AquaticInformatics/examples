@@ -103,7 +103,7 @@ namespace PointZilla
             var label = "Points";
             var locationIdentifier = "PointZilla";
 
-            if (Context.Command == CommandType.DeleteAllPoints)
+            if (DeleteCommands.Contains(Context.Command))
                 parameter ="Deleted";
 
             else if (Context.ManualPoints.Any())
@@ -121,6 +121,12 @@ namespace PointZilla
                 Identifier = $"{parameter}.{label}@{locationIdentifier}"
             };
         }
+
+        private static readonly HashSet<CommandType> DeleteCommands = new HashSet<CommandType>
+        {
+            CommandType.DeleteAllPoints,
+            CommandType.DeleteTimeRange,
+        };
 
         private static string CreatePeriod(Instant? startTime, Instant? endTime)
         {

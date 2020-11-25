@@ -70,7 +70,7 @@ namespace PointZilla
                 var timeSeries = client.GetTimeSeriesInfo(Context.TimeSeries);
 
                 var isReflected = Context.Command == CommandType.Reflected || timeSeries.TimeSeriesType == TimeSeriesType.Reflected;
-                var hasTimeRange = isReflected || Context.Command == CommandType.DeleteAllPoints || Context.Command == CommandType.OverwriteAppend;
+                var hasTimeRange = isReflected || DeleteCommands.Contains(Context.Command) || Context.Command == CommandType.OverwriteAppend;
 
                 var pointExtents = Points.Any()
                     ? $"points [{Points.First().Time} to {Points.Last().Time}]"
@@ -249,7 +249,7 @@ namespace PointZilla
 
         private List<TimeSeriesPoint> GetPoints()
         {
-            if (Context.Command == CommandType.DeleteAllPoints)
+            if (DeleteCommands.Contains(Context.Command))
                 return new List<TimeSeriesPoint>();
 
             if (Context.ManualPoints.Any())
@@ -266,6 +266,13 @@ namespace PointZilla
             return new WaveformGenerator(Context)
                 .GeneratePoints();
         }
+
+        private static readonly HashSet<CommandType> DeleteCommands = new HashSet<CommandType>
+        {
+            CommandType.DeleteAllPoints,
+            CommandType.DeleteTimeRange,
+        };
+
 
         private Interval GetTimeRange()
         {
