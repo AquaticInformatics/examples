@@ -298,7 +298,7 @@ namespace LabFileImporter
                 ResultStatus = isFieldResult ? Context.FieldResultStatus : Context.LabResultStatus,
                 ResultGrade = resultGrade,
                 Medium = sampleMatrix ?? Context.DefaultMedium,
-                LabSampleID = isFieldResult ? null : $"{dateTimeOffset:ddMMMyyyy}-{siteCode}",
+                ActivityName = isFieldResult ? null : $"{dateTimeOffset:ddMMMyyyy}-{siteCode}-{dateTimeOffset:HH:mm}",
                 LabSpecimenName = isFieldResult ? null : Context.LabSpecimenName,
                 LabAnalysisMethod = isFieldResult ? null : labAnalysisMethod,
                 LabDetectionCondition = isFieldResult ? null : string.IsNullOrEmpty(mrl) ? null : Context.NonDetectCondition,
@@ -329,7 +329,7 @@ namespace LabFileImporter
         }
 
         private static readonly Regex EstimatedRegex = new Regex(@"^\s*(?<number>[0-9.+\-]+)\s+est\s*$", RegexOptions.IgnoreCase);
-        private static readonly Regex NonDetectRegex = new Regex(@"^\s*[<>]\s*(?<number>[0-9.+\-]+)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex NonDetectRegex = new Regex(@"^\s*[<>]\s*(?<number>[0-9,.+\-]+)\s*$", RegexOptions.IgnoreCase);
 
         private string GetNullableString(IExcelDataReader reader, int columnIndex)
         {
