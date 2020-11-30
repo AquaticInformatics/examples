@@ -298,7 +298,7 @@ namespace LabFileImporter
                 ResultStatus = isFieldResult ? Context.FieldResultStatus : Context.LabResultStatus,
                 ResultGrade = resultGrade,
                 Medium = sampleMatrix ?? Context.DefaultMedium,
-                LabSampleID = isFieldResult ? null : $"{dateTimeOffset:ddMMMyyyy}-{siteCode}",
+                ActivityName = isFieldResult ? null : $"{dateTimeOffset:ddMMMyyyy}-{siteCode}-{dateTimeOffset:HH:mm}",
                 LabSpecimenName = isFieldResult ? null : Context.LabSpecimenName,
                 LabAnalysisMethod = isFieldResult ? null : labAnalysisMethod,
                 LabDetectionCondition = isFieldResult ? null : string.IsNullOrEmpty(mrl) ? null : Context.NonDetectCondition,
