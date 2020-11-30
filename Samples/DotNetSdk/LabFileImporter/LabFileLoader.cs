@@ -329,7 +329,7 @@ namespace LabFileImporter
         }
 
         private static readonly Regex EstimatedRegex = new Regex(@"^\s*(?<number>[0-9.+\-]+)\s+est\s*$", RegexOptions.IgnoreCase);
-        private static readonly Regex NonDetectRegex = new Regex(@"^\s*[<>]\s*(?<number>[0-9.+\-]+)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex NonDetectRegex = new Regex(@"^\s*[<>]\s*(?<number>[0-9,.+\-]+)\s*$", RegexOptions.IgnoreCase);
 
         private string GetNullableString(IExcelDataReader reader, int columnIndex)
         {
