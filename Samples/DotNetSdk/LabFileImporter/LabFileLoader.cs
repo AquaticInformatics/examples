@@ -323,7 +323,7 @@ namespace LabFileImporter
             match = NonDetectRegex.Match(text);
 
             if (match.Success)
-                return (null, Context.ResultGrade, match.Groups["number"].Value);
+                return (null, Context.ResultGrade, match.Groups["number"].Value.Replace(",", string.Empty));
 
             return (text, Context.ResultGrade, null);
         }
