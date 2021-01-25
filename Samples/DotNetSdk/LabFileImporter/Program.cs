@@ -134,7 +134,7 @@ namespace LabFileImporter
                 new Option {Key = nameof(context.LocationAliases).Singularize(), Setter = value => ParseLocationAlias(context, value), Description = "Set a location alias in aliasedLocation;SamplesLocationId format"},
                 new Option {Key = nameof(context.ObservedPropertyAliases).Singularize(), Setter = value => ParseObservedPropertyAlias(context, value), Description = "Set an observed property alias in aliasedProperty;aliasedUnit;SamplesObservedPropertyId format"},
                 new Option {Key = nameof(context.MethodAliases).Singularize(), Setter = value => ParseMethodAlias(context, value), Description = "Set a method alias in aliasedMethod;SamplesMethodId format"},
-                new Option {Key = nameof(context.QCTypeAliases).Singularize(), Setter = value => ParseQcTypeAlias(context, value), Description = "Set a QC Type alias in aliasedQCType;SamplesQCType format"},
+                new Option {Key = nameof(context.QCTypeAliases).Singularize(), Setter = value => ParseQcTypeAlias(context, value), Description = "Set a QC Type alias in aliasedQCType;SamplesQCType[;ActivitySuffix] format"},
 
                 new Option(), new Option{Description = "CSV output options:"},
                 new Option {Key = nameof(context.CsvOutputPath), Setter = value => context.CsvOutputPath = value, Getter = () => context.CsvOutputPath, Description = $"Path to output file. If not specified, no CSV will be output."},
@@ -315,6 +315,7 @@ namespace LabFileImporter
 
             var aliasedQcType = parts.Length > 0 ? parts[0] : null;
             var samplesQcTypeText = parts.Length > 1 ? parts[1] : null;
+            var activityNameSuffix = parts.Length > 2 ? parts[2] : null;
 
             var invalid = string.IsNullOrEmpty(aliasedQcType);
 
@@ -332,13 +333,21 @@ namespace LabFileImporter
                 }
             }
 
+            if (!samplesQcType.HasValue && !string.IsNullOrEmpty(activityNameSuffix))
+                invalid = true;
+
             if (invalid)
-                throw new ExpectedException($"'{text}' is not a valid QC Type alias. Try /{nameof(context.LocationAliases).Singularize()}=aliasedQCType;SamplesQCType. Allowed Samples QC types are {string.Join(", ", Enum.GetNames(typeof(QualityControlType)))}");
+                throw new ExpectedException($"'{text}' is not a valid QC Type alias. Try /{nameof(context.QCTypeAliases).Singularize()}=aliasedQCType;SamplesQCType[;ActivityNameSuffix]. Allowed Samples QC types are {string.Join(", ", Enum.GetNames(typeof(QualityControlType)))}");
 
             if (context.QCTypeAliases.TryGetValue(aliasedQcType, out var existingAlias))
-                throw new ExpectedException($"Can't set QC Type alias for '{aliasedQcType}' more than once. This QC Type is already aliased to '{existingAlias}'");
+                throw new ExpectedException($"Can't set QC Type alias for '{aliasedQcType}' more than once. This QC Type is already aliased to '{existingAlias.QualityControlType}' with an ActivityNameSuffix='{existingAlias.ActivityNameSuffix}'");
 
-            context.QCTypeAliases[aliasedQcType] = samplesQcType;
+            context.QCTypeAliases[aliasedQcType] = new Context.QcTypeAlias
+            {
+                Alias = aliasedQcType,
+                QualityControlType = samplesQcType,
+                ActivityNameSuffix = activityNameSuffix
+            };
         }
 
         private static void ParseObservedPropertyAlias(Context context, string text)
