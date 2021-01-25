@@ -157,7 +157,7 @@ namespace LabFileImporter
 
             foreach (var kvp in Context.QCTypeAliases.OrderBy(kvp => kvp.Key))
             {
-                qcTypeAliasesListView.Items.Add(CreateListViewItem(kvp.Key, $"{kvp.Value}"));
+                qcTypeAliasesListView.Items.Add(CreateListViewItem(kvp.Key, $"{kvp.Value.QualityControlType}", $"{kvp.Value.ActivityNameSuffix}"));
             }
 
             OnServerConfigChanged();

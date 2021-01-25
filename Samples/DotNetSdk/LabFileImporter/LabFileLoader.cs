@@ -255,9 +255,12 @@ namespace LabFileImporter
 
             var qcTypeText = GetNullableString(reader, format.CommonColumns[QcType]);
 
+            var activityNameSuffix = string.Empty;
+
             if (Context.QCTypeAliases.TryGetValue(qcTypeText, out var aliasedQcType))
             {
-                qcTypeText = $"{aliasedQcType}";
+                qcTypeText = $"{aliasedQcType.QualityControlType}";
+                activityNameSuffix = aliasedQcType.ActivityNameSuffix;
             }
             else if (Enum.TryParse<QualityControlType>(qcTypeText, true, out var qualityControlType))
             {
@@ -298,7 +301,7 @@ namespace LabFileImporter
                 ResultStatus = isFieldResult ? Context.FieldResultStatus : Context.LabResultStatus,
                 ResultGrade = resultGrade,
                 Medium = sampleMatrix ?? Context.DefaultMedium,
-                ActivityName = isFieldResult ? null : $"{dateTimeOffset:ddMMMyyyy}-{siteCode}-{dateTimeOffset:HH:mm}",
+                ActivityName = isFieldResult ? null : $"{dateTimeOffset:ddMMMyyyy}-{siteCode}-{dateTimeOffset:HH:mm}{activityNameSuffix}",
                 LabSpecimenName = isFieldResult ? null : Context.LabSpecimenName,
                 LabAnalysisMethod = isFieldResult ? null : labAnalysisMethod,
                 LabDetectionCondition = isFieldResult ? null : string.IsNullOrEmpty(mrl) ? null : Context.NonDetectCondition,

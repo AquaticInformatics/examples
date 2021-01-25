@@ -15,7 +15,7 @@ namespace LabFileImporter
         public Dictionary<string,string> LocationAliases { get; } = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
         public Dictionary<string, AliasedProperty> ObservedPropertyAliases { get; } = new Dictionary<string, AliasedProperty>(StringComparer.InvariantCultureIgnoreCase);
         public Dictionary<string, string> MethodAliases { get; } = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
-        public Dictionary<string, QualityControlType?> QCTypeAliases { get; } = new Dictionary<string, QualityControlType?>(StringComparer.InvariantCultureIgnoreCase);
+        public Dictionary<string, QcTypeAlias> QCTypeAliases { get; } = new Dictionary<string, QcTypeAlias>(StringComparer.InvariantCultureIgnoreCase);
         public List<string> Files { get; } = new List<string>();
         public bool DryRun { get; set; }
         public string ResultGrade { get; set; }
@@ -44,6 +44,13 @@ namespace LabFileImporter
             public string AliasedUnitId { get; set; }
 
             public string Key => $"{PropertyId}:{UnitId}";
+        }
+
+        public class QcTypeAlias
+        {
+            public string Alias { get; set; }
+            public QualityControlType? QualityControlType { get; set; }
+            public string ActivityNameSuffix { get; set; }
         }
     }
 }
