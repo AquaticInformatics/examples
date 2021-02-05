@@ -16,6 +16,7 @@ using SamplesPlannedSpecimenInstantiator;
 using SamplesPlannedSpecimenInstantiator.PrivateApis;
 using ServiceStack;
 using ServiceStack.Text;
+using Config = SamplesPlannedSpecimenInstantiator.Config;
 
 namespace SamplesTripScheduler
 {
