@@ -4,7 +4,7 @@ This Windows console app checks lab observations against a set of rules. A quali
 
 ## Prerequisites
 * Visual Studio 2017 to build the executable.
-* .Net Framework 4.7 to run the app.
+* .Net Framework 4.7.2 to run the app.
 * An [AQUARIUS Samples](http://aquaticinformatics.com/products/aquarius-samples/) account.
 
 ## Configuration 

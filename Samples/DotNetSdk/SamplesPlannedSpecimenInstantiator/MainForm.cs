@@ -4,16 +4,19 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
 using System.Windows.Forms;
 using Aquarius.Helpers;
 using Aquarius.Samples.Client;
 using Aquarius.Samples.Client.ServiceModel;
 using Humanizer;
 using log4net;
+using NodaTime;
 using SamplesPlannedSpecimenInstantiator;
 using SamplesPlannedSpecimenInstantiator.PrivateApis;
 using ServiceStack;
 using ServiceStack.Text;
+using Config = SamplesPlannedSpecimenInstantiator.Config;
 
 namespace SamplesTripScheduler
 {
@@ -220,10 +223,12 @@ namespace SamplesTripScheduler
 
         private void LoadTripsWithPlannedVisits()
         {
-            var plannedVisits = _client.Get(new GetFieldVisits
-            {
-                PlanningStatuses = new List<string> {$"{PlanningStatusType.PLANNED}"}
-            }).DomainObjects;
+            var plannedVisits = _client.LazyGet<FieldVisitSimple, HackedGetFieldVisits, SearchResultFieldVisitSimple>(
+                    new HackedGetFieldVisits
+                    {
+                        PlanningStatuses = new List<string> {$"{PlanningStatusType.PLANNED}"},
+                    }).DomainObjects
+                .ToList();
 
             var plannedTripVisits = plannedVisits
                 .Where(v => v.StartTime.HasValue && v.FieldTrip != null)
@@ -273,6 +278,37 @@ namespace SamplesTripScheduler
             tripDataGridView.Enabled = true;
 
             Info($"{"trip".ToQuantity(tripsWithPlannedVisits.Sum(k => k.Value.Count))} with planned visits.");
+        }
+
+        // Heacked until 2020.6 is releases with true pagination support in the DTOs
+        [DataContract]
+        [Route("/v1/fieldvisits", "GET")]
+        public class HackedGetFieldVisits : IReturn<SearchResultFieldVisitSimple>, IPaginatedRequest
+        {
+            [DataMember(Name = "cursor")]
+            public string Cursor { get; set; }
+            [DataMember(Name = "end-startTime")]
+            public Instant? EndStartTime { get; set; }
+            [DataMember(Name = "fieldTripIds")]
+            public List<string> FieldTripIds { get; set; }
+            [DataMember(Name = "ids")]
+            public List<string> Ids { get; set; }
+            [DataMember(Name = "limit")]
+            public int? Limit { get; set; }
+            [DataMember(Name = "planningStatuses")]
+            public List<string> PlanningStatuses { get; set; }
+            [DataMember(Name = "projectIds")]
+            public List<string> ProjectIds { get; set; }
+            [DataMember(Name = "samplingLocationIds")]
+            public List<string> SamplingLocationIds { get; set; }
+            [DataMember(Name = "scheduleIds")]
+            public List<string> ScheduleIds { get; set; }
+            [DataMember(Name = "search")]
+            public List<string> Search { get; set; }
+            [DataMember(Name = "sort")]
+            public string Sort { get; set; }
+            [DataMember(Name = "start-startTime")]
+            public Instant? StartStartTime { get; set; }
         }
 
         private bool IsCandidateVisit(FieldVisit visit)

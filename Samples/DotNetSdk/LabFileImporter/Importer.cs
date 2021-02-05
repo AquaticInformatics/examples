@@ -152,8 +152,7 @@ namespace LabFileImporter
                 var errors = (Context.VerboseErrors ? rowErrors : distinctErrors) ?? emptyList;
 
                 var summaryMessages = (response.ImportJobErrors?.Select(e => e.ErrorMessage) ?? emptyList)
-                    .Concat(response
-                        .SummaryReportText
+                    .Concat((response.SummaryReportText ?? string.Empty)
                         .Split('\n'))
                     .Concat(errors.Count > Context.ErrorLimit
                         ? new[] {$"Showing first {Context.ErrorLimit} of {errors.Count} errors:"}

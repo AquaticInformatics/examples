@@ -153,8 +153,7 @@ namespace ObservationValidator
 
         private static bool IsNonDetected(Observation observation)
         {
-            return observation?.NumericResult != null && 
-                observation.NumericResult.DetectionCondition == DetectionConditionType.NOT_DETECTED;
+            return "NOT_DETECTED".Equals(observation?.NumericResult?.DetectionCondition?.SystemCode, StringComparison.InvariantCultureIgnoreCase);
         }
 
         private bool HasDifferentUnit(Observation left, Observation right)
