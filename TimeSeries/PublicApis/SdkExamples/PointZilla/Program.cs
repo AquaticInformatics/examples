@@ -164,6 +164,8 @@ namespace PointZilla
                 new Option {Key = nameof(context.WaveformPhase), Setter = value => context.WaveformPhase = double.Parse(value), Getter = () => context.WaveformPhase.ToString(CultureInfo.InvariantCulture), Description = "Phase within one waveform period"},
                 new Option {Key = nameof(context.WaveformScalar), Setter = value => context.WaveformScalar = double.Parse(value), Getter = () => context.WaveformScalar.ToString(CultureInfo.InvariantCulture), Description = "Scale the waveform by this amount"},
                 new Option {Key = nameof(context.WaveformPeriod), Setter = value => context.WaveformPeriod = double.Parse(value), Getter = () => context.WaveformPeriod.ToString(CultureInfo.InvariantCulture), Description = "Waveform period before repeating"},
+                new Option {Key = nameof(context.WaveFormTextX), Setter = value => context.WaveFormTextX = value, Getter = () => context.WaveFormTextX, Description = "Select the X values of the vectorized text"},
+                new Option {Key = nameof(context.WaveFormTextY), Setter = value => context.WaveFormTextY = value, Getter = () => context.WaveFormTextY, Description = "Select the Y values of the vectorized text"},
 
                 new Option(), new Option {Description = "CSV parsing options:"},
                 new Option {Key = "CSV", Setter = value => context.CsvFiles.Add(value), Getter = () => string.Join(", ", context.CsvFiles), Description = "Parse the CSV file"},

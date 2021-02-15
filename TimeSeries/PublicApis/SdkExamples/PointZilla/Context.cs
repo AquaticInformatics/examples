@@ -67,6 +67,8 @@ namespace PointZilla
         public double WaveformPhase { get; set; } = 0;
         public double WaveformScalar { get; set; } = 1;
         public double WaveformPeriod { get; set; } = 1440;
+        public string WaveFormTextX { get; set; }
+        public string WaveFormTextY { get; set; }
 
         public List<string> CsvFiles { get; set; } = new List<string>();
 

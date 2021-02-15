@@ -53,6 +53,9 @@
     <Reference Include="ExcelDataReader.DataSet, Version=3.6.0.0, Culture=neutral, PublicKeyToken=93517dbe6a4012fa, processorArchitecture=MSIL">
       <HintPath>..\packages\ExcelDataReader.DataSet.3.6.0\lib\net35\ExcelDataReader.DataSet.dll</HintPath>
     </Reference>
+    <Reference Include="Humanizer, Version=2.8.0.0, Culture=neutral, PublicKeyToken=979442b78dfc278e, processorArchitecture=MSIL">
+      <HintPath>..\packages\Humanizer.Core.2.8.26\lib\netstandard2.0\Humanizer.dll</HintPath>
+    </Reference>
     <Reference Include="log4net, Version=2.0.12.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <HintPath>..\packages\log4net.2.0.12\lib\net45\log4net.dll</HintPath>
     </Reference>
@@ -115,9 +118,12 @@
     <Compile Include="CreateMode.cs" />
     <Compile Include="CsvReader.cs" />
     <Compile Include="CsvWriter.cs" />
+    <Compile Include="DoubleHelper.cs" />
     <Compile Include="ExpectedException.cs" />
     <Compile Include="ExternalPointsReader.cs" />
+    <Compile Include="TextGenerator.cs" />
     <Compile Include="TimeSeriesCreator.cs" />
+    <Compile Include="VectorFont.cs" />
     <Compile Include="WaveformGenerator.cs" />
     <Compile Include="WaveformType.cs" />
     <Compile Include="Option.cs" />

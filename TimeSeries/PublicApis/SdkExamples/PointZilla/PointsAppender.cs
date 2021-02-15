@@ -263,6 +263,10 @@ namespace PointZilla
                 return new CsvReader(Context)
                     .LoadPoints();
 
+            if (!string.IsNullOrEmpty(Context.WaveFormTextX) || !string.IsNullOrEmpty(Context.WaveFormTextY))
+                return new TextGenerator(Context)
+                    .GeneratePoints();
+
             return new WaveformGenerator(Context)
                 .GeneratePoints();
         }
