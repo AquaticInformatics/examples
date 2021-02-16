@@ -6,6 +6,7 @@ using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
+using Humanizer;
 using Get3xCorrectedData = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.TimeSeriesDataCorrectedServiceRequest;
 using Get3xTimeSeriesDescription = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.TimeSeriesDescriptionServiceRequest;
 using NodaTime;
@@ -92,7 +93,7 @@ namespace PointZilla
                 gapTolerance,
                 interpolationType);
 
-            Log.Info($"Loaded {points.Count} points from {timeSeriesInfo.Identifier}");
+            Log.Info($"Loaded {"point".ToQuantity(points.Count)} from {timeSeriesInfo.Identifier}");
 
             return points;
         }
@@ -215,7 +216,7 @@ namespace PointZilla
 
             SetTimeSeriesCreationProperties(timeSeries, interpolationType: interpolationType);
 
-            Log.Info($"Loaded {points.Count} points from {Context.SourceTimeSeries.Identifier}");
+            Log.Info($"Loaded {"point".ToQuantity(points.Count)} from {Context.SourceTimeSeries.Identifier}");
 
             return points;
         }

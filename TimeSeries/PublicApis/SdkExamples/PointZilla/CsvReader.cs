@@ -8,6 +8,7 @@ using System.Reflection;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using ExcelDataReader;
 using ExcelDataReader.Exceptions;
+using Humanizer;
 using Microsoft.VisualBasic.FileIO;
 using NodaTime;
 using NodaTime.Text;
@@ -128,7 +129,7 @@ namespace PointZilla
                 }
             }
 
-            Log.Info($"Loaded {points.Count} points from '{path}'.");
+            Log.Info($"Loaded {"point".ToQuantity(points.Count)} from '{path}'.");
 
             return points;
         }

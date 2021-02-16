@@ -6,6 +6,7 @@ using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
+using Humanizer;
 using NodaTime;
 using ServiceStack.Logging;
 using InterpolationType = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.InterpolationType;
@@ -153,7 +154,7 @@ namespace PointZilla
 
             if (unknownAttributes.Any())
             {
-                Log.Warn($"Ignoring {unknownAttributes.Count} unknown extended attributes: {string.Join(", ", unknownAttributes.Select(a => $"{a.ColumnIdentifier}={a.Value}"))}");
+                Log.Warn($"Ignoring {"unknown extended attribute".ToQuantity(unknownAttributes.Count)}: {string.Join(", ", unknownAttributes.Select(a => $"{a.ColumnIdentifier}={a.Value}"))}");
             }
 
             return Context

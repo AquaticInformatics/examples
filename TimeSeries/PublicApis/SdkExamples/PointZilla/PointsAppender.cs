@@ -6,6 +6,7 @@ using System.Reflection;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
+using Humanizer;
 using NodaTime;
 using ServiceStack.Logging;
 using PostReflectedTimeSeries = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.PostReflectedTimeSeries;
@@ -73,14 +74,14 @@ namespace PointZilla
                 var hasTimeRange = isReflected || DeleteCommands.Contains(Context.Command) || Context.Command == CommandType.OverwriteAppend;
 
                 var pointExtents = Points.Any()
-                    ? $"points [{Points.First().Time} to {Points.Last().Time}]"
-                    : "points";
+                    ? $" [{Points.First().Time} to {Points.Last().Time}]"
+                    : "";
 
                 Log.Info(Context.Command == CommandType.DeleteAllPoints
                     ? $"Deleting all existing points from {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
                     : hasTimeRange
-                        ? $"Appending {Points.Count} {pointExtents} within TimeRange={GetTimeRange()} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
-                        : $"Appending {Points.Count} {pointExtents} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ...");
+                        ? $"Appending {"point".ToQuantity(Points.Count)} {pointExtents} within TimeRange={GetTimeRange()} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
+                        : $"Appending {"point".ToQuantity(Points.Count)} {pointExtents} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ...");
 
                 var numberOfPointsAppended = 0;
                 var numberOfPointsDeleted = 0;
@@ -95,7 +96,7 @@ namespace PointZilla
                     if (isBatched)
                     {
                         var batchSummary =
-                            $"Appending batch #{batchIndex}: {batch.Points.Count} points [{batch.Points.First().Time} to {batch.Points.Last().Time}]";
+                            $"Appending batch #{batchIndex}: {"point".ToQuantity(batch.Points.Count)} [{batch.Points.First().Time} to {batch.Points.Last().Time}]";
 
                         Log.Info( hasTimeRange
                             ? $"{batchSummary} within TimeRange={batch.TimeRange} ..."
@@ -111,8 +112,8 @@ namespace PointZilla
                         throw new ExpectedException($"Unexpected append status={result.AppendStatus}");
                 }
 
-                var batchText = isBatched ? $" using {pointBatches.Count} appends" : "";
-                Log.Info($"Appended {numberOfPointsAppended} points (deleting {numberOfPointsDeleted} points) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds{batchText}.");
+                var batchText = isBatched ? $" using {"append".ToQuantity(pointBatches.Count)}" : "";
+                Log.Info($"Appended {"point".ToQuantity(numberOfPointsAppended)} (deleting {"point".ToQuantity(numberOfPointsDeleted)}) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds{batchText}.");
             }
         }
 
