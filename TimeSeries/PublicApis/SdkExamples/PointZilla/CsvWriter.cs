@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
+using Humanizer;
 using NodaTime;
 using NodaTime.Text;
 using ServiceStack.Logging;
@@ -28,7 +29,7 @@ namespace PointZilla
                 ? Path.Combine(Context.SaveCsvPath, SanitizeFilename($"{timeSeriesIdentifier.Identifier}.{CreatePeriod(Context.SourceQueryFrom, Context.SourceQueryTo)}.csv"))
                 : Context.SaveCsvPath;
 
-            Log.Info($"Saving {points.Count} extracted points to '{csvPath}' ...");
+            Log.Info($"Saving {"extracted point".ToQuantity(points.Count)} to '{csvPath}' ...");
 
             var dir = Path.GetDirectoryName(csvPath);
 
