@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
@@ -49,7 +50,7 @@ namespace PointZilla
                 var startX = x;
                 var startY = y;
 
-                foreach (var point in symbol.Points)
+                foreach (var point in symbol.Lines.SelectMany(RenderLine))
                 {
                     points.Add(new TimeSeriesPoint
                     {
@@ -65,9 +66,59 @@ namespace PointZilla
                 x += symbol.Width * Context.WaveformScalar;
             }
 
-            Log.Info($"Generated {"vector-text point".ToQuantity(points.Count)} points. Scatter-plot X vs Y to read the message.");
+            Log.Info($"Generated {"vector-text point".ToQuantity(points.Count)}. Scatter-plot X vs Y to read the message.");
 
             return points;
+        }
+
+        private class Point
+        {
+            public double X { get; }
+            public double Y { get; }
+
+            public Point(double x, double y)
+            {
+                X = x;
+                Y = y;
+            }
+        }
+
+        private IEnumerable<Point> RenderLine(VectorFont.Symbol.Line line)
+        {
+            var dX = Math.Abs(line.End.X - line.Start.X);
+            var dY = Math.Abs(line.End.Y - line.Start.Y);
+
+            int steps;
+
+            if (dX > dY)
+            {
+                steps = dX;
+            }
+            else
+            {
+                if (dY <= 0)
+                    throw new ExpectedException($"Unable to render line with dX={dX} and dy={dY}");
+
+                steps = dY;
+            }
+
+            steps *= 2;
+
+            var deltaX = (double)(line.End.X - line.Start.X) / steps;
+            var deltaY = (double)(line.End.Y - line.Start.Y) / steps;
+
+            var x = (double)line.Start.X;
+            var y = (double)line.Start.Y;
+
+            while (steps > 0)
+            {
+                yield return new Point(x, y);
+
+                x += deltaX;
+                y += deltaY;
+
+                --steps;
+            }
         }
     }
 }
