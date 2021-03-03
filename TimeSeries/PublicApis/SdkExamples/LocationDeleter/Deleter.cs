@@ -1099,7 +1099,12 @@ namespace LocationDeleter
             }
 
             // We can't recreate a location in 3.X, so no need to return a provisioning object
-            return null;
+            return new Location
+            {
+                Identifier = locationInfo.Identifier,
+                LocationName = locationInfo.LocationName,
+                UniqueId = locationInfo.UniqueId ?? Guid.Empty
+            };
         }
 
         private SearchLocation GetSiteVisitLocation(TimeSeriesDescription timeSeriesDescription)
