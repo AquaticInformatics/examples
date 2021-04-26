@@ -350,6 +350,7 @@ Supported -option=value settings (/option=value works too):
   -Server                   AQTS server name
   -Username                 AQTS username [default: admin]
   -Password                 AQTS password [default: admin]
+  -SessionToken
   -Wait                     Wait for the append request to complete [default: True]
   -AppendTimeout            Timeout period for append completion, in .NET TimeSpan format.
   -BatchSize                Maximum number of points to send in a single append request [default: 500000]
@@ -398,6 +399,8 @@ Supported -option=value settings (/option=value works too):
   -WaveformPhase            Phase within one waveform period [default: 0]
   -WaveformScalar           Scale the waveform by this amount [default: 1]
   -WaveformPeriod           Waveform period before repeating [default: 1440]
+  -WaveFormTextX            Select the X values of the vectorized text
+  -WaveFormTextY            Select the Y values of the vectorized text
 
   ========================= CSV parsing options:
   -CSV                      Parse the CSV file
@@ -416,6 +419,7 @@ Supported -option=value settings (/option=value works too):
   -CsvIgnoreInvalidRows     Ignore CSV rows that can't be parsed [default: True]
   -CsvRealign               Realign imported CSV points to the /StartTime value [default: False]
   -CsvRemoveDuplicatePoints Remove duplicate points in the CSV before appending. [default: True]
+  -CsvDelimiter             Delimiter between CSV fields. [default: ,]
   -CsvFormat                Shortcut for known CSV formats. One of 'NG', '3X', or 'PointZilla'. [default: NG]
   -ExcelSheetNumber         Excel worksheet number to parse [default to first sheet]
   -ExcelSheetName           Excel worksheet name to parse [default to first sheet]

@@ -284,10 +284,14 @@ namespace PointZilla
         {
             var points = new List<TimeSeriesPoint>();
 
+            var csvDelimiter = string.IsNullOrEmpty(Context.CsvDelimiter)
+                ? ","
+                : Context.CsvDelimiter;
+
             var parser = new TextFieldParser(path)
             {
                 TextFieldType = FieldType.Delimited,
-                Delimiters = new[] { "," },
+                Delimiters = new[] { csvDelimiter },
                 TrimWhiteSpace = true
             };
 
