@@ -12,6 +12,10 @@ namespace PointZilla
         public string Label { get; set; }
         public string LocationIdentifier { get; set; }
 
+        public string TargetIdentifier => LocationIdentifier.Contains(".")
+            ? $"{Parameter}.{Label}@{LocationIdentifier.Replace(".", "\\.")}"
+            : Identifier;
+
         public static bool TryParse(string text, out TimeSeriesIdentifier timeSeriesIdentifier)
         {
             timeSeriesIdentifier = TimeSeriesIdentifierParser.ParseExtendedIdentifier(text);
