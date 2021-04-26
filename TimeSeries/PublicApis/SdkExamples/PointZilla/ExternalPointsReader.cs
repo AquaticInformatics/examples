@@ -156,7 +156,7 @@ namespace PointZilla
                     Parameter = Context.SourceTimeSeries.Parameter
                 })
                 .TimeSeriesDescriptions
-                .SingleOrDefault(ts => ts.Identifier == Context.SourceTimeSeries.Identifier);
+                .SingleOrDefault(ts => ts.Identifier == Context.SourceTimeSeries.TargetIdentifier);
 
             if (timeSeriesDescription == null)
                 throw new ExpectedException($"Can't find '{Context.SourceTimeSeries.Identifier}' time-series in location '{Context.SourceTimeSeries.LocationIdentifier}'.");
@@ -209,7 +209,7 @@ namespace PointZilla
                         new ExtendedAttributeValue
                         {
                             ColumnIdentifier = $"{ea.Name.ToUpperInvariant()}@TIMESERIES_EXTENSION",
-                            Value = ea.Value.ToString()
+                            Value = ea.Value?.ToString()
                         })
                     .ToList()
             };
