@@ -420,6 +420,7 @@ Supported -option=value settings (/option=value works too):
   -CsvRealign               Realign imported CSV points to the /StartTime value [default: False]
   -CsvRemoveDuplicatePoints Remove duplicate points in the CSV before appending. [default: True]
   -CsvDelimiter             Delimiter between CSV fields. [default: ,]
+  -CsvNanValue              Special value text used to represent NaN values
   -CsvFormat                Shortcut for known CSV formats. One of 'NG', '3X', or 'PointZilla'. [default: NG]
   -ExcelSheetNumber         Excel worksheet number to parse [default to first sheet]
   -ExcelSheetName           Excel worksheet name to parse [default to first sheet]

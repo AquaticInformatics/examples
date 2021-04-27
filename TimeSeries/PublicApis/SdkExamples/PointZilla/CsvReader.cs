@@ -221,23 +221,45 @@ namespace PointZilla
                     var dateOnly = DateTime.MinValue;
                     var timeOnly = DefaultTimeOfDay;
 
-                    ParseColumn<DateTime>(row, Context.CsvDateOnlyField, dateTime => dateOnly = dateTime.Date);
+                    ParseExcelColumn<DateTime>(row, Context.CsvDateOnlyField, dateTime => dateOnly = dateTime.Date);
 
                     if (Context.CsvTimeOnlyField > 0)
                     {
-                        ParseColumn<DateTime>(row, Context.CsvTimeOnlyField, dateTime => timeOnly = dateTime.TimeOfDay);
+                        ParseExcelColumn<DateTime>(row, Context.CsvTimeOnlyField, dateTime => timeOnly = dateTime.TimeOfDay);
                     }
 
                     time = InstantFromDateTime(dateOnly.Add(timeOnly));
                 }
                 else
                 {
-                    ParseColumn<DateTime>(row, Context.CsvDateTimeField, dateTime => time = InstantFromDateTime(dateTime));
+                    ParseExcelColumn<DateTime>(row, Context.CsvDateTimeField, dateTime => time = InstantFromDateTime(dateTime));
                 }
 
-                ParseColumn<double>(row, Context.CsvValueField, number => value = number);
-                ParseColumn<double>(row, Context.CsvGradeField, number => gradeCode = (int)number);
-                ParseStringColumn(row, Context.CsvQualifiersField, text => qualifiers = QualifiersParser.Parse(text));
+                if (string.IsNullOrEmpty(Context.CsvNanValue))
+                {
+                    ParseExcelColumn<double>(row, Context.CsvValueField, number => value = number);
+                }
+                else
+                {
+                    // Detecting the NaN value is a bit more tricky.
+                    // The column might have been converted as a pure string like "NA" or it could be a double like -9999.0
+                    ParseValidExcelColumn(row, Context.CsvValueField, item =>
+                    {
+                        if (!(item is string itemText))
+                        {
+                            itemText = Convert.ToString(item);
+                        }
+
+                        if (Context.CsvNanValue == itemText)
+                            return;
+
+                        if (item is double number)
+                            value = number;
+                    });
+                }
+
+                ParseExcelColumn<double>(row, Context.CsvGradeField, number => gradeCode = (int)number);
+                ParseExcelStringColumn(row, Context.CsvQualifiersField, text => qualifiers = QualifiersParser.Parse(text));
 
                 return new TimeSeriesPoint
                 {
@@ -256,24 +278,27 @@ namespace PointZilla
             }
         }
 
-        private static void ParseColumn<T>(DataRow row, int fieldIndex, Action<T> parseAction) where T : struct
+        private static void ParseExcelColumn<T>(DataRow row, int fieldIndex, Action<T> parseAction) where T : struct
+        {
+            ParseValidExcelColumn(row, fieldIndex, item => parseAction((T)item));
+        }
+
+        private static void ParseExcelStringColumn(DataRow row, int fieldIndex, Action<string> parseAction)
+        {
+            ParseValidExcelColumn(row, fieldIndex, item =>
+            {
+                if (item is string text && !string.IsNullOrWhiteSpace(text))
+                    parseAction(text);
+            });
+        }
+
+        private static void ParseValidExcelColumn(DataRow row, int fieldIndex, Action<object> parseAction)
         {
             if (fieldIndex > 0 && row.Table.Columns.Count > fieldIndex - 1)
             {
                 var item = row[fieldIndex - 1];
 
                 if (item != null)
-                {
-                    parseAction((T) item);
-                }
-            }
-        }
-
-        private static void ParseStringColumn(DataRow row, int fieldIndex, Action<string> parseAction)
-        {
-            if (fieldIndex > 0 && row.Table.Columns.Count > fieldIndex - 1)
-            {
-                if (row[fieldIndex - 1] is string item && !string.IsNullOrWhiteSpace(item))
                 {
                     parseAction(item);
                 }
@@ -383,14 +408,19 @@ namespace PointZilla
                     return;
                 }
 
+                if (Context.CsvNanValue == text)
+                    return;
+
                 if (double.TryParse(text, out var numericValue))
                     value = numericValue;
             });
+
             ParseField(fields, Context.CsvGradeField, text =>
             {
                 if (int.TryParse(text, out var grade))
                     gradeCode = grade;
             });
+
             ParseField(fields, Context.CsvQualifiersField, text => qualifiers = QualifiersParser.Parse(text));
 
             if ((pointType == null || pointType == PointType.Unknown) && time == null)
