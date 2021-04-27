@@ -88,6 +88,7 @@ namespace PointZilla
         public bool CsvRealign { get; set; }
         public bool CsvRemoveDuplicatePoints { get; set; } = true;
         public string CsvDelimiter { get; set; } = ",";
+        public string CsvNanValue { get; set; }
         public int? ExcelSheetNumber { get; set; }
         public string ExcelSheetName { get; set; }
     }
