@@ -156,11 +156,14 @@
     <None Include="FodyWeavers.xml" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="docker\AdminProfilesMenu.png" />
     <Content Include="docker\ClickHereToStartInstallation.png" />
     <Content Include="docker\ConfirmDataSourceStep.png" />
     <Content Include="docker\DisableTransactionalCheckbox.png" />
     <Content Include="docker\FinishInstall.png" />
+    <Content Include="docker\HydrologyProfileEnabled.png" />
     <Content Include="docker\InstallStartPage.png" />
+    <Content Include="docker\ProfileConfigurationList.png" />
     <Content Include="docker\SelectDataSource.png" />
     <Content Include="docker\SelectTransactionalSecurityTab.png" />
     <Content Include="docker\SetupCompleted.png" />
