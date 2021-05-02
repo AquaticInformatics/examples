@@ -74,18 +74,7 @@ namespace SosExporter
 
             LoginRoute = isOldVersion ? "j_spring_security_check" : "login";
             LogoutRoute = isOldVersion ? "j_spring_security_logout" : "logout";
-
-            if (isOldVersion)
-            {
-                GetObservationsFunc = GetObservations40;
-            }
-            else
-            {
-                GetObservationsFunc = GetObservations44;
-            }
         }
-
-        private Func<TimeSeriesDescription, DateTimeOffset, DateTimeOffset, List<TimeSeriesPoint>> GetObservationsFunc { get; set; }
 
         public static void ConfigureJsonOnce()
         {
@@ -568,45 +557,7 @@ namespace SosExporter
 
         public List<TimeSeriesPoint> GetObservations(TimeSeriesDescription timeSeriesDescription, DateTimeOffset startTime, DateTimeOffset endTime)
         {
-            return GetObservationsFunc(timeSeriesDescription, startTime, endTime);
-        }
-
-        private List<TimeSeriesPoint> GetObservations44(TimeSeriesDescription timeSeriesDescription, DateTimeOffset startTime, DateTimeOffset endTime)
-        {
-            var request = new GetObservationRequest44
-            {
-                ObservedProperty =
-                    CreateObservedPropertyName(timeSeriesDescription.Parameter, timeSeriesDescription.Label),
-                FeatureOfInterest = CreateFeatureOfInterestId(timeSeriesDescription.LocationIdentifier),
-                TemporalFilter = CreateTemporalFilter(startTime, endTime)
-            };
-
-            var response = JsonClient.Get(request);
-
-            ThrowIfSosException(response);
-
-            if (response?.Observations == null)
-                return new List<TimeSeriesPoint>();
-
-            return response
-                .Observations
-                .Select(o => new TimeSeriesPoint
-                {
-                    Timestamp = new StatisticalDateTimeOffset
-                    {
-                        DateTimeOffset = o.PhenomenonTime
-                    },
-                    Value = new DoubleWithDisplay
-                    {
-                        Numeric = o.Result?.Value
-                    }
-                })
-                .ToList();
-        }
-
-        private List<TimeSeriesPoint> GetObservations40(TimeSeriesDescription timeSeriesDescription, DateTimeOffset startTime, DateTimeOffset endTime)
-        {
-            var request = new GetObservationRequest40
+            var request = new GetWml2ObservationRequest
             {
                 ObservedProperty =
                     CreateObservedPropertyName(timeSeriesDescription.Parameter, timeSeriesDescription.Label),
@@ -619,6 +570,8 @@ namespace SosExporter
             ThrowIfSosException(response);
             if (response == null)
                 return new List<TimeSeriesPoint>();
+
+            ThrowIfHydrologyProfileIsMissing(response);
 
             var observation = response
                 .Observations
@@ -644,9 +597,22 @@ namespace SosExporter
                 .ToList();
         }
 
+        private void ThrowIfHydrologyProfileIsMissing(GetWml2ObservationResponse response)
+        {
+            if (response.Observations.Any(IsInvalidWml2ProfileResponse))
+                throw new ExpectedException($"Invalid SOS Server configuration. Please activate the 'HYDROLOGY_PROFILE' on the {JsonClient.BaseUri}/admin/profiles page.");
+        }
+
         private string CreateTemporalFilter(DateTimeOffset startTime, DateTimeOffset endTime)
         {
             return $"om:phenomenonTime,{startTime:O}/{endTime:O}";
+        }
+
+        private bool IsInvalidWml2ProfileResponse(Wml2Observation observation)
+        {
+            return observation.Result.Fields == null
+                   && observation.Result.Values == null
+                   && observation.Type != "http://www.opengis.net/def/observationType/OGC-OM/2.0/OM_SWEArrayObservation";
         }
     }
 }

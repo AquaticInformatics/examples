@@ -59,6 +59,18 @@ Enter an admin username and password and click **Install**
 
 ![Finish Install](FinishInstall.png)
 
-Your SOS server configuration is complete.
+Your basic SOS server configuration is complete, but there is one configuration step remaining.
 
 ![Setup Completed](SetupCompleted.png)
+
+You will need to enable the WML2.0 Hydrology Profile, in the **Admin | Settings | Profiles** menu.
+
+![Admin Profiles Menu](AdminProfilesMenu.png)
+
+Select the **HYDROLOGY_PROFILE** from the drop-down list and click the **Activate Profile!** button.
+
+![Profile Configuration List](ProfileConfigurationList.png)
+
+Once you see the confirmation that the Hydrology profile has been enabled, then your SOS server is correctly configured for WML 2.0 output.
+
+![Hydrology Profile Enabled](HydrologyProfileEnabled.png)
