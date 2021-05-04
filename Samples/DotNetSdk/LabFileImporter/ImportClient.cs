@@ -44,36 +44,51 @@ namespace LabFileImporter
             };
         }
 
+        private FileUploader FileUploader { get; set; }
+
+        private void CreateUploader()
+        {
+            if (FileUploader != null)
+                return;
+
+            if (!(_samplesClient.Client is SamplesServiceClient client))
+                return;
+
+            FileUploader = FileUploader.Create(client.BaseUri, _context.ApiToken, client.UserAgent);
+        }
+
         public string PostImportDryRunForStatusUrl(string filename, byte[] contentBytes)
         {
+            CreateUploader();
+
             var importRequest = new PostObservationsDryRunV2
             {
                 FileType = "SIMPLE_CSV",
-                LinkFieldVisitsForNewObservations = false,
+                LinkFieldVisitsForNewObservations = true,
                 TimeZoneOffset = $"{_context.UtcOffset:m}"
             };
 
-            using (var stream = new MemoryStream(contentBytes))
-            {
-                _samplesClient.PostFileWithRequest(stream, filename, importRequest);
-                return _samplesClient.LocationResponseHeader;
-            }
+            return FileUploader.UploadFile(
+                $"/v2/observationimports/dryrun?fileType={importRequest.FileType}&linkFieldVisitsForNewObservations={importRequest.LinkFieldVisitsForNewObservations}&timeZoneOffset={importRequest.TimeZoneOffset}",
+                contentBytes,
+                filename);
         }
 
         public string PostImportForStatusUrl(string filename, byte[] contentBytes)
         {
+            CreateUploader();
+
             var importRequest = new PostObservationImportV2
             {
                 FileType = "SIMPLE_CSV",
-                LinkFieldVisitsForNewObservations = false,
+                LinkFieldVisitsForNewObservations = true,
                 TimeZoneOffset = $"{_context.UtcOffset:m}"
             };
 
-            using (var stream = new MemoryStream(contentBytes))
-            {
-                _samplesClient.PostFileWithRequest(stream, filename, importRequest);
-                return _samplesClient.LocationResponseHeader;
-            }
+            return FileUploader.UploadFile(
+                $"/v2/observationimports?fileType={importRequest.FileType}&linkFieldVisitsForNewObservations={importRequest.LinkFieldVisitsForNewObservations}&timeZoneOffset={importRequest.TimeZoneOffset}",
+                contentBytes,
+                filename);
         }
 
         public ImportStatus GetImportStatusUntilComplete(string statusUrl)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using Aquarius.Samples.Client;
 using Aquarius.Samples.Client.ServiceModel;
 using Humanizer;
@@ -151,9 +152,14 @@ namespace LabFileImporter
 
                 var errors = (Context.VerboseErrors ? rowErrors : distinctErrors) ?? emptyList;
 
+                if (string.IsNullOrWhiteSpace(response.SummaryReportText))
+                {
+                    // Fake the summary report text from the counts, to match the summary text from AQS 2020.5 and earlier.
+                    response.SummaryReportText = $"Import Summary Stats\nErrors: {response.ErrorCount}\nSuccesses: {response.SuccessCount}\nSkipped: {response.SkippedCount}\nNew: {response.NewCount}\nUpdated: {response.UpdateCount}";
+                }
+
                 var summaryMessages = (response.ImportJobErrors?.Select(e => e.ErrorMessage) ?? emptyList)
-                    .Concat((response.SummaryReportText ?? string.Empty)
-                        .Split('\n'))
+                    .Concat(response.SummaryReportText.Split('\n'))
                     .Concat(errors.Count > Context.ErrorLimit
                         ? new[] {$"Showing first {Context.ErrorLimit} of {errors.Count} errors:"}
                         : new string[0])
@@ -180,13 +186,18 @@ namespace LabFileImporter
         {
             using (var memoryStream = new MemoryStream())
             {
-                using (var writer = new StreamWriter(memoryStream))
+                using (var writer = new StreamWriter(memoryStream, Encoding.UTF8, 8192, true))
                 {
                     new CsvWriter()
                         .WriteObservations(writer, observations);
                 }
 
-                return memoryStream.GetBuffer();
+                memoryStream.Seek(0, SeekOrigin.Begin);
+
+                using (var reader = new BinaryReader(memoryStream))
+                {
+                    return reader.ReadBytes(Convert.ToInt32(memoryStream.Length));
+                }
             }
         }
     }

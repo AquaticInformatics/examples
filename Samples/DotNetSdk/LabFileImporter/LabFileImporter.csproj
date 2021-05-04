@@ -60,6 +60,9 @@
     <Reference Include="NodaTime, Version=1.3.0.0, Culture=neutral, PublicKeyToken=4226afe0d9b296d1, processorArchitecture=MSIL">
       <HintPath>..\packages\NodaTime.1.3.0\lib\net35-Client\NodaTime.dll</HintPath>
     </Reference>
+    <Reference Include="RestSharp, Version=106.11.7.0, Culture=neutral, PublicKeyToken=598062e77f915f75, processorArchitecture=MSIL">
+      <HintPath>..\packages\RestSharp.106.11.7\lib\net452\RestSharp.dll</HintPath>
+    </Reference>
     <Reference Include="ServiceStack.Client, Version=5.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
       <HintPath>..\packages\ServiceStack.Client.5.10.4\lib\net45\ServiceStack.Client.dll</HintPath>
     </Reference>
@@ -123,6 +126,7 @@
     <Compile Include="DualLogger.cs" />
     <Compile Include="ExeHelper.cs" />
     <Compile Include="ExpectedException.cs" />
+    <Compile Include="FileUploader.cs" />
     <Compile Include="ImportClient.cs" />
     <Compile Include="Importer.cs" />
     <Compile Include="ImportResultResponse.cs" />
