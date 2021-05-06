@@ -36,6 +36,7 @@ namespace SharpShooterReportsRunner
 
         private static string GetProgramName()
         {
+            // ReSharper disable once PossibleNullReferenceException
             return Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
         }
 
@@ -49,17 +50,111 @@ namespace SharpShooterReportsRunner
 
             var options = new[]
             {
-                new Option {Key = nameof(Context.Server), Setter = value => Context.Server = value, Getter = () => Context.Server, Description = "The AQTS app server from which time-series data will be retrieved."},
-                new Option {Key = nameof(Context.Username), Setter = value => Context.Username = value, Getter = () => Context.Username, Description = "AQTS username."},
-                new Option {Key = nameof(Context.Password), Setter = value => Context.Password = value, Getter = () => Context.Password, Description = "AQTS credentials."},
-                new Option {Key = nameof(Context.TemplatePath), Setter = value => Context.TemplatePath = value, Getter = () => Context.TemplatePath, Description = "Path of the SharpShooter Report template file (*.RST)"},
-                new Option {Key = nameof(Context.OutputPath), Setter = value => Context.OutputPath = value, Getter = () => Context.OutputPath, Description = "Path to the generated report output. Only PDF output is supported."},
-                new Option {Key = nameof(Context.LaunchReportDesigner), Setter = value => Context.LaunchReportDesigner = bool.Parse(value), Getter = () => Context.LaunchReportDesigner.ToString(), Description = "When true, launch the SharpShooter Report Designer."},
-                new Option {Key = "TimeSeries", Setter = value => Context.TimeSeries.Add(ParseTimeSeries(value)), Getter = () => string.Empty, Description = "Load the specified time-series as a dataset."},
-                new Option {Key = "RatingModel", Setter = value => Context.RatingModels.Add(ParseRatingModel(value)), Getter = () => string.Empty, Description = "Load the specified rating-model as a dataset."},
-                new Option {Key = "ExternalDataSet", Setter = value => Context.ExternalDataSets.Add(ParseExternalDataSet(value)), Getter = () => string.Empty, Description = "Load the external DataSet XML file."},
-                new Option {Key = nameof(Context.UploadedReportLocation), Setter = value => Context.UploadedReportLocation = value, Getter = () => Context.UploadedReportLocation, Description = "Upload the generated report to this AQTS location identifier."},
-                new Option {Key = nameof(Context.UploadedReportTitle), Setter = value => Context.UploadedReportTitle = value, Getter = () => Context.UploadedReportTitle, Description = "Upload the generated report with this title. Defaults to the -OutputPath value."},
+                new Option {Description = "AQUARIUS Time-Series connection options:"},
+                new Option
+                {
+                    Key = nameof(Context.Server),
+                    Setter = value => Context.Server = value,
+                    Getter = () => Context.Server
+                    , Description = "The AQTS app server from which time-series data will be retrieved."
+                },
+                new Option
+                {
+                    Key = nameof(Context.Username),
+                    Setter = value => Context.Username = value,
+                    Getter = () => Context.Username,
+                    Description = "AQTS username."
+                },
+                new Option
+                {
+                    Key = nameof(Context.Password),
+                    Setter = value => Context.Password = value,
+                    Getter = () => Context.Password,
+                    Description = "AQTS credentials."
+                },
+
+                new Option(), new Option {Description = "SharpShooter Reports options:"},
+                new Option
+                {
+                    Key = nameof(Context.TemplatePath),
+                    Setter = value => Context.TemplatePath = value,
+                    Getter = () => Context.TemplatePath,
+                    Description = "Path of the SharpShooter Reports template file (*.RST)"
+                },
+                new Option
+                {
+                    Key = nameof(Context.OutputPath),
+                    Setter = value => Context.OutputPath = value,
+                    Getter = () => Context.OutputPath,
+                    Description = "Path to the generated report output. Only PDF output is supported."
+                },
+                new Option
+                {
+                    Key = nameof(Context.LaunchReportDesigner),
+                    Setter = value => Context.LaunchReportDesigner = bool.Parse(value),
+                    Getter = () => Context.LaunchReportDesigner.ToString(),
+                    Description = "When true, launch the SharpShooter Report Designer."
+                },
+                
+                new Option(), new Option {Description = "Dataset options:"},
+                new Option
+                {
+                    Key = nameof(Context.QueryFrom),
+                    Setter = value => Context.QueryFrom = value,
+                    Getter = () => Context.QueryFrom,
+                    Description = "The starting point for all time-series. Can be overriden by individual series. [default: Beginning of record]"
+                },
+                new Option
+                {
+                    Key = nameof(Context.QueryTo),
+                    Setter = value => Context.QueryTo = value,
+                    Getter = () => Context.QueryTo,
+                    Description = "The ending point for all time-series. Can be overriden by individual series. [default: End of record]"
+                },
+                new Option
+                {
+                    Key = nameof(Context.GroupBy),
+                    Setter = value => Context.GroupBy = ParseEnum<GroupBy>(value),
+                    Getter = () => $"{Context.GroupBy}",
+                    Description = $"The grouping for all time-series. One of {string.Join(", ", Enum.GetNames(typeof(GroupBy)))}. Can be overriden by individual series."
+                },
+                new Option
+                {
+                    Key = "TimeSeries",
+                    Setter = value => Context.TimeSeries.Add(ParseTimeSeries(value)),
+                    Getter = () => string.Empty,
+                    Description = "Load the specified time-series as a dataset."
+                },
+                new Option
+                {
+                    Key = "RatingModel",
+                    Setter = value => Context.RatingModels.Add(ParseRatingModel(value)),
+                    Getter = () => string.Empty,
+                    Description = "Load the specified rating-model as a dataset."
+                },
+                new Option
+                {
+                    Key = "ExternalDataSet",
+                    Setter = value => Context.ExternalDataSets.Add(ParseExternalDataSet(value)),
+                    Getter = () => string.Empty,
+                    Description = "Load the external DataSet XML file."
+                },
+                
+                new Option(), new Option {Description = "Report uploading options:"},
+                new Option
+                {
+                    Key = nameof(Context.UploadedReportLocation),
+                    Setter = value => Context.UploadedReportLocation = value,
+                    Getter = () => Context.UploadedReportLocation,
+                    Description = "Upload the generated report to this AQTS location identifier. If empty, no report will be uploaded."
+                },
+                new Option
+                {
+                    Key = nameof(Context.UploadedReportTitle),
+                    Setter = value => Context.UploadedReportTitle = value,
+                    Getter = () => Context.UploadedReportTitle,
+                    Description = $"Upload the generated report with this title. Defaults to the -{nameof(Context.OutputPath)} base filename."
+                },
             };
 
             var usageMessage
@@ -67,7 +162,7 @@ namespace SharpShooterReportsRunner
                 + $"\n"
                 + $"\nusage: {GetProgramName()} [-option=value] [@optionsFile] ..."
                 + $"\n"
-                + $"\nSupported -option=value settings (/option=value works too):\n\n  -{string.Join("\n  -", options.Select(o => o.UsageText()))}"
+                + $"\nSupported -option=value settings (/option=value works too):\n\n  {string.Join("\n  ", options.Select(o => o.UsageText()))}"
                 + $"\n"
                 + $"\nRetrieving time-series data from AQTS: (more than one -TimeSeries=value option can be specified)"
                 + $"\n"
@@ -75,9 +170,9 @@ namespace SharpShooterReportsRunner
                 + $"\n"
                 + $"\n     =identifierOrUniqueId - Use either the uniqueId or the <parameter>.<label>@<location> syntax."
                 + $"\n     ,From=date            - Retrieve data from this date. [default: Beginning of record]"
-                + $"\n     ,To=date              - Retrieve data until this date. [default; End of record]"
+                + $"\n     ,To=date              - Retrieve data until this date. [default: End of record]"
                 + $"\n     ,Unit=outputUnit      - Convert the values to the unit. [default: The default unit of the time-series]"
-                + $"\n     ,GroupBy=option       - Groups data by {string.Join("|", Enum.GetNames(typeof(GroupBy)))} [default: Year]"
+                + $"\n     ,GroupBy=option       - Groups data by {string.Join("|", Enum.GetNames(typeof(GroupBy)))} [default: {Context.GroupBy}]"
                 + $"\n"
                 + $"\n  Dates specified as yyyy-MM-ddThh:mm:ss.fff. Only the year component is required."
                 + $"\n"
@@ -127,8 +222,7 @@ namespace SharpShooterReportsRunner
                 var key = match.Groups["key"].Value.ToLower();
                 var value = match.Groups["value"].Value;
 
-                var option =
-                    options.FirstOrDefault(o => o.Key.Equals(key, StringComparison.InvariantCultureIgnoreCase));
+                var option = options.FirstOrDefault(o => o.Key != null && o.Key.Equals(key, StringComparison.InvariantCultureIgnoreCase));
 
                 if (option == null)
                 {
@@ -229,8 +323,16 @@ namespace SharpShooterReportsRunner
                 OutputUnitId = GetValueOrDefault(values, "Unit"),
                 QueryFrom = GetValueOrDefault(values, "From"),
                 QueryTo = GetValueOrDefault(values, "To"),
-                GroupBy = (GroupBy)Enum.Parse(typeof(GroupBy), groupByText, true),
+                GroupBy = ParseEnum<GroupBy>(groupByText),
             };
+        }
+
+        private static TEnum ParseEnum<TEnum>(string text) where TEnum : struct
+        {
+            if (Enum.TryParse<TEnum>(text, true, out var enumValue))
+                return enumValue;
+
+            throw new ExpectedException($"'{text}' is not a supported {typeof(TEnum).Name} value. Must be one of {string.Join(", ", Enum.GetNames(typeof(TEnum)))}");
         }
 
         private static RatingModel ParseRatingModel(string value)

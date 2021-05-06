@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Linq;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 
 namespace SharpShooterReportsRunner
@@ -28,7 +29,9 @@ namespace SharpShooterReportsRunner
             if (DateTimeOffset.TryParseExact(timeText, SupportedDateFormatsWithZoneInfo, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateTimeOffset))
                 return dateTimeOffset;
 
-            var dateTime = DateTime.ParseExact(timeText, SupportedDateFormatsWithoutZoneInfo, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal);
+            if (!DateTime.TryParseExact(timeText, SupportedDateFormatsWithoutZoneInfo, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dateTime))
+                throw new ExpectedException($"'{timeText}' is not a supported DateTime value.\n\nSupported DateTime formats are:\n\n    {string.Join("    \n", SupportedDateFormatsWithoutZoneInfo.Concat(SupportedDateFormatsWithZoneInfo))}");
+
             var utcOffset = utcOffsetFunc();
 
             dateTimeOffset = new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), utcOffset);

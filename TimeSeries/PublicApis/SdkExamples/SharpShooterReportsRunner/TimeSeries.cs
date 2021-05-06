@@ -6,6 +6,6 @@
         public string OutputUnitId { get; set; }
         public string QueryFrom { get; set; }
         public string QueryTo { get; set; }
-        public GroupBy GroupBy { get; set; }
+        public GroupBy? GroupBy { get; set; }
     }
 }

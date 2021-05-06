@@ -41,13 +41,13 @@ namespace SharpShooterReportsRunner
         private IAquariusClient CreateConnectedClient()
         {
             if (string.IsNullOrWhiteSpace(_context.Server))
-                throw new ExpectedException("No -Server=value was specified.");
+                throw new ExpectedException($"No -{nameof(_context.Server)}=value was specified.");
 
             if (string.IsNullOrWhiteSpace(_context.Username))
-                throw new ExpectedException("No -Username=value was specified.");
+                throw new ExpectedException($"No -{nameof(_context.Username)}=value was specified.");
 
             if (string.IsNullOrWhiteSpace(_context.Password))
-                throw new ExpectedException("No -Password=value was specified.");
+                throw new ExpectedException($"No -{nameof(_context.Password)}=value was specified.");
 
             var client = AquariusClient.CreateConnectedClient(_context.Server, _context.Username, _context.Password);
 
@@ -100,6 +100,7 @@ namespace SharpShooterReportsRunner
             var template = File.ReadAllText(_context.TemplatePath)
                 .Replace(
                     FormatAssemblyQualifiedName("ReportApp"),
+                    // ReSharper disable once PossibleNullReferenceException
                     FormatAssemblyQualifiedName(Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location)));
 
             return template;
@@ -268,29 +269,36 @@ namespace SharpShooterReportsRunner
             var request = new TimeSeriesDataCorrectedServiceRequest
             {
                 TimeSeriesUniqueId = timeSeriesDescription.UniqueId,
-                QueryFrom = DateTimeParser.Parse(timeSeriesDescription, timeSeries.QueryFrom),
-                QueryTo = DateTimeParser.Parse(timeSeriesDescription, timeSeries.QueryTo),
+                QueryFrom = DateTimeParser.Parse(timeSeriesDescription, timeSeries.QueryFrom) ?? DateTimeParser.Parse(timeSeriesDescription, _context.QueryFrom),
+                QueryTo = DateTimeParser.Parse(timeSeriesDescription, timeSeries.QueryTo) ?? DateTimeParser.Parse(timeSeriesDescription, _context.QueryTo),
                 Unit = timeSeries.OutputUnitId,
                 IncludeGapMarkers = true
             };
 
+            var groupBy = timeSeries.GroupBy ?? _context.GroupBy;
+
             var summary = new StringBuilder();
-            summary.Append($"Loading time-series '{timeSeriesDescription.Identifier}'");
 
-            if (request.QueryFrom.HasValue)
-                summary.Append($" with QueryFrom={request.QueryFrom:O}");
+            if (request.QueryFrom.HasValue && request.QueryTo.HasValue)
+                summary.Append($"from {request.QueryFrom:O} to {request.QueryTo:O} of ");
+            else if (request.QueryFrom.HasValue)
+                summary.Append($"from {request.QueryFrom:O} of ");
+            else if (request.QueryTo.HasValue)
+                summary.Append($"until {request.QueryTo:O} of ");
 
-            if (request.QueryTo.HasValue)
-                summary.Append($" with QueryTo={request.QueryTo:O}");
+            summary.Append($"time-series '{timeSeriesDescription.Identifier}'");
 
             if (!string.IsNullOrEmpty(request.Unit))
                 summary.Append($" with output unit '{request.Unit}'");
+
+            if (groupBy != GroupBy.None)
+                summary.Append($" grouped by {groupBy}");
 
             Log.Info(summary.ToString());
 
             var correctedData = _client.Publish.Get(request);
 
-            Log.Info($"Creating {dataSetName} dataset ...");
+            Log.Info($"Creating {dataSetName} dataset {summary} ...");
 
             var locationData = GetLocationData(timeSeriesDescription.LocationIdentifier);
 
@@ -298,7 +306,7 @@ namespace SharpShooterReportsRunner
 
             AddMetadata(dataSet, timeSeriesDescription, correctedData);
 
-            AddPoints(dataSet, correctedData, timeSeries.GroupBy);
+            AddPoints(dataSet, correctedData, groupBy);
 
             return dataSet;
         }
@@ -327,8 +335,8 @@ namespace SharpShooterReportsRunner
             var request = new RatingCurveListServiceRequest
             {
                 RatingModelIdentifier = ratingModelDescription.Identifier,
-                QueryFrom = DateTimeParser.Parse(locationData, ratingModel.QueryFrom),
-                QueryTo = DateTimeParser.Parse(locationData, ratingModel.QueryTo),
+                QueryFrom = DateTimeParser.Parse(locationData, ratingModel.QueryFrom) ?? DateTimeParser.Parse(locationData, _context.QueryFrom),
+                QueryTo = DateTimeParser.Parse(locationData, ratingModel.QueryTo) ?? DateTimeParser.Parse(locationData, _context.QueryTo),
             };
 
             var stepSize = double.TryParse(ratingModel.StepSize, NumberStyles.Any, CultureInfo.InvariantCulture, out var incrementSize)
@@ -338,17 +346,19 @@ namespace SharpShooterReportsRunner
             var stepPrecision = (int)Math.Round(Math.Log(stepSize) / Math.Log(0.1));
 
             var summary = new StringBuilder();
-            summary.Append($"Loading rating model '{request.RatingModelIdentifier}'");
 
-            if (request.QueryFrom.HasValue)
-                summary.Append($" with QueryFrom={request.QueryFrom:O}");
+            if (request.QueryFrom.HasValue && request.QueryTo.HasValue)
+                summary.Append($"from {request.QueryFrom:O} to {request.QueryTo:O} of ");
+            else if (request.QueryFrom.HasValue)
+                summary.Append($"from {request.QueryFrom:O} of ");
+            else if (request.QueryTo.HasValue)
+                summary.Append($"until {request.QueryTo:O} of ");
 
-            if (request.QueryTo.HasValue)
-                summary.Append($" with QueryTo={request.QueryTo:O}");
+            summary.Append($"rating model '{request.RatingModelIdentifier}'");
 
             summary.Append($" with StepSize={stepSize}");
 
-            Log.Info(summary.ToString());
+            Log.Info($"Creating {dataSetName} dataset {summary} ...");
 
             var curveEffectiveTime = request.QueryFrom ?? DateTimeOffset.UtcNow;
 
@@ -909,7 +919,7 @@ namespace SharpShooterReportsRunner
             // TODO: Switch output type based upon Path.GetExtension(_context.OutputPath)
             var exportFilter = new PdfExportFilter();
 
-            Log.Info($"Rendering report ...");
+            Log.Info($"Rendering PDF report ...");
 
             var errorCount = 0;
 
