@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Xml;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
-using AQModelComputationDotNETLib;
 using ServiceStack;
 using Parameter = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.Parameter;
 
@@ -21,17 +21,14 @@ namespace SharpShooterReportsRunner
 
         private IServiceClient SiteVisit { get; set; }
         private IServiceClient Processor { get; set; }
-        private LegacyDataServiceClient SoapClient { get; set; }
 
         private RatingModelDescription RatingModelDescription { get; set; }
         private Parameter InputParameter { get; set; }
         private Parameter OutputParameter { get; set; }
         private string HydroMlXml { get; set; }
         private byte[] AopBytes { get; set; }
-        private CHydroModel HydroModel { get; set; }
+        // ReSharper disable once CollectionNeverUpdated.Local
         private List<FieldVisitReading> FieldVisitReadings { get; set; }
-        private string CsvMetaHeader { get; set; }
-        private string CsvMetadata { get; set; }
         public LocationDataServiceResponse LocationData { get; set; }
 
         public void Load(RatingModelDescription ratingModelDescription)
@@ -43,28 +40,21 @@ namespace SharpShooterReportsRunner
             InputParameter = allParameters.Single(p => p.Identifier == ratingModelDescription.InputParameter);
             OutputParameter = allParameters.Single(p => p.Identifier == ratingModelDescription.OutputParameter);
 
-            using (SoapClient = CreateConnectedClient())
-            {
-                var ratingModelInfo = GetRatingModelInfo();
+            CreateConnectedClient();
 
-                AopBytes = GetRatingModelAop(ratingModelInfo.RatingModelId);
+            var ratingModelInfo = GetRatingModelInfo();
 
-                HydroMlXml = GetHydroMlXml();
+            AopBytes = GetRatingModelAop(ratingModelInfo.RatingModelId);
 
-                HydroModel = new CHydroModel(AopBytes);
+            HydroMlXml = GetHydroMlXml();
 
-                CsvMetaHeader = "LocationId,InParameter,OutParameter";
-                CsvMetadata = $"UNKNOWN,{ratingModelDescription.InputParameter},{ratingModelDescription.OutputParameter}";
-
-                LoadFieldVisitReadings();
-            }
+            LoadFieldVisitReadings();
         }
 
         private void LoadFieldVisitReadings()
         {
-            var discreteMeasurementJson = SoapClient.GetSiteVisitData(RatingModelDescription.LocationIdentifier);
-
-            FieldVisitReadings = discreteMeasurementJson.FromJson<List<FieldVisitReading>>();
+            // TODO: Fetch this in a better way
+            FieldVisitReadings = new List<FieldVisitReading>();
         }
 
         public class FieldVisitReading
@@ -134,53 +124,33 @@ namespace SharpShooterReportsRunner
             public double? Width { get; set; }
         }
 
-        public RatingCurveResult LoadRatingCurve(RatingCurve curve, int stepPrecision, DateTimeOffset curveEffectiveTime)
+        public RatingCurveResult LoadEffectiveRatingCurve(RatingModelDescription ratingModelDescription, double stepSize, DateTimeOffset curveEffectiveTime)
         {
             var result = new RatingCurveResult();
 
-            var curveCsv = HydroModel.GetExpandedRatingTable(
-                curveEffectiveTime.UtcDateTime.ToOADate(),
-                stepPrecision,
-                CsvMetaHeader,
-                CsvMetadata);
+            var expandedRatingCurve = GetExpandedRatingCurve(ratingModelDescription, stepSize, curveEffectiveTime);
 
-            if (string.IsNullOrEmpty(curveCsv))
+            if (expandedRatingCurve == null)
                 return result;
 
-            var csvRating = AQCSV.Load(curveCsv, true, new[] { "ExpandedPoints", "OriginalPoints" });
+            if (expandedRatingCurve.BaseRatingTable.Count != expandedRatingCurve.AdjustedRatingTable.Count)
+                throw new ExpectedException($"Expanded rating curve for '{ratingModelDescription.Identifier}:{expandedRatingCurve.Id}' has a mis-matched point count. {nameof(expandedRatingCurve.BaseRatingTable)}.Count = {expandedRatingCurve.BaseRatingTable.Count} points but {nameof(expandedRatingCurve.AdjustedRatingTable)}.Count = {expandedRatingCurve.AdjustedRatingTable.Count} points.");
 
-            var regularStages = CSVUtil.ToDouble(csvRating.dataSet[0].datas, 0);
-            var regularDischarges = CSVUtil.ToDouble(csvRating.dataSet[0].datas, 1);
-            var shiftStages = CSVUtil.ToDouble(csvRating.dataSet[0].datas, 2);
-            var shiftDischarges = CSVUtil.ToDouble(csvRating.dataSet[0].datas, 3);
-
-            for (var i = 0; i < regularStages.Length; ++i)
+            for (var i = 0; i < expandedRatingCurve.BaseRatingTable.Count; ++i)
             {
                 result.ExpandedPoints.Add(new ExpandedPoint
                 {
-                    Stage = regularStages[i],
-                    Discharge = regularDischarges[i],
-                    ShiftedStage = shiftStages[i],
-                    ShiftedDischarge = shiftDischarges[i]
+                    Stage = expandedRatingCurve.BaseRatingTable[i].InputValue ?? double.NaN,
+                    Discharge = expandedRatingCurve.BaseRatingTable[i].OutputValue ?? double.NaN,
+                    ShiftedStage = expandedRatingCurve.AdjustedRatingTable[i].InputValue ?? double.NaN,
+                    ShiftedDischarge = expandedRatingCurve.AdjustedRatingTable[i].OutputValue ?? double.NaN
                 });
             }
 
-            var equationStages = CSVUtil.ToDouble(csvRating.dataSet[1].datas, 0);
-            var equationDischarges = CSVUtil.ToDouble(csvRating.dataSet[1].datas, 1);
+            var curveStartTime = expandedRatingCurve.PeriodsOfApplicability.First().StartTime;
+            var curveEndTime = expandedRatingCurve.PeriodsOfApplicability.Last().EndTime;
 
-            for (var i = 0; i < equationStages.Length; ++i)
-            {
-                result.EquationPoints.Add(new EquationPoint
-                {
-                    Stage = equationStages[i],
-                    Discharge = equationDischarges[i]
-                });
-            }
-
-            var curveStartTime = curve.PeriodsOfApplicability.First().StartTime;
-            var curveEndTime = curve.PeriodsOfApplicability.Last().EndTime;
-
-            var exceptions = GetRatingExceptions(curve.Id);
+            var exceptions = GetRatingExceptions(expandedRatingCurve.Id);
 
             var fieldVisitReadings = FieldVisitReadings.Where(r =>
             {
@@ -200,6 +170,26 @@ namespace SharpShooterReportsRunner
                 .ToList();
 
             return result;
+        }
+
+        private ExpandedRatingCurve GetExpandedRatingCurve(RatingModelDescription ratingModelDescription, double stepSize, DateTimeOffset curveEffectiveTime)
+        {
+            try
+            {
+                return Client.Publish.Get(new EffectiveRatingCurveServiceRequest
+                {
+                    RatingModelIdentifier = ratingModelDescription.Identifier,
+                    EffectiveTime = curveEffectiveTime,
+                    StepSize = stepSize
+                }).ExpandedRatingCurve;
+            }
+            catch (WebServiceException exception)
+            {
+                if (exception.StatusCode == (int) HttpStatusCode.BadRequest && exception.ErrorMessage.Contains(" has no active Rating Curves"))
+                    return null;
+
+                throw;
+            }
         }
 
         private (List<long> ExcludeIds, List<long> IncludeIds) GetRatingExceptions(string curveName)
@@ -309,70 +299,59 @@ namespace SharpShooterReportsRunner
             public double Output { get; set; }
         }
 
-        public AllTablesResult LoadAllTables(int stepPrecision)
+        public AllTablesResult LoadAllTables(RatingModelDescription ratingModelDescription, RatingCurveListServiceResponse ratingCurves, double stepSize)
         {
             var result = new AllTablesResult();
 
-            var tablesCsv = HydroModel.GetExpandedRatingTables(stepPrecision, CsvMetaHeader, CsvMetadata);
+            var validTableNumbers = new HashSet<double>(
+                ratingCurves
+                .RatingCurves
+                .Select(c => double.TryParse(c.Id, out var number) ? (double?) number : null)
+                .Where(d => d.HasValue)
+                .Select(d => d.Value));
 
-            if (string.IsNullOrEmpty(tablesCsv))
-                return result;
-
-            var csvRatings = AQCSV.Load(tablesCsv, true, new[] {"NumTables", "NumPeriods", "NumPoints"});
-
-            var tableNumber = CSVUtil.ToDouble(csvRatings.dataSet[0].datas, 0);
-            var tableName = CSVUtil.ToString(csvRatings.dataSet[0].datas, 1);
-            var numPeriods = CSVUtil.ToDouble(csvRatings.dataSet[0].datas, 2);
-            var numPoints = CSVUtil.ToDouble(csvRatings.dataSet[0].datas, 3);
-
-            for (var i = 0; i < tableNumber.Length; ++i)
+            for(var i = 0; i < ratingCurves.RatingCurves.Count; ++i)
             {
+                var ratingCurve = ratingCurves.RatingCurves[i];
+
+                if (!double.TryParse(ratingCurve.Id, out var tableNumber))
+                {
+                    tableNumber = 1.0 + i;
+
+                    while (validTableNumbers.Contains(tableNumber))
+                        tableNumber += ratingCurves.RatingCurves.Count;
+                }
+
                 result.Tables.Add(new Table
                 {
-                    TableNumber = tableNumber[i],
-                    TableName = tableName[i],
-                    NumPeriods = numPeriods[i],
-                    NumPoints = numPoints[i]
+                    TableNumber = tableNumber,
+                    TableName = ratingCurve.Id,
+                    NumPeriods = ratingCurve.PeriodsOfApplicability.Count,
+                    NumPoints = ratingCurve.BaseRatingTable.Count
                 });
-            }
 
-            var tableNumber2 = CSVUtil.ToDouble(csvRatings.dataSet[1].datas, 0);
-            var startDate = CSVUtil.ToString(csvRatings.dataSet[1].datas, 1);
-            var endDate = CSVUtil.ToString(csvRatings.dataSet[1].datas, 2);
-
-            for (var i = 0; i < tableNumber2.Length; ++i)
-            {
-                result.TableDates.Add(new TableDate
+                result.TableDates.AddRange(ratingCurve.PeriodsOfApplicability.Select(p => new TableDate
                 {
-                    TableNumber = tableNumber2[i],
-                    StartDate = DateTimeParser.Parse(LocationData, startDate[i]),
-                    EndDate = string.IsNullOrEmpty(endDate[i]) ? DateTimeOffset.MaxValue : DateTimeParser.Parse(LocationData, endDate[i])
-                });
-            }
+                    TableNumber = tableNumber,
+                    StartDate = p.StartTime,
+                    EndDate = p.EndTime
+                }));
 
-            var tableNumber3 = CSVUtil.ToDouble(csvRatings.dataSet[2].datas, 0);
-            var input = CSVUtil.ToDouble(csvRatings.dataSet[2].datas, 1);
-            var output = CSVUtil.ToDouble(csvRatings.dataSet[2].datas, 2);
-
-            for (var i = 0; i < tableNumber3.Length; ++i)
-            {
-                result.TableValues.Add(new TableValue
+                result.TableValues.AddRange(ratingCurve.BaseRatingTable.Select(p => new TableValue
                 {
-                    TableNumber = tableNumber3[i],
-                    Input = input[i],
-                    Output = output[i]
-                });
+                    TableNumber = tableNumber,
+                    Input = p.InputValue ?? double.NaN,
+                    Output = p.OutputValue ?? double.NaN
+                }));
             }
 
             return result;
         }
 
-        private LegacyDataServiceClient CreateConnectedClient()
+        private void CreateConnectedClient()
         {
             SiteVisit = Client.RegisterCustomClient(PrivateApis.SiteVisit.Root.Endpoint);
             Processor = Client.RegisterCustomClient(PrivateApis.Processor.Root.Endpoint);
-
-            return LegacyDataServiceClient.Create(Context.Server, Context.Username, Context.Password);
         }
 
         private PrivateApis.Processor.RatingModelInfo GetRatingModelInfo()
@@ -410,7 +389,10 @@ namespace SharpShooterReportsRunner
 
         private byte[] GetRatingModelAop(long ratingModelId)
         {
-            return SoapClient.GetRatingModelAop(ratingModelId);
+            return Processor.Get(new PrivateApis.Processor.GetRatingModelData
+            {
+                RatingModelId = ratingModelId
+            }).OptimizedPackage;
         }
 
         private string GetHydroMlXml()

@@ -372,8 +372,8 @@ namespace SharpShooterReportsRunner
                 };
             ratingModelLoader.Load(ratingModelDescription);
 
-            var ratingCurveResult = ratingModelLoader.LoadRatingCurve(ratingCurves.RatingCurves.First(), stepPrecision, curveEffectiveTime);
-            var allTablesResult = ratingModelLoader.LoadAllTables(stepPrecision);
+            var ratingCurveResult = ratingModelLoader.LoadEffectiveRatingCurve(ratingModelDescription, stepSize, curveEffectiveTime);
+            var allTablesResult = ratingModelLoader.LoadAllTables(ratingModelDescription, ratingCurves, stepSize);
 
             var dataSet = new DataSet(dataSetName);
 

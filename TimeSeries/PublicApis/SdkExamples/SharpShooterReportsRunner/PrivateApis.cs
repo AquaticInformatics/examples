@@ -87,5 +87,16 @@ namespace PrivateApis
             public long? TemplateId { get; set; }
             public bool Publish { get; set; }
         }
+
+        [Route("/ratingmodel/{RatingModelId}/data", HttpMethods.Get)]
+        public class GetRatingModelData : IReturn<RatingModelData>
+        {
+            public long RatingModelId { get; set; }
+        }
+
+        public class RatingModelData
+        {
+            public byte[] OptimizedPackage { get; set; }
+        }
     }
 }
