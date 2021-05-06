@@ -1,79 +1,0 @@
-﻿<?xml version='1.0'?>
-<nameMap>
-  <tag name='_aqshared_' longName='' shortName=''>
-    <attr name='AQDataID'      longName='Clef Privée Base Données'       shortName='DBKey'/>
-    <attr name='AQLastModified'      longName='Temps Dernière Modification'     shortName='Mod. Time'/>
-    <attr name='AQLastModifiedBy'    longName='Dernière Modification Par'       shortName='Mod. User'/>
-    <attr name='label'         longName='Label'          shortName='Lbl.'     isUserEditable='true'/>
-    <attr name='description'   longName='Description'    shortName='Desc.'    isUserEditable='true'/>
-    <attr name='comment'       longName='Commentaire'        shortName='Cmmnt.'   isUserEditable='true'/>
-    <attr name='startTime'     longName='Temps Début'     shortName='Strt. Tm.'/>
-    <attr name='startEpoch'    longName='Epoque Début'    shortName='Strt. Ep.'/>
-    <attr name='endTime'       longName='Temps Fin'       shortName='End Tm.'/>
-    <attr name='endEpoch'      longName='Epoque Fin'      shortName='End Ep.'/>
-    <attr name="units"		 longName="Unités"          shortName="Units"    isUserEditable='true'/>
-    <attr name='min'           longName='Valeur Minimum'  shortName='Min.'/>
-    <attr name='max'           longName='Valeur Maximum'  shortName='Max.'/>
-    <attr name='mean'          longName='Valuer Moyenne'     shortName='Mean'/>
-    <attr name='totalSamples'  longName='Total Echantillons'  shortName='Tot. Smpls'/>
-    <attr name="totalGaps"     longName="Total Trous"     shortName="Tot. Gaps"/>
-    <attr name="samplingRate"  longName="Rythme d'Echantillonage"  shortName="Smpl. Rate"/>
-    <attr name='name'          longName='Nom'           shortName='Name'     isUserEditable='true'/>
-    <attr name='inputs'        longName='Entrées'         shortName='In.'/>
-    <attr name='outputs'       longName='Sorties'        shortName='Out.'/>
-    <attr name='modelType'     longName='Type de Modèle'     shortName='Type'/>
-    <attr name='trainingError' longName="Erreur d'Entrainement" shortName='Training Err.'/>
-    <attr name='testError'     longName='Erreur de Test'     shortName='Test Err.'/>
-    <attr name='timezoneBias'           longName='Time Zone'  shortName='TZ.'/>
-    <attr name='startValue'  longName='Start Value'  shortName='Strt Val.'/>
-    <attr name='endValue'  longName='End Value'  shortName='End Val.'/>
-    <attr name='parameterType'     longName='Parameter'     shortName='Param.'/>
-    <attr name='maxGapInterval'     longName='Max Gap Interval'     shortName='MGI'/>
-  </tag>
-  <tag name='AQAtom_TimeSeries'           longName='Série Temporelle'          shortName='TS'/>
-  <tag name='AQAtom_DiscreteSamples'      longName='Echantillon Discret'     shortName='Dis. Samples'/>
-  <tag name='AQAtom_Model'                longName='Modèle Aquarius'       shortName='Model'/>
-  <tag name='AQAtom_HYDROML'              longName='HYDROML'              shortName='HYDROML'>
-    <attr name='inputParameterType'   longName='Input Parameter'   shortName='Input Param' />
-    <attr name='inputUnits'           longName='Input Units'       shortName='Input Units' />
-    <attr name='outputParameterType'  longName='Output Parameter'  shortName='Output Param' />
-    <attr name='outputUnits'          longName='Output Units'      shortName='Output Units' />
-  </tag>
-
-  <tag name='AQAtom_RatingMeasurements'   longName='Mesures de Tarage'  shortName='Rat. Meas.'>
-    <attr name='indepVariableParameterType'  longName='Independent Parameter'  shortName='Indep Param' />
-    <attr name='depVariableParameterType'    longName='Dependent Parameter'    shortName='Dep Param' />
-    <attr name='indepVariableUnits'          longName='Independent Units'      shortName='Indep Units' />
-    <attr name='depVariableUnits'            longName='Dependent Units'        shortName='Dep Units' />
-    <attr name='widthUnits'            	     longName='Width Units'            shortName='Width Units' />
-    <attr name='areaUnits'                   longName='Area Units'             shortName='Area Units' />
-    <attr name='meanVelocityUnits'           longName='Mean Velocity Units'    shortName='Mean Vel Units' />
-    <attr name='effectiveDepthUnits'         longName='Effective Depth Units'  shortName='Eff Depth Units' />
-    <attr name='stageChangeUnits'            longName='Stage Change Units'     shortName='Stg Chg Units' />
-  </tag>
-  <tag name='AQAtom_SectionMeasurements'  longName='Mesures de Section' shortName='Sect. Meas.'/>
-  <tag name='AQAtom_RatingPointList'      longName='Liste Points de Tarage'    shortName='Rat. Pts.'>
-    <attr name='ratingNumber' longName='Tarage Numéro'  shortName='Rat. Num.' />
-    <attr name='createUser'   longName='Créé Par'     shortName='Creator' />
-    <attr name='createDate'   longName='Date de Création'  shortName='Create Dt.' />
-    <attr name='modifyUser'   longName='Modifié Par'    shortName='Modifier' />
-    <attr name='modifyDate'   longName='Date de Modification'  shortName='Mod. Dt.' />
-    <attr name='independantValueParameterType'  longName='Independent Parameter'  shortName='Indep Param' />
-    <attr name='dependantValueParameterType'    longName='Dependent Parameter'    shortName='Dep Param' />
-    <attr name='independantValueUnits'          longName='Independent Units'      shortName='Indep Units' />
-    <attr name='dependantValueUnits'            longName='Dependent Units'        shortName='Dep Units' />
-  </tag>
-  <tag name='AQAtom_RatingCurve'    longName='Courbe de Tarage'     shortName='Rat. Curve'/>
-  <tag name='AQAtom_File'           longName='Fichier en Annexe'  shortName='Attch.'>
-    <attr name='fileName'       longName='Nom Fichier'/>
-    <attr name='src'            longName='Source URI'/>
-  </tag>
-  <tag name='AQAtom_NumericMatrix'  longName='Matrice Numérique'   shortName='Num. Mat.'>
-    <attr name='dimX'   longName='Dimension X'  shortName='DimX' />
-    <attr name='dimY'   longName='Dimension Y'  shortName='DimY' />
-  </tag>
-  <tag name='AQAtom_NumericVector'    longName='Vecteur Numérique' shortName='Num. Vec.'/>
-  <tag name='AQAtom_Number' longName='Scalaire' shortName='Num.'>
-    <attr name='value'  longName='Valeur'  shortName='Val.' />
-  </tag>
-</nameMap>
