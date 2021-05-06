@@ -32,17 +32,27 @@ usage: SharpShooterReportsRunner [-option=value] [@optionsFile] ...
 
 Supported -option=value settings (/option=value works too):
 
-  -Server                 The AQTS app server from which time-series data will be retrieved.
-  -Username               AQTS username. [default: admin]
-  -Password               AQTS credentials. [default: admin]
-  -TemplatePath           Path of the SharpShooter Report template file (*.RST)
-  -OutputPath             Path to the generated report output. Only PDF output is supported.
-  -LaunchReportDesigner   When true, launch the SharpShooter Report Designer. [default: False]
-  -TimeSeries             Load the specified time-series as a dataset.
-  -RatingModel            Load the specified rating-model as a dataset.
-  -ExternalDataSet        Load the external DataSet XML file.
-  -UploadedReportLocation Upload the generated report to this AQTS location identifier.
-  -UploadedReportTitle    Upload the generated report with this title. Defaults to the -OutputPath value.
+  ========================= AQUARIUS Time-Series connection options:
+  -Server                   The AQTS app server from which time-series data will be retrieved.
+  -Username                 AQTS username. [default: admin]
+  -Password                 AQTS credentials. [default: admin]
+
+  ========================= SharpShooter Reports options:
+  -TemplatePath             Path of the SharpShooter Reports template file (*.RST)
+  -OutputPath               Path to the generated report output. Only PDF output is supported.
+  -LaunchReportDesigner     When true, launch the SharpShooter Report Designer. [default: False]
+
+  ========================= Dataset options:
+  -QueryFrom                The starting point for all time-series. Can be overriden by individual series. [default: Beginning of record]
+  -QueryTo                  The ending point for all time-series. Can be overriden by individual series. [default: End of record]
+  -GroupBy                  The grouping for all time-series. One of None, Day, Week, Month, Year, Decade. Can be overriden by individual series. [default: Year]
+  -TimeSeries               Load the specified time-series as a dataset.
+  -RatingModel              Load the specified rating-model as a dataset.
+  -ExternalDataSet          Load the external DataSet XML file.
+
+  ========================= Report uploading options:
+  -UploadedReportLocation   Upload the generated report to this AQTS location identifier. If empty, no report will be uploaded.
+  -UploadedReportTitle      Upload the generated report with this title. Defaults to the -OutputPath base filename.
 
 Retrieving time-series data from AQTS: (more than one -TimeSeries=value option can be specified)
 
@@ -50,7 +60,7 @@ Retrieving time-series data from AQTS: (more than one -TimeSeries=value option c
 
      =identifierOrUniqueId - Use either the uniqueId or the <parameter>.<label>@<location> syntax.
      ,From=date            - Retrieve data from this date. [default: Beginning of record]
-     ,To=date              - Retrieve data until this date. [default; End of record]
+     ,To=date              - Retrieve data until this date. [default: End of record]
      ,Unit=outputUnit      - Convert the values to the unit. [default: The default unit of the time-series]
      ,GroupBy=option       - Groups data by None|Day|Week|Month|Year|Decade [default: Year]
 
