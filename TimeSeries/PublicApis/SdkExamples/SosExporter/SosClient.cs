@@ -571,7 +571,7 @@ namespace SosExporter
             if (response == null)
                 return new List<TimeSeriesPoint>();
 
-            ThrowIfHydrologyProfileIsMissing(response);
+            ThrowIfHydrologyProfileIsMissing(request, response);
 
             var observation = response
                 .Observations
@@ -597,10 +597,27 @@ namespace SosExporter
                 .ToList();
         }
 
-        private void ThrowIfHydrologyProfileIsMissing(GetWml2ObservationResponse response)
+        private void ThrowIfHydrologyProfileIsMissing(GetWml2ObservationRequest request, GetWml2ObservationResponse response)
         {
-            if (response.Observations.Any(IsInvalidWml2ProfileResponse))
-                throw new ExpectedException($"Invalid SOS Server configuration. Please activate the 'HYDROLOGY_PROFILE' on the {JsonClient.BaseUri}/admin/profiles page.");
+            if (response.Observations == null)
+                return;
+
+            var invalidObservations = response
+                .Observations
+                .Where(IsInvalidWml2ProfileResponse)
+                .ToList();
+
+            if (!invalidObservations.Any())
+                return;
+
+            var distinctTypes = invalidObservations
+                .Select(o => o.Type)
+                .Distinct()
+                .ToList();
+
+            Log.Error($"{request.ObservedProperty}@{request.FeatureOfInterest} ({request.TemporalFilter}) responded with {"invalid WML2 observations".ToQuantity(invalidObservations.Count)} with {"distinct observation type".ToQuantity(distinctTypes.Count)}:{string.Join(", ", distinctTypes)}");
+
+            throw new ExpectedException($"Invalid SOS Server configuration. Please activate the 'HYDROLOGY_PROFILE' on the {JsonClient.BaseUri}/admin/profiles page.");
         }
 
         private string CreateTemporalFilter(DateTimeOffset startTime, DateTimeOffset endTime)
