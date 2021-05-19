@@ -568,21 +568,49 @@ namespace SosExporter
             var response = JsonClient.Get(request);
 
             ThrowIfSosException(response);
+
             if (response == null)
                 return new List<TimeSeriesPoint>();
 
-            ThrowIfHydrologyProfileIsMissing(request, response);
-
-            var observation = response
-                .Observations
-                ?.FirstOrDefault();
-
-            if (observation?.Result?.Values == null)
+            if (response.Observations == null)
                 return new List<TimeSeriesPoint>();
 
-            return observation
-                .Result
-                .Values
+            return response
+                .Observations
+                .SelectMany(ConvertToPoints)
+                .ToList();
+        }
+
+        private IEnumerable<TimeSeriesPoint> ConvertToPoints(Wml2Observation observation)
+        {
+            if (observation.Type == "http://www.opengis.net/def/observationType/OGC-OM/2.0/OM_SWEArrayObservation")
+                return ConvertToPoints(observation.Result?.Values);
+
+            if (observation.PhenomenonTime.Count != 1)
+                throw new ExpectedException($"'{observation.Procedure}' has {observation.PhenomenonTime.Count} {nameof(observation.PhenomenonTime)} values but was expecting exactly 1.");
+
+            return new[]
+            {
+                new TimeSeriesPoint
+                {
+                    Timestamp = new StatisticalDateTimeOffset
+                    {
+                        DateTimeOffset = observation.PhenomenonTime.Single()
+                    },
+                    Value = new DoubleWithDisplay
+                    {
+                        Numeric = observation.Result.Value
+                    } 
+                }
+            };
+        }
+
+        private IEnumerable<TimeSeriesPoint> ConvertToPoints(List<List<string>> values)
+        {
+            if (values == null)
+                return new TimeSeriesPoint[0];
+
+            return values
                 .Select(p => new TimeSeriesPoint
                 {
                     Timestamp = new StatisticalDateTimeOffset
@@ -593,43 +621,12 @@ namespace SosExporter
                     {
                         Numeric = double.Parse(p[1])
                     }
-                })
-                .ToList();
-        }
-
-        private void ThrowIfHydrologyProfileIsMissing(GetWml2ObservationRequest request, GetWml2ObservationResponse response)
-        {
-            if (response.Observations == null)
-                return;
-
-            var invalidObservations = response
-                .Observations
-                .Where(IsInvalidWml2ProfileResponse)
-                .ToList();
-
-            if (!invalidObservations.Any())
-                return;
-
-            var distinctTypes = invalidObservations
-                .Select(o => o.Type)
-                .Distinct()
-                .ToList();
-
-            Log.Error($"{request.ObservedProperty}@{request.FeatureOfInterest} ({request.TemporalFilter}) responded with {"invalid WML2 observations".ToQuantity(invalidObservations.Count)} with {"distinct observation type".ToQuantity(distinctTypes.Count)}:{string.Join(", ", distinctTypes)}");
-
-            throw new ExpectedException($"Invalid SOS Server configuration. Please activate the 'HYDROLOGY_PROFILE' on the {JsonClient.BaseUri}/admin/profiles page.");
+                });
         }
 
         private string CreateTemporalFilter(DateTimeOffset startTime, DateTimeOffset endTime)
         {
             return $"om:phenomenonTime,{startTime:O}/{endTime:O}";
-        }
-
-        private bool IsInvalidWml2ProfileResponse(Wml2Observation observation)
-        {
-            return observation.Result.Fields == null
-                   && observation.Result.Values == null
-                   && observation.Type != "http://www.opengis.net/def/observationType/OGC-OM/2.0/OM_SWEArrayObservation";
         }
     }
 }

@@ -36,6 +36,8 @@ namespace SosExporter.Dtos
 
     public class Wml2ObservationResult
     {
+        public string Uom { get; set; }
+        public double? Value { get; set; }
         public List<ObservationResultField> Fields { get; set; }
         public List<List<string>> Values { get; set; }
     }
