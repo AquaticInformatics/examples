@@ -1,6 +1,6 @@
 ﻿namespace SharpShooterReportsRunner
 {
-    public class TimeSeries
+    public class TimeSeries : DataSetBase
     {
         public string Identifier { get; set; }
         public string OutputUnitId { get; set; }

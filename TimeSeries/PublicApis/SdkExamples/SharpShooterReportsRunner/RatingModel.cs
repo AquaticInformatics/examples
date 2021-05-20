@@ -1,6 +1,6 @@
 ﻿namespace SharpShooterReportsRunner
 {
-    public class RatingModel
+    public class RatingModel : DataSetBase
     {
         public string Identifier { get; set; }
         public string QueryFrom { get; set; }
