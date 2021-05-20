@@ -79,7 +79,7 @@ namespace SharpShooterReportsRunner
                     Key = nameof(Context.TemplatePath),
                     Setter = value => Context.TemplatePath = value,
                     Getter = () => Context.TemplatePath,
-                    Description = "Path of the SharpShooter Reports template file (*.RST)"
+                    Description = "Path of the SharpShooter Reports template (*.RST) or Aquarius Report template (*.ART) file."
                 },
                 new Option
                 {

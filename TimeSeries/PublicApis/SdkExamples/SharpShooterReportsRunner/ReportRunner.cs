@@ -103,6 +103,16 @@ namespace SharpShooterReportsRunner
                     // ReSharper disable once PossibleNullReferenceException
                     FormatAssemblyQualifiedName(Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location)));
 
+            const string reportTemplatePrefix = "</ReportTemplateInfo>";
+
+            var endOfReportTemplatePrefix = template?.IndexOf(reportTemplatePrefix) ?? -1;
+
+            if (endOfReportTemplatePrefix >= 0)
+            {
+                // This was an ART file (a simple concatenation of an AquaticInformatics-specific <ReportTemplateInfo> xml file, followed by a SharpShooterReports *.RST stream
+                template = template.Substring(endOfReportTemplatePrefix + reportTemplatePrefix.Length).Trim();
+            }
+
             return template;
         }
 

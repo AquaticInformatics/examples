@@ -38,7 +38,7 @@ Supported -option=value settings (/option=value works too):
   -Password                 AQTS credentials. [default: admin]
 
   ========================= SharpShooter Reports options:
-  -TemplatePath             Path of the SharpShooter Reports template file (*.RST)
+  -TemplatePath             Path of the SharpShooter Reports template (*.RST) or Aquarius Report template (*.ART) file.
   -OutputPath               Path to the generated report output. Only PDF output is supported.
   -LaunchReportDesigner     When true, launch the SharpShooter Report Designer. [default: False]
 
