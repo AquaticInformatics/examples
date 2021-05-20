@@ -166,33 +166,39 @@ namespace SharpShooterReportsRunner
                 + $"\n"
                 + $"\nRetrieving time-series data from AQTS: (more than one -TimeSeries=value option can be specified)"
                 + $"\n"
-                + $"\n  -TimeSeries=identifierOrUniqueId[,From=date][,To=date][,Unit=outputUnit][,GroupBy=option]"
+                + $"\n  -TimeSeries=identifierOrUniqueId[,From=date][,To=date][,Unit=outputUnit][,GroupBy=option][,DataSetName=dataSetName]"
                 + $"\n"
-                + $"\n     =identifierOrUniqueId - Use either the uniqueId or the <parameter>.<label>@<location> syntax."
-                + $"\n     ,From=date            - Retrieve data from this date. [default: Beginning of record]"
-                + $"\n     ,To=date              - Retrieve data until this date. [default: End of record]"
-                + $"\n     ,Unit=outputUnit      - Convert the values to the unit. [default: The default unit of the time-series]"
-                + $"\n     ,GroupBy=option       - Groups data by {string.Join("|", Enum.GetNames(typeof(GroupBy)))} [default: {Context.GroupBy}]"
+                + $"\n     =identifierOrUniqueId     - Use either the uniqueId or the <parameter>.<label>@<location> syntax."
+                + $"\n     ,From=date                - Retrieve data from this date. [default: Beginning of record]"
+                + $"\n     ,To=date                  - Retrieve data until this date. [default: End of record]"
+                + $"\n     ,Unit=outputUnit          - Convert the values to the unit. [default: The default unit of the time-series]"
+                + $"\n     ,GroupBy=option           - Groups data by {string.Join("|", Enum.GetNames(typeof(GroupBy)))} [default: {Context.GroupBy}]"
+                + $"\n     ,DataSetName=datasetName  - Override the name of the dataset. [default: 'TimeSeries#' where # is the 1-based index of the time-series]"
+                + $"\n"
+                + $"\n  Use the -TimeSeries4=... or -TimeSeries[4]=... syntax to force the dataset name to a specific index."
                 + $"\n"
                 + $"\n  Dates specified as yyyy-MM-ddThh:mm:ss.fff. Only the year component is required."
                 + $"\n"
                 + $"\nRetrieving rating model info from AQTS: (more than one -RatingModel=value option can be specified)"
                 + $"\n"
-                + $"\n  -RatingModel=identifierOrUniqueId[,From=date][,To=date][,Unit=outputUnit][,GroupBy=option]"
+                + $"\n  -RatingModel=identifierOrUniqueId[,From=date][,To=date][,Unit=outputUnit][,GroupBy=option][,DataSetName=dataSetName]"
                 + $"\n"
-                + $"\n     =identifierOrUniqueId - Use either the uniqueId or the <InputParameter>-<OutputParameter>.<label>@<location> syntax."
-                + $"\n     ,From=date            - Retrieve data from this date. [default: Beginning of record]"
-                + $"\n     ,To=date              - Retrieve data until this date. [default: End of record]"
-                + $"\n     ,StepSize=increment   - Set the expanded table step size. [default: 0.1]"
+                + $"\n     =identifierOrUniqueId     - Use either the uniqueId or the <InputParameter>-<OutputParameter>.<label>@<location> syntax."
+                + $"\n     ,From=date                - Retrieve data from this date. [default: Beginning of record]"
+                + $"\n     ,To=date                  - Retrieve data until this date. [default: End of record]"
+                + $"\n     ,StepSize=increment       - Set the expanded table step size. [default: 0.1]"
+                + $"\n     ,DataSetName=datasetName  - Override the name of the dataset. [default: 'RatingCurve#' where # is the 1-based index of the rating model]"
+                + $"\n"
+                + $"\n  Use the -RatingModel4=... or -RatingModel[4]=... syntax to force the dataset name to a specific index."
                 + $"\n"
                 + $"\n  Dates specified as yyyy-MM-ddThh:mm:ss.fff. Only the year component is required."
                 + $"\n"
                 + $"\nUsing external data sets: (more than one -ExternalDataSet=value option can be specified)"
                 + $"\n"
-                + $"\n  -ExternalDataSet=pathToXml[,Name=datasetName]"
+                + $"\n  -ExternalDataSet=pathToXml[,DataSetName=dataSetName]"
                 + $"\n"
-                + $"\n     =pathToXml            - A standard .NET DataSet, serialized to XML."
-                + $"\n     ,Name=datasetName     - Override the name of the dataset. [default: The name stored within the XML]"
+                + $"\n     =pathToXml                - A standard .NET DataSet, serialized to XML."
+                + $"\n     ,DataSetName=datasetName  - Override the name of the dataset. [default: The name stored within the XML]"
                 + $"\n"
                 + $"\nUnknown -name=value options will be merged with the appropriate data set and table."
                 + $"\n"
@@ -219,19 +225,61 @@ namespace SharpShooterReportsRunner
                     throw new ExpectedException($"Unknown argument '{arg}'.");
                 }
 
-                var key = match.Groups["key"].Value.ToLower();
+                var key = match.Groups["key"].Value;
                 var value = match.Groups["value"].Value;
 
                 var option = options.FirstOrDefault(o => o.Key != null && o.Key.Equals(key, StringComparison.InvariantCultureIgnoreCase));
 
-                if (option == null)
+                if (option != null)
                 {
-                    AddReportParameter(match.Groups["key"].Value, value);
+                    option.Setter(value);
                     continue;
                 }
 
-                option.Setter(value);
+                match = IndexedDataSetRegex.Match(key);
+
+                if (!match.Success)
+                {
+                    AddReportParameter(key, value);
+                    continue;
+                }
+
+                var category = match.Groups["category"].Value;
+                var index = int.Parse(match.Groups["index"].Value);
+
+                if (index <= 0)
+                    throw new ExpectedException($"'{arg}' has an index of {index}. A value greater than zero is required.");
+
+                if (category.StartsWith(nameof(Context.TimeSeries), StringComparison.InvariantCultureIgnoreCase))
+                {
+                    var timeSeries = ParseTimeSeries(value);
+
+                    ForceDataSetName(timeSeries, $"TimeSeries{index}");
+
+                    Context.TimeSeries.Add(timeSeries);
+                }
+                else
+                {
+                    var ratingModel = ParseRatingModel(value);
+
+                    ForceDataSetName(ratingModel, $"RatingCurve{index}");
+
+                    Context.RatingModels.Add(ratingModel);
+                }
             }
+        }
+
+        private static readonly Regex ArgRegex = new Regex(@"^([/-])(?<key>[^=]+)=(?<value>.*)$", RegexOptions.Compiled);
+
+        private static readonly Regex IndexedDataSetRegex =
+            new Regex(@"^(?<category>TimeSeries|RatingModel)\[?(?<index>\d+)\]?$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static void ForceDataSetName(DataSetBase item, string dataSetName)
+        {
+            if (!string.IsNullOrWhiteSpace(item.DataSetName) && !dataSetName.Equals(item.DataSetName, StringComparison.InvariantCultureIgnoreCase))
+                throw new ExpectedException($"Can't change data set name from '{item.DataSetName}' to '{dataSetName}'");
+
+            item.DataSetName = dataSetName;
         }
 
         private void AddReportParameter(string name, string value)
@@ -269,8 +317,6 @@ namespace SharpShooterReportsRunner
                 .Where(s => !s.StartsWith("#") && !s.StartsWith("//"));
         }
 
-        private static readonly Regex ArgRegex = new Regex(@"^([/-])(?<key>[^=]+)=(?<value>.*)$", RegexOptions.Compiled);
-
         private static Dictionary<string, string> ParseDictionary(string value)
         {
             var components = value.Split(DictionaryEntrySeparators, StringSplitOptions.RemoveEmptyEntries);
@@ -300,13 +346,14 @@ namespace SharpShooterReportsRunner
         {
             var values = ParseDictionary(value);
 
-            var externalDataSet = new ExternalDataSet {Path = values[string.Empty]};
+            var externalDataSet = new ExternalDataSet
+            {
+                Path = values[string.Empty],
+                DataSetName = GetValueOrDefault(values, nameof(ExternalDataSet.DataSetName))
+            };
 
             if (!File.Exists(externalDataSet.Path))
                 throw new ExpectedException($"External DataSet not found at '{externalDataSet.Path}'.");
-
-            if (values.ContainsKey("Name"))
-                externalDataSet.Name = values["Name"];
 
             return externalDataSet;
         }
@@ -315,7 +362,7 @@ namespace SharpShooterReportsRunner
         {
             var values = ParseDictionary(value);
 
-            var groupByText = GetValueOrDefault(values, "GroupBy", GroupBy.Year.ToString());
+            var groupByText = GetValueOrDefault(values, nameof(TimeSeries.GroupBy), GroupBy.Year.ToString());
 
             return new TimeSeries
             {
@@ -324,6 +371,7 @@ namespace SharpShooterReportsRunner
                 QueryFrom = GetValueOrDefault(values, "From"),
                 QueryTo = GetValueOrDefault(values, "To"),
                 GroupBy = ParseEnum<GroupBy>(groupByText),
+                DataSetName = GetValueOrDefault(values, nameof(TimeSeries.DataSetName))
             };
         }
 
@@ -344,7 +392,8 @@ namespace SharpShooterReportsRunner
                 Identifier = values[string.Empty],
                 QueryFrom = GetValueOrDefault(values, "From"),
                 QueryTo = GetValueOrDefault(values, "To"),
-                StepSize = GetValueOrDefault(values, "StepSize"),
+                StepSize = GetValueOrDefault(values, nameof(RatingModel.StepSize)),
+                DataSetName = GetValueOrDefault(values, nameof(RatingModel.DataSetName))
             };
         }
 

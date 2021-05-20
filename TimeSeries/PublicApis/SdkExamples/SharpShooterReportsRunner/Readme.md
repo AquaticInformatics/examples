@@ -56,33 +56,39 @@ Supported -option=value settings (/option=value works too):
 
 Retrieving time-series data from AQTS: (more than one -TimeSeries=value option can be specified)
 
-  -TimeSeries=identifierOrUniqueId[,From=date][,To=date][,Unit=outputUnit][,GroupBy=option]
+  -TimeSeries=identifierOrUniqueId[,From=date][,To=date][,Unit=outputUnit][,GroupBy=option][,DataSetName=dataSetName]
 
-     =identifierOrUniqueId - Use either the uniqueId or the <parameter>.<label>@<location> syntax.
-     ,From=date            - Retrieve data from this date. [default: Beginning of record]
-     ,To=date              - Retrieve data until this date. [default: End of record]
-     ,Unit=outputUnit      - Convert the values to the unit. [default: The default unit of the time-series]
-     ,GroupBy=option       - Groups data by None|Day|Week|Month|Year|Decade [default: Year]
+     =identifierOrUniqueId     - Use either the uniqueId or the <parameter>.<label>@<location> syntax.
+     ,From=date                - Retrieve data from this date. [default: Beginning of record]
+     ,To=date                  - Retrieve data until this date. [default: End of record]
+     ,Unit=outputUnit          - Convert the values to the unit. [default: The default unit of the time-series]
+     ,GroupBy=option           - Groups data by None|Day|Week|Month|Year|Decade [default: Year]
+     ,DataSetName=datasetName  - Override the name of the dataset. [default: 'TimeSeries#' where # is the 1-based index of the time-series]
+
+  Use the -TimeSeries4=... or -TimeSeries[4]=... syntax to force the dataset name to a specific index.
 
   Dates specified as yyyy-MM-ddThh:mm:ss.fff. Only the year component is required.
 
 Retrieving rating model info from AQTS: (more than one -RatingModel=value option can be specified)
 
-  -RatingModel=identifierOrUniqueId[,From=date][,To=date][,Unit=outputUnit][,GroupBy=option]
+  -RatingModel=identifierOrUniqueId[,From=date][,To=date][,Unit=outputUnit][,GroupBy=option][,DataSetName=dataSetName]
 
-     =identifierOrUniqueId - Use either the uniqueId or the <InputParameter>-<OutputParameter>.<label>@<location> syntax.
-     ,From=date            - Retrieve data from this date. [default: Beginning of record]
-     ,To=date              - Retrieve data until this date. [default: End of record]
-     ,StepSize=increment   - Set the expanded table step size. [default: 0.1]
+     =identifierOrUniqueId     - Use either the uniqueId or the <InputParameter>-<OutputParameter>.<label>@<location> syntax.
+     ,From=date                - Retrieve data from this date. [default: Beginning of record]
+     ,To=date                  - Retrieve data until this date. [default: End of record]
+     ,StepSize=increment       - Set the expanded table step size. [default: 0.1]
+     ,DataSetName=datasetName  - Override the name of the dataset. [default: 'RatingCurve#' where # is the 1-based index of the rating model]
+
+  Use the -RatingModel4=... or -RatingModel[4]=... syntax to force the dataset name to a specific index.
 
   Dates specified as yyyy-MM-ddThh:mm:ss.fff. Only the year component is required.
 
 Using external data sets: (more than one -ExternalDataSet=value option can be specified)
 
-  -ExternalDataSet=pathToXml[,Name=datasetName]
+  -ExternalDataSet=pathToXml[,DataSetName=dataSetName]
 
-     =pathToXml            - A standard .NET DataSet, serialized to XML.
-     ,Name=datasetName     - Override the name of the dataset. [default: The name stored within the XML]
+     =pathToXml                - A standard .NET DataSet, serialized to XML.
+     ,DataSetName=datasetName  - Override the name of the dataset. [default: The name stored within the XML]
 
 Unknown -name=value options will be merged with the appropriate data set and table.
 

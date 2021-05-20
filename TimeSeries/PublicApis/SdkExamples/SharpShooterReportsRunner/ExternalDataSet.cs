@@ -1,8 +1,7 @@
 ﻿namespace SharpShooterReportsRunner
 {
-    public class ExternalDataSet
+    public class ExternalDataSet : DataSetBase
     {
         public string Path { get; set; }
-        public string Name { get; set; }
     }
 }

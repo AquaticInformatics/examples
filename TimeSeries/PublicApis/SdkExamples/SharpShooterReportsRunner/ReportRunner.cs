@@ -117,18 +117,31 @@ namespace SharpShooterReportsRunner
 
             Log.Info($"Loading data for {_context.TimeSeries.Count + _context.ExternalDataSets.Count + _context.RatingModels.Count} data-sets ...");
 
-            AddDataSets(reportManager, CreateCompatibilityDataSet(), CreateCommonDataSet());
-            AddDataSets(reportManager, CreateExternalDataSets().ToArray());
-            AddDataSets(reportManager, CreateAllTimeSeriesDataSets().ToArray());
-            AddDataSets(reportManager, CreateAllRatingModelDataSets().ToArray());
+            AddDataSets(reportManager, new[]
+                {
+                    CreateCompatibilityDataSet(), CreateCommonDataSet()
+                }
+                .Concat(CreateExternalDataSets())
+                .Concat(CreateAllTimeSeriesDataSets())
+                .Concat(CreateAllRatingModelDataSets())
+                .ToArray());
 
             MergeParameterOverrides(reportManager);
 
             return reportManager;
         }
 
-        private static void AddDataSets(ReportManager reportManager, params DataSet[] dataSets)
+        private static void AddDataSets(ReportManager reportManager, DataSet[] dataSets)
         {
+            var duplicateDataSetNames = dataSets
+                .GroupBy(ds => ds.DataSetName)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key)
+                .ToList();
+
+            if (duplicateDataSetNames.Any())
+                throw new ExpectedException($"Please resolve the ambiguous data set names which are referring to more than one data set each: '{string.Join("', '", duplicateDataSetNames)}'");
+
             foreach (var dataSet in dataSets)
             {
                 reportManager.DataSources.Add(dataSet.DataSetName, dataSet);
@@ -246,15 +259,15 @@ namespace SharpShooterReportsRunner
             var dataSet = new DataSet();
             dataSet.ReadXml(externalDataSet.Path);
 
-            if (!string.IsNullOrWhiteSpace(externalDataSet.Name))
-                dataSet.DataSetName = externalDataSet.Name;
+            if (!string.IsNullOrWhiteSpace(externalDataSet.DataSetName))
+                dataSet.DataSetName = externalDataSet.DataSetName;
 
             return dataSet;
         }
 
         private IEnumerable<DataSet> CreateAllTimeSeriesDataSets()
         {
-            return _context.TimeSeries.Select((timeSeries, i) => CreateTimeSeriesDataSet(timeSeries, $"TimeSeries{i + 1}"));
+            return _context.TimeSeries.Select((timeSeries, i) => CreateTimeSeriesDataSet(timeSeries, timeSeries.DataSetName ?? $"TimeSeries{i + 1}"));
         }
 
         private DataSet CreateTimeSeriesDataSet(TimeSeries timeSeries, string dataSetName)
@@ -313,7 +326,7 @@ namespace SharpShooterReportsRunner
 
         private IEnumerable<DataSet> CreateAllRatingModelDataSets()
         {
-            return _context.RatingModels.Select((ratingModel, i) => CreateRatingModelDataSet(ratingModel, $"RatingCurve{i + 1}"));
+            return _context.RatingModels.Select((ratingModel, i) => CreateRatingModelDataSet(ratingModel, ratingModel.DataSetName ?? $"RatingCurve{i + 1}"));
         }
 
         private DataSet CreateRatingModelDataSet(RatingModel ratingModel, string dataSetName)
