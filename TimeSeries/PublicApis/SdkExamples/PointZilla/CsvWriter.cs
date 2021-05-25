@@ -79,15 +79,15 @@ namespace PointZilla
             // 2015-12-04T00:01:00Z, 3.523200823975, 500, 
             // 2015-12-04T00:02:00Z, 3.525279357147, 500, 
 
-            context.CsvDateTimeField = 1;
-            context.CsvDateTimeFormat = null;
-            context.CsvDateOnlyField = 0;
-            context.CsvTimeOnlyField = 0;
-            context.CsvValueField = 2;
-            context.CsvGradeField = 3;
-            context.CsvQualifiersField = 4;
-            context.CsvComment = "#";
             context.CsvSkipRows = 0;
+            context.CsvComment = "#";
+            context.CsvDateTimeField = Field.Parse("ISO 8601 UTC", nameof(context.CsvDateTimeField));
+            context.CsvDateTimeFormat = null;
+            context.CsvDateOnlyField = null;
+            context.CsvTimeOnlyField = null;
+            context.CsvValueField = Field.Parse("Value", nameof(context.CsvValueField));
+            context.CsvGradeField = Field.Parse("Grade", nameof(context.CsvGradeField));
+            context.CsvQualifiersField = Field.Parse("Qualifiers", nameof(context.CsvQualifiersField));
             context.CsvIgnoreInvalidRows = true;
             context.CsvRealign = false;
         }

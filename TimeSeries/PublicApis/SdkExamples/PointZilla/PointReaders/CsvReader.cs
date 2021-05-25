@@ -14,24 +14,18 @@ using NodaTime;
 using NodaTime.Text;
 using ServiceStack.Logging;
 
-namespace PointZilla
+namespace PointZilla.PointReaders
 {
-    public class CsvReader
+    public class CsvReader : PointReaderBase, IPointReader
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private Context Context { get; }
         private InstantPattern TimePattern { get; }
-        private Duration DefaultBias { get; }
-        private TimeSpan DefaultTimeOfDay { get; }
 
         public CsvReader(Context context)
+            : base(context)
         {
-            Context = context;
-
-            ValidateConfiguration();
-
-            DefaultTimeOfDay = ParseTimeOnly(Context.CsvDefaultTimeOfDay, Context.CsvTimeOnlyFormat);
+            ValidateConfiguration(Context);
 
             TimePattern = string.IsNullOrWhiteSpace(Context.CsvDateTimeFormat)
                 ? InstantPattern.ExtendedIsoPattern
@@ -39,7 +33,7 @@ namespace PointZilla
 
             var isTimeFormatUtc = TimePattern.PatternText.Contains("'Z'");
 
-            if(Context.CsvDateOnlyField > 0)
+            if(Context.CsvDateOnlyField != null)
             {
                 isTimeFormatUtc = Context.CsvDateOnlyFormat.Contains("Z");
             }
@@ -47,12 +41,6 @@ namespace PointZilla
             DefaultBias = isTimeFormatUtc
                 ? Duration.Zero
                 : Duration.FromTimeSpan((Context.UtcOffset ?? Offset.FromTicks(DateTimeOffset.Now.Offset.Ticks)).ToTimeSpan());
-        }
-
-        private void ValidateConfiguration()
-        {
-            if (Context.CsvDateOnlyField <= 0 && Context.CsvTimeOnlyField > 0)
-                throw new ExpectedException($"You can't mix the /{nameof(Context.CsvDateTimeField)} option with the /{nameof(Context.CsvTimeOnlyField)} option.");
         }
 
         private Instant? ParseInstant(string text)
@@ -157,7 +145,7 @@ namespace PointZilla
 
         private List<TimeSeriesPoint> LoadPoints(IExcelDataReader excelReader)
         {
-            var skipRows = Context.CsvSkipRows - 1;
+            var skipRows = Context.CsvSkipRows;
 
             var dataSet = excelReader.AsDataSet(new ExcelDataSetConfiguration
             {
@@ -174,7 +162,7 @@ namespace PointZilla
                 },
                 ConfigureDataTable = tableReader => new ExcelDataTableConfiguration
                 {
-                    UseHeaderRow = true,
+                    UseHeaderRow = Context.CsvHasHeaderRow,
 
                     ReadHeaderRow = rowReader =>
                     {
@@ -196,9 +184,16 @@ namespace PointZilla
 
             var table = dataSet.Tables[0];
 
+            ValidateHeaderFields(table
+                .Columns
+                .Cast<DataColumn>()
+                .Select(c => c.ColumnName)
+                .ToArray());
+
             return table
                 .Rows
                 .Cast<DataRow>()
+                .Skip(skipRows)
                 .Select(ParseExcelRow)
                 .Where(p => p != null)
                 .ToList();
@@ -216,34 +211,34 @@ namespace PointZilla
 
             try
             {
-                if (Context.CsvDateOnlyField > 0)
+                if (Context.CsvDateOnlyField != null)
                 {
                     var dateOnly = DateTime.MinValue;
                     var timeOnly = DefaultTimeOfDay;
 
-                    ParseExcelColumn<DateTime>(row, Context.CsvDateOnlyField, dateTime => dateOnly = dateTime.Date);
+                    ParseExcelColumn<DateTime>(row, Context.CsvDateOnlyField.ColumnIndex, dateTime => dateOnly = dateTime.Date);
 
-                    if (Context.CsvTimeOnlyField > 0)
+                    if (Context.CsvTimeOnlyField != null)
                     {
-                        ParseExcelColumn<DateTime>(row, Context.CsvTimeOnlyField, dateTime => timeOnly = dateTime.TimeOfDay);
+                        ParseExcelColumn<DateTime>(row, Context.CsvTimeOnlyField.ColumnIndex, dateTime => timeOnly = dateTime.TimeOfDay);
                     }
 
                     time = InstantFromDateTime(dateOnly.Add(timeOnly));
                 }
                 else
                 {
-                    ParseExcelColumn<DateTime>(row, Context.CsvDateTimeField, dateTime => time = InstantFromDateTime(dateTime));
+                    ParseExcelColumn<DateTime>(row, Context.CsvDateTimeField.ColumnIndex, dateTime => time = InstantFromDateTime(dateTime));
                 }
 
                 if (string.IsNullOrEmpty(Context.CsvNanValue))
                 {
-                    ParseExcelColumn<double>(row, Context.CsvValueField, number => value = number);
+                    ParseExcelColumn<double>(row, Context.CsvValueField.ColumnIndex, number => value = number);
                 }
                 else
                 {
                     // Detecting the NaN value is a bit more tricky.
                     // The column might have been converted as a pure string like "NA" or it could be a double like -9999.0
-                    ParseValidExcelColumn(row, Context.CsvValueField, item =>
+                    ParseValidExcelColumn(row, Context.CsvValueField.ColumnIndex, item =>
                     {
                         if (!(item is string itemText))
                         {
@@ -258,8 +253,8 @@ namespace PointZilla
                     });
                 }
 
-                ParseExcelColumn<double>(row, Context.CsvGradeField, number => gradeCode = (int)number);
-                ParseExcelStringColumn(row, Context.CsvQualifiersField, text => qualifiers = QualifiersParser.Parse(text));
+                ParseExcelColumn<double>(row, Context.CsvGradeField?.ColumnIndex, number => gradeCode = (int)number);
+                ParseExcelStringColumn(row, Context.CsvQualifiersField?.ColumnIndex, text => qualifiers = QualifiersParser.Parse(text));
 
                 return new TimeSeriesPoint
                 {
@@ -278,12 +273,12 @@ namespace PointZilla
             }
         }
 
-        private static void ParseExcelColumn<T>(DataRow row, int fieldIndex, Action<T> parseAction) where T : struct
+        private static void ParseExcelColumn<T>(DataRow row, int? fieldIndex, Action<T> parseAction) where T : struct
         {
             ParseValidExcelColumn(row, fieldIndex, item => parseAction((T)item));
         }
 
-        private static void ParseExcelStringColumn(DataRow row, int fieldIndex, Action<string> parseAction)
+        private static void ParseExcelStringColumn(DataRow row, int? fieldIndex, Action<string> parseAction)
         {
             ParseValidExcelColumn(row, fieldIndex, item =>
             {
@@ -292,11 +287,14 @@ namespace PointZilla
             });
         }
 
-        private static void ParseValidExcelColumn(DataRow row, int fieldIndex, Action<object> parseAction)
+        private static void ParseValidExcelColumn(DataRow row, int? fieldIndex, Action<object> parseAction)
         {
+            if (!fieldIndex.HasValue)
+                return;
+
             if (fieldIndex > 0 && row.Table.Columns.Count > fieldIndex - 1)
             {
-                var item = row[fieldIndex - 1];
+                var item = row[fieldIndex.Value - 1];
 
                 if (item != null)
                 {
@@ -327,6 +325,8 @@ namespace PointZilla
 
             var skipCount = Context.CsvSkipRows;
 
+            var parseHeaderRow = Context.CsvHasHeaderRow;
+
             while (!parser.EndOfData)
             {
                 var lineNumber = parser.LineNumber;
@@ -338,6 +338,15 @@ namespace PointZilla
                 {
                     --skipCount;
                     continue;
+                }
+
+                if (parseHeaderRow)
+                {
+                    ValidateHeaderFields(fields);
+                    parseHeaderRow = false;
+
+                    if (Context.CsvHasHeaderRow)
+                        continue;
                 }
 
                 var point = ParsePoint(fields);
@@ -363,12 +372,12 @@ namespace PointZilla
             List<string> qualifiers = null;
             PointType? pointType = null;
 
-            if (Context.CsvDateOnlyField > 0)
+            if (Context.CsvDateOnlyField != null)
             {
                 var dateOnly = DateTime.MinValue;
                 var timeOnly = DefaultTimeOfDay;
 
-                ParseField(fields, Context.CsvDateOnlyField, text =>
+                ParseField(fields, Context.CsvDateOnlyField.ColumnIndex, text =>
                 {
                     if (TryParsePointType(text, out var pType))
                     {
@@ -379,16 +388,16 @@ namespace PointZilla
                     dateOnly = ParseDateOnly(text, Context.CsvDateOnlyFormat);
                 });
 
-                if (Context.CsvTimeOnlyField > 0)
+                if (Context.CsvTimeOnlyField != null)
                 {
-                    ParseField(fields, Context.CsvTimeOnlyField, text => timeOnly = ParseTimeOnly(text, Context.CsvTimeOnlyFormat));
+                    ParseField(fields, Context.CsvTimeOnlyField.ColumnIndex, text => timeOnly = ParseTimeOnly(text, Context.CsvTimeOnlyFormat));
                 }
 
                 time = InstantFromDateTime(dateOnly.Add(timeOnly));
             }
             else
             {
-                ParseField(fields, Context.CsvDateTimeField, text =>
+                ParseField(fields, Context.CsvDateTimeField.ColumnIndex, text =>
                 {
                     if (TryParsePointType(text, out var pType))
                     {
@@ -400,7 +409,7 @@ namespace PointZilla
                 });
             }
 
-            ParseField(fields, Context.CsvValueField, text =>
+            ParseField(fields, Context.CsvValueField.ColumnIndex, text =>
             {
                 if (TryParsePointType(text, out var pType))
                 {
@@ -415,13 +424,13 @@ namespace PointZilla
                     value = numericValue;
             });
 
-            ParseField(fields, Context.CsvGradeField, text =>
+            ParseField(fields, Context.CsvGradeField?.ColumnIndex, text =>
             {
                 if (int.TryParse(text, out var grade))
                     gradeCode = grade;
             });
 
-            ParseField(fields, Context.CsvQualifiersField, text => qualifiers = QualifiersParser.Parse(text));
+            ParseField(fields, Context.CsvQualifiersField?.ColumnIndex, text => qualifiers = QualifiersParser.Parse(text));
 
             if ((pointType == null || pointType == PointType.Unknown) && time == null)
                 return null;
@@ -448,21 +457,6 @@ namespace PointZilla
             return dateTime.Date;
         }
 
-        private static TimeSpan ParseTimeOnly(string text, string format)
-        {
-            var dateTime = string.IsNullOrEmpty(format)
-                ? DateTime.Parse(text)
-                : DateTime.ParseExact(text, format, CultureInfo.InvariantCulture);
-
-            return dateTime.TimeOfDay;
-        }
-
-        private Instant InstantFromDateTime(DateTime dateTime)
-        {
-            return Instant.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified),
-                DefaultBias.ToTimeSpan()));
-        }
-
         private bool TryParsePointType(string text, out PointType pointType)
         {
             return PointTypes.TryGetValue(text, out pointType);
@@ -474,11 +468,14 @@ namespace PointZilla
                 {PointType.Gap.ToString(), PointType.Gap},
             };
 
-        private static void ParseField(string[] fields, int fieldIndex, Action<string> parseAction)
+        private static void ParseField(string[] fields, int? fieldIndex, Action<string> parseAction)
         {
+            if (!fieldIndex.HasValue)
+                return;
+
             if (fieldIndex > 0 && fields.Length > fieldIndex - 1)
             {
-                var text = fields[fieldIndex - 1];
+                var text = fields[fieldIndex.Value - 1];
 
                 if (!string.IsNullOrWhiteSpace(text))
                     parseAction(text);

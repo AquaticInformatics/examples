@@ -4,6 +4,7 @@ using Aquarius.TimeSeries.Client.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using NodaTime;
+using PointZilla.DbClient;
 
 namespace PointZilla
 {
@@ -72,18 +73,19 @@ namespace PointZilla
 
         public List<string> CsvFiles { get; set; } = new List<string>();
 
-        public int CsvDateTimeField { get; set; }
+        public Field CsvDateTimeField { get; set; }
         public string CsvDateTimeFormat { get; set; }
-        public int CsvDateOnlyField { get; set; }
+        public Field CsvDateOnlyField { get; set; }
         public string CsvDateOnlyFormat { get; set; }
-        public int CsvTimeOnlyField { get; set; }
+        public Field CsvTimeOnlyField { get; set; }
         public string CsvTimeOnlyFormat { get; set; }
         public string CsvDefaultTimeOfDay { get; set; } = "00:00";
-        public int CsvValueField { get; set; }
-        public int CsvGradeField { get; set; }
-        public int CsvQualifiersField { get; set; }
+        public Field CsvValueField { get; set; }
+        public Field CsvGradeField { get; set; }
+        public Field CsvQualifiersField { get; set; }
         public string CsvComment { get; set; }
         public int CsvSkipRows { get; set; }
+        public bool CsvHasHeaderRow { get; set; }
         public bool CsvIgnoreInvalidRows { get; set; }
         public bool CsvRealign { get; set; }
         public bool CsvRemoveDuplicatePoints { get; set; } = true;
@@ -91,5 +93,9 @@ namespace PointZilla
         public string CsvNanValue { get; set; }
         public int? ExcelSheetNumber { get; set; }
         public string ExcelSheetName { get; set; }
+
+        public DbType? DbType { get; set; }
+        public string DbConnectionString { get; set; }
+        public string DbQuery { get; set; }
     }
 }
