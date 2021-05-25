@@ -8,6 +8,7 @@ using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Humanizer;
 using NodaTime;
+using PointZilla.PointReaders;
 using ServiceStack.Logging;
 using PostReflectedTimeSeries = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.PostReflectedTimeSeries;
 
@@ -262,6 +263,10 @@ namespace PointZilla
 
             if (Context.CsvFiles.Any())
                 return new CsvReader(Context)
+                    .LoadPoints();
+
+            if (Context.DbType.HasValue)
+                return new DbPointsReader(Context)
                     .LoadPoints();
 
             if (!string.IsNullOrEmpty(Context.WaveFormTextX) || !string.IsNullOrEmpty(Context.WaveFormTextY))

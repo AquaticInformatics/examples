@@ -7,26 +7,24 @@ using Aquarius.TimeSeries.Client.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Humanizer;
-using Get3xCorrectedData = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.TimeSeriesDataCorrectedServiceRequest;
-using Get3xTimeSeriesDescription = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.TimeSeriesDescriptionServiceRequest;
 using NodaTime;
 using ServiceStack.Logging;
+using Get3xCorrectedData = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.TimeSeriesDataCorrectedServiceRequest;
+using Get3xTimeSeriesDescription = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.TimeSeriesDescriptionServiceRequest;
 using InterpolationType = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.InterpolationType;
 using TimeRange = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeRange;
 using TimeSeriesDataCorrectedServiceRequest = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeSeriesDataCorrectedServiceRequest;
 using TimeSeriesPoint = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.TimeSeriesPoint;
 
-namespace PointZilla
+namespace PointZilla.PointReaders
 {
-    public class ExternalPointsReader
+    public class ExternalPointsReader : PointReaderBase, IPointReader
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private Context Context { get; }
-
         public ExternalPointsReader(Context context)
+            : base(context)
         {
-            Context = context;
         }
 
         public List<TimeSeriesPoint> LoadPoints()
@@ -46,7 +44,6 @@ namespace PointZilla
                     : LoadPointsFromNg(client);
             }
         }
-
 
         private IAquariusClient CreateConnectedClient(string server, string username, string password)
         {

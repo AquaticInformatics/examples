@@ -30,6 +30,21 @@ Like its namesake, Godzilla, `PointZilla` can be somewhat awesome, a little scar
 
 These examples will get you through most of the heavy lifting to get some points into your time-series.
 
+A few interesting operations include:
+- [Appending a few random points](#append-something-to-a-time-series)
+- [Appending a single point](#append-a-single-point-to-a-time-series)
+- [Appending points from a CSV](#append-values-from-a-csv-file)
+- [Appending points from Excel](#appending-values-from-an-excel-spreadsheet)
+- [Appending points from a database](#appending-values-from-a-database-query)
+- [Appending points with grades or qualifiers](#appending-grades-and-qualifiers)
+- [Copy points from another time-series](#copying-points-from-another-time-series)
+- [Copy points from a separate AQTS system](#copying-points-from-another-time-series-on-another-aqts-system)
+- [Delete all the points from a time-series](#deleting-all-points-in-a-time-series)
+- [Delete a range of points from a time-series](#deleting-a-range-of-points-in-a-time-series)
+- [Compare the points from two time-series](#comparing-the-points-in-two-different-time-series)
+
+That's quite a bit of Zilla goodness!
+
 ### Command line option syntax
 
 All command line options are case-insensitive, and support both common shell syntaxes: either `/Name=value` (for CMD.EXE) or `-Name=value` (for bash and PowerShell).
@@ -48,7 +63,7 @@ Certain frequently used options do not need to be specified using the `/name=val
 
 The `/Command=`, `/TimeSeries=`, and `/CsvFile=` options can all omit their option name. `PointZilla` will be able to determine the appropriate option name from the command line context.
 
-## Append *something* to a time-zeries
+## Append *something* to a time-series
 
 With only a server and a target time-series, `PointZilla` will used its built-in signal generator and append one day's worth of 1-minute values, as a sine wave between 1 and -1, starting at "right now".
 
@@ -117,11 +132,15 @@ When reading data from a CSV file, use the case-insensitive keyword `Gap` in a t
 
 All the CSV parsing options are configurable, but will default to values which match the CSV files exported from AQTS Springboard from 201x systems.
 
-The `-csvFormat=` option supports three prefconfigured formats:
+The `-csvFormat=` option supports three pre-configured formats:
 
-- `-csvFormat=NG` is equivalent to `-csvDateTimeField=1 -csvValueField=3 -csvGradeField=5 -csvQualifiersField=6 -csvSkipRows=0 -csvComment="#"`
-- `-csvFormat=3X` is equivalent to `-csvDateTimeField=1 -csvValueField=2 -csvGradeField=3 -csvQualifiersField=0 -csvSkipRows=2 -csvDateTimeFormat="MM/dd/yyyy HH:mm:ss"`
-- `-csvFormat=PointZilla` is equivalent to `-csvDateTimeField=1 -csvValueField=2 -csvGradeField=3 -csvQualifiersField=4 -csvSkipRows=0 -csvComment="#"`
+| **Format** | Equivalent options |
+|---|---|
+| `-csvFormat=NG` | `-csvSkipRows=0` <br/> `-csvComment="#"` <br/> `-csvDateTimeField="ISO 8601 UTC"` <br/> `-csvValueField=Value` <br/> `-csvGradeField=Grade` <br/> `-csvQualifiersField=Qualifiers` <br/> |
+| `-csvFormat=3X` | `-csvSkipRows=2` <br/> `-csvDateTimeField=Date-Time` <br/> `-csvValueField=Value` <br/> `-csvGradeField=Grade` <br/> `-csvDateTimeFormat="MM/dd/yyyy HH:mm:ss"` |
+| `-csvFormat=PointZilla` | `-csvSkipRows=0` <br/> `-csvComment="#"` <br/> `-csvDateTimeField="ISO 8601 UTC"` <br/> `-csvValueField=Value` <br/> `-csvGradeField=Grade` <br/> `-csvQualifiersField=Qualifiers` <br/> |
+
+Uploading points exported from an AQTS 20xx system:
 
 ```sh
 $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/Stage.Historical@A001002.EntireRecord.csv
@@ -142,6 +161,12 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/ExportedFro
 13:45:49.944 INFO  - Appending 250 points to Stage.Label@MyLocation (ProcessorBasic) ...
 13:45:51.143 INFO  - Appended 250 points (deleting 0 points) in 1.2 seconds.
 ```
+
+### Use column names or 1-based column indexes to reference a column from your CSV
+
+You can reference a column either by a name (eg. `-CsvDateTimeField="ISO 8601 UTC"`) or by a 1-based column index (eg. `-CsvDateTimeField=1`). When at least one field has a column name, the `-CsvHasHeaderRow=true` option is assumed.
+
+Referencing columns by name is usually more robust, but you may not have control over the format of the CSV file being consumed.
 
 ### Reading timestamps from CSV files
 
@@ -185,9 +210,47 @@ By default, the first sheet in the workbook will be parsed according to the CSV 
 
 You can use the `/ExcelSheetNumber=integer` or `/ExcelSheetName=name` options to parse a different sheet in the workbook.
 
+## Appending values from a database query
+
+PointZilla can also execute a database query and import the results from the query as a time-series.
+
+Three new options control the type of DB connection and the query to execute.
+
+| DbOption | Description |
+|---|---|
+| `-DbType=type` | The database connection type.<br/>Must be one of `SqlServer`, `Postgres`, `MySql`, or `Odbc`. |
+| `-DbConnectionString=connectionString` | The connection string, the syntax of which varies by DB type.<br/><br/>See [https://www.connectionstrings.com/](https://www.connectionstrings.com/) for plenty of examples. |
+| `-DbQuery=queryToExecute` | The SQL query to execute, in one of two forms:<br/><br/>**Inline SQL:** (the entire SQL query as a single line of text)<br/>`-DbQuery="select Time, Value from Sensor where Parameter='HG' and Location='Loc33' order by Time"`<br/><br/>**External SQL File:** (an @ sign, followed by a path to the SQL file)<br/>`-DbQuery=@somePath\myQuery.sql` |
+
+The remaining CSV parsing field options can be used to specify the result columns, by index or by name, to use for constructing the points.
+
+### Use the `SqlServer`, `Postgres`, or `MySql` types if you can. `ODBC` database connections require more setup.
+
+PointZilla comes with easy support for Microsoft SQL Server, Postgres, and MySQL databases. If your database source is one of these types, then use the included native driver support fo easier access.
+
+But PointZilla also supports the ODBC standard, which supports [dozens (more than 50)](https://www.connectionstrings.com/net-framework-data-provider-for-odbc/use-an-odbc-driver-from-net/) of database drivers.
+
+While there is almost always an ODBC driver for every database type, ODBC connections are more complex to configure, since an ODBC-driver for your database must be installed on the system running PointZilla. The 3 native drivers do not require any extra software to be installed.
+
+But sometimes an ODBC is your only option. The following example will query points from a Microsoft Access database using an ODBC connection.
+
+```sh
+$ ./PointZilla.exe -server=doug-vm2019 Stage.Working@MyLocation -DbType=Odbc -DbConnectionString="Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=C:\Users\Doug.Schmidt\Documents\Northwind.accdb;Uid=Admin;Pwd=;" -DbQuery="SELECT Orders.[Order Date], Orders.[Shipping Fee] FROM Orders" -CsvDateTimeField="Order Date" -CsvValueField="Shipping Fee"
+13:16:13.411 INFO  - PointZilla v1.0.0.0
+13:16:13.433 INFO  - Querying Odbc database for points ...
+13:16:13.668 INFO  - Connecting to doug-vm2019 ...
+13:16:14.316 INFO  - Connected to doug-vm2019 (2020.4.195.0)
+13:16:22.795 INFO  - Appending 48 points  [2006-01-15T07:00:00Z to 2006-06-23T07:00:00Z] to Stage.Working@MyLocation (ProcessorBasic) ...
+13:16:33.768 INFO  - Appended 48 points (deleting 0 points) in 11 seconds.
+```
+
+Note that PointZilla is a 64-bit app, which means your ODBC driver must also be 64-bit. Most organizations are still running 32-bit Microsoft Office, so chances are slim that your system will have the 64-bit Access drivers installed. You will probably need to [follow this guidance](https://knowledge.autodesk.com/support/autocad/learn-explore/caas/sfdcarticles/sfdcarticles/How-to-install-64-bit-Microsoft-Database-Drivers-alongside-32-bit-Microsoft-Office.html) to install the 64-bit Microsoft Access driver.
+
+(See? I told you ODBC was more complex!)
+
 ## Realigning CSV points with the `/StartTime` value
 
-When `/CsvRealign=true` is set, all the imported CSV rows will be realigned to the `/StartTime` option.
+When `/CsvRealign=true` is set, all the imported CSV/Excel/DB rows will be realigned to the `/StartTime` option.
 
 This option can be a useful technique to "stitch together" a simulated signal with special shapes at specific times.
 
@@ -404,19 +467,20 @@ Supported -option=value settings (/option=value works too):
 
   ========================= CSV parsing options:
   -CSV                      Parse the CSV file
-  -CsvDateTimeField         CSV column index for combined date+time timestamps [default: 1]
+  -CsvDateTimeField         CSV column index or name for combined date+time timestamps
   -CsvDateTimeFormat        Format of CSV date+time fields [default: ISO8601 format]
-  -CsvDateOnlyField         CSV column index for date-only timestamps [default: 0]
+  -CsvDateOnlyField         CSV column index or name for date-only timestamps
   -CsvDateOnlyFormat        Format of CSV date-only fields
-  -CsvTimeOnlyField         CSV column index for time-only timestamps [default: 0]
+  -CsvTimeOnlyField         CSV column index or name for time-only timestamps
   -CsvTimeOnlyFormat        Format of CSV time-only fields
   -CsvDefaultTimeOfDay      Time of day value when no time field is used [default: 00:00]
-  -CsvValueField            CSV column index for values [default: 3]
-  -CsvGradeField            CSV column index for grade codes [default: 5]
-  -CsvQualifiersField       CSV column index for qualifiers [default: 6]
-  -CsvComment               CSV comment lines begin with this prefix [default: #]
+  -CsvValueField            CSV column index or name for values
+  -CsvGradeField            CSV column index or name for grade codes
+  -CsvQualifiersField       CSV column index or name for qualifiers
+  -CsvComment               CSV comment lines begin with this prefix
   -CsvSkipRows              Number of CSV rows to skip before parsing [default: 0]
-  -CsvIgnoreInvalidRows     Ignore CSV rows that can't be parsed [default: True]
+  -CsvHasHeaderRow          Does the CSV have a header row naming the columns. [default: true if any columns are referenced by name]
+  -CsvIgnoreInvalidRows     Ignore CSV rows that can't be parsed [default: False]
   -CsvRealign               Realign imported CSV points to the /StartTime value [default: False]
   -CsvRemoveDuplicatePoints Remove duplicate points in the CSV before appending. [default: True]
   -CsvDelimiter             Delimiter between CSV fields. (use %20 for space or %09 for tab) [default: ,]
@@ -424,6 +488,11 @@ Supported -option=value settings (/option=value works too):
   -CsvFormat                Shortcut for known CSV formats. One of 'NG', '3X', or 'PointZilla'. [default: NG]
   -ExcelSheetNumber         Excel worksheet number to parse [default to first sheet]
   -ExcelSheetName           Excel worksheet name to parse [default to first sheet]
+
+  ========================= DB parsing options:
+  -DbType                   Database type. Should be one of: SqlServer, Postgres, MySql, Odbc
+  -DbConnectionString       Database connection string. See https://connectionstrings.com for examples.
+  -DbQuery                  SQL query to fetch the time-series points
 
   ========================= CSV saving options:
   -SaveCsvPath              When set, saves the extracted/generated points to a CSV file. If only a directory is specified, an appropriate filename will be generated.

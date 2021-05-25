@@ -11,9 +11,11 @@ using System.Xml;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
+using Humanizer;
 using log4net;
 using NodaTime;
 using NodaTime.Text;
+using PointZilla.DbClient;
 using ServiceStack;
 using ServiceStack.Logging.Log4Net;
 
@@ -104,8 +106,6 @@ namespace PointZilla
                 ExecutingFileVersion = GetExecutingFileVersion()
             };
 
-            SetNgCsvFormat(context);
-
             var resolvedArgs = args
                 .SelectMany(ResolveOptionsFromFile)
                 .ToArray();
@@ -170,18 +170,19 @@ namespace PointZilla
 
                 new Option(), new Option {Description = "CSV parsing options:"},
                 new Option {Key = "CSV", Setter = value => context.CsvFiles.Add(value), Getter = () => string.Join(", ", context.CsvFiles), Description = "Parse the CSV file"},
-                new Option {Key = nameof(context.CsvDateTimeField), Setter = value => context.CsvDateTimeField = int.Parse(value), Getter = () => context.CsvDateTimeField.ToString(), Description = "CSV column index for combined date+time timestamps"},
+                new Option {Key = nameof(context.CsvDateTimeField), Setter = value => context.CsvDateTimeField = Field.Parse(value, nameof(context.CsvDateTimeField)), Getter = () => string.Empty, Description = "CSV column index or name for combined date+time timestamps"},
                 new Option {Key = nameof(context.CsvDateTimeFormat), Setter = value => context.CsvDateTimeFormat = value, Getter = () => context.CsvDateTimeFormat, Description = "Format of CSV date+time fields [default: ISO8601 format]"},
-                new Option {Key = nameof(context.CsvDateOnlyField), Setter = value => context.CsvDateOnlyField = int.Parse(value), Getter = () => context.CsvDateOnlyField.ToString(), Description = "CSV column index for date-only timestamps"},
+                new Option {Key = nameof(context.CsvDateOnlyField), Setter = value => context.CsvDateOnlyField = Field.Parse(value, nameof(context.CsvDateOnlyField)), Getter = () => string.Empty, Description = "CSV column index or name for date-only timestamps"},
                 new Option {Key = nameof(context.CsvDateOnlyFormat), Setter = value => context.CsvDateOnlyFormat = value, Getter = () => context.CsvDateOnlyFormat, Description = "Format of CSV date-only fields"},
-                new Option {Key = nameof(context.CsvTimeOnlyField), Setter = value => context.CsvTimeOnlyField = int.Parse(value), Getter = () => context.CsvTimeOnlyField.ToString(), Description = "CSV column index for time-only timestamps"},
+                new Option {Key = nameof(context.CsvTimeOnlyField), Setter = value => context.CsvTimeOnlyField = Field.Parse(value, nameof(context.CsvTimeOnlyField)), Getter = () => string.Empty, Description = "CSV column index or name for time-only timestamps"},
                 new Option {Key = nameof(context.CsvTimeOnlyFormat), Setter = value => context.CsvTimeOnlyFormat = value, Getter = () => context.CsvTimeOnlyFormat, Description = "Format of CSV time-only fields"},
                 new Option {Key = nameof(context.CsvDefaultTimeOfDay), Setter = value => context.CsvDefaultTimeOfDay = value, Getter = () => context.CsvDefaultTimeOfDay, Description = "Time of day value when no time field is used"},
-                new Option {Key = nameof(context.CsvValueField), Setter = value => context.CsvValueField = int.Parse(value), Getter = () => context.CsvValueField.ToString(), Description = "CSV column index for values"},
-                new Option {Key = nameof(context.CsvGradeField), Setter = value => context.CsvGradeField = int.Parse(value), Getter = () => context.CsvGradeField.ToString(), Description = "CSV column index for grade codes"},
-                new Option {Key = nameof(context.CsvQualifiersField), Setter = value => context.CsvQualifiersField = int.Parse(value), Getter = () => context.CsvQualifiersField.ToString(), Description = "CSV column index for qualifiers"},
+                new Option {Key = nameof(context.CsvValueField), Setter = value => context.CsvValueField = Field.Parse(value, nameof(context.CsvValueField)), Getter = () => string.Empty, Description = "CSV column index or name for values"},
+                new Option {Key = nameof(context.CsvGradeField), Setter = value => context.CsvGradeField = Field.Parse(value, nameof(context.CsvGradeField)), Getter = () => string.Empty, Description = "CSV column index or name for grade codes"},
+                new Option {Key = nameof(context.CsvQualifiersField), Setter = value => context.CsvQualifiersField = Field.Parse(value, nameof(context.CsvQualifiersField)), Getter = () => string.Empty, Description = "CSV column index or name for qualifiers"},
                 new Option {Key = nameof(context.CsvComment), Setter = value => context.CsvComment = value, Getter = () => context.CsvComment, Description = "CSV comment lines begin with this prefix"},
                 new Option {Key = nameof(context.CsvSkipRows), Setter = value => context.CsvSkipRows = int.Parse(value), Getter = () => context.CsvSkipRows.ToString(), Description = "Number of CSV rows to skip before parsing"},
+                new Option {Key = nameof(context.CsvHasHeaderRow), Setter = value => context.CsvHasHeaderRow = bool.Parse(value), Getter = () => string.Empty, Description = "Does the CSV have a header row naming the columns. [default: true if any columns are referenced by name]"},
                 new Option {Key = nameof(context.CsvIgnoreInvalidRows), Setter = value => context.CsvIgnoreInvalidRows = bool.Parse(value), Getter = () => context.CsvIgnoreInvalidRows.ToString(), Description = "Ignore CSV rows that can't be parsed"},
                 new Option {Key = nameof(context.CsvRealign), Setter = value => context.CsvRealign = bool.Parse(value), Getter = () => context.CsvRealign.ToString(), Description = $"Realign imported CSV points to the /{nameof(context.StartTime)} value"},
                 new Option {Key = nameof(context.CsvRemoveDuplicatePoints), Setter = value => context.CsvRemoveDuplicatePoints = bool.Parse(value), Getter = () => context.CsvRemoveDuplicatePoints.ToString(), Description = "Remove duplicate points in the CSV before appending."},
@@ -209,6 +210,11 @@ namespace PointZilla
                     }},
                 new Option {Key = nameof(context.ExcelSheetNumber), Setter = value => context.ExcelSheetNumber = int.Parse(value), Getter = () => context.ExcelSheetNumber.ToString(), Description = $"Excel worksheet number to parse [default to first sheet]"},
                 new Option {Key = nameof(context.ExcelSheetName), Setter = value => context.ExcelSheetName = value, Getter = () => context.ExcelSheetName, Description = $"Excel worksheet name to parse [default to first sheet]"},
+
+                new Option(), new Option {Description = "DB parsing options:"},
+                new Option {Key = nameof(context.DbType), Setter = value => context.DbType = ParseEnum<DbType>(value), Getter = () => $"{context.DbType}", Description = $"Database type. Should be one of: {string.Join(", ", Enum.GetNames(typeof(DbType)))}"},
+                new Option {Key = nameof(context.DbConnectionString), Setter = value => context.DbConnectionString = value, Getter = () => context.DbConnectionString, Description = "Database connection string. See https://connectionstrings.com for examples."},
+                new Option {Key = nameof(context.DbQuery), Setter = value => context.DbQuery = value, Getter = () => context.DbQuery, Description = "SQL query to fetch the time-series points"},
 
                 new Option(), new Option {Description = "CSV saving options:"},
                 new Option {Key = nameof(context.SaveCsvPath), Setter = value => context.SaveCsvPath = value, Getter = () => context.SaveCsvPath, Description = "When set, saves the extracted/generated points to a CSV file. If only a directory is specified, an appropriate filename will be generated."},
@@ -304,6 +310,11 @@ namespace PointZilla
                 option.Setter(value);
             }
 
+            if (!AreAnyCsvFormatOptionsSet(context))
+            {
+                SetNgCsvFormat(context);
+            }
+
             if (string.IsNullOrEmpty(context.Server) && string.IsNullOrEmpty(context.TimeSeries) && !string.IsNullOrEmpty(context.SaveCsvPath))
                 context.StopAfterSavingCsv = true;
 
@@ -320,6 +331,20 @@ namespace PointZilla
             }
 
             return context;
+        }
+
+        private static bool AreAnyCsvFormatOptionsSet(Context context)
+        {
+            return new[]
+                {
+                    context.CsvDateTimeField,
+                    context.CsvDateOnlyField,
+                    context.CsvTimeOnlyField,
+                    context.CsvValueField,
+                    context.CsvGradeField,
+                    context.CsvQualifiersField,
+                }
+                .Any(f => f != null);
         }
 
         private static readonly Regex ArgRegex = new Regex(@"^([/-])(?<key>[^=]+)=(?<value>.*)$", RegexOptions.Compiled);
@@ -369,15 +394,15 @@ namespace PointZilla
             // 2013-07-02T11:59:59Z,2013-07-02 23:59:59,966.15,Raw - yet to be review,200,
             // 2013-07-03T11:59:59Z,2013-07-03 23:59:59,966.15,Raw - yet to be review,200,
 
-            context.CsvDateTimeField = 1;
-            context.CsvDateTimeFormat = null;
-            context.CsvDateOnlyField = 0;
-            context.CsvTimeOnlyField = 0;
-            context.CsvValueField = 3;
-            context.CsvGradeField = 5;
-            context.CsvQualifiersField = 6;
-            context.CsvComment = "#";
             context.CsvSkipRows = 0;
+            context.CsvComment = "#";
+            context.CsvDateTimeField = Field.Parse("ISO 8601 UTC", nameof(context.CsvDateTimeField));
+            context.CsvDateTimeFormat = null;
+            context.CsvDateOnlyField = null;
+            context.CsvTimeOnlyField = null;
+            context.CsvValueField = Field.Parse("Value", nameof(context.CsvValueField));
+            context.CsvGradeField = Field.Parse("Grade", nameof(context.CsvGradeField));
+            context.CsvQualifiersField = Field.Parse("Qualifiers", nameof(context.CsvQualifiersField));
             context.CsvIgnoreInvalidRows = true;
             context.CsvRealign = false;
         }
@@ -392,15 +417,15 @@ namespace PointZilla
             // 07/01/2013 23:59:59,966.15,200,1,6
             // 07/02/2013 23:59:59,966.15,200,1,6
 
-            context.CsvDateTimeField = 1;
-            context.CsvDateTimeFormat = "MM/dd/yyyy HH:mm:ss";
-            context.CsvDateOnlyField = 0;
-            context.CsvTimeOnlyField = 0;
-            context.CsvValueField = 2;
-            context.CsvGradeField = 3;
-            context.CsvQualifiersField = 0;
             context.CsvComment = null;
             context.CsvSkipRows = 2;
+            context.CsvDateTimeField = Field.Parse("Date-Time", nameof(context.CsvDateTimeField));
+            context.CsvDateTimeFormat = "MM/dd/yyyy HH:mm:ss";
+            context.CsvDateOnlyField = null;
+            context.CsvTimeOnlyField = null;
+            context.CsvValueField = Field.Parse("Value", nameof(context.CsvValueField));
+            context.CsvGradeField = Field.Parse("Grade", nameof(context.CsvGradeField));
+            context.CsvQualifiersField = null;
             context.CsvIgnoreInvalidRows = true;
             context.CsvRealign = false;
         }
