@@ -1,0 +1,22 @@
+﻿#
+# With this docker-compose file, you get three containers:
+# - a tomcat
+# - a nginx proxy
+# 
+# Just run docker-compose up in the directory of this file.
+#
+version: '3.7'
+
+services:
+  sos:
+    image: 52north/sos:aq_pr.2
+    ports:
+      - 8080:8080
+  proxy:
+    image: nginx:alpine
+    ports:
+      - 80:80
+    volumes:
+      - "./nginx-proxy.conf:/etc/nginx/conf.d/default.conf"
+    depends_on:
+      - sos

@@ -131,6 +131,9 @@
   <ItemGroup>
     <None Include="App.config" />
     <EmbeddedResource Include="log4net.config" />
+    <None Include="docker-proxy\docker-compose\docker-compose.yml" />
+    <None Include="docker-proxy\docker-compose\nginx-proxy.conf" />
+    <None Include="docker-proxy\Readme.md" />
     <None Include="docker\docker-compose\docker-compose.yml" />
     <None Include="docker\docker-compose\nginx-proxy.conf" />
     <None Include="docker\DockerSetup.md" />
@@ -156,6 +159,23 @@
     <None Include="FodyWeavers.xml" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="docker-proxy\ActivateHydrologyProfile.png" />
+    <Content Include="docker-proxy\AddTheAdminCredentials.png" />
+    <Content Include="docker-proxy\AdminLoginScreen.png" />
+    <Content Include="docker-proxy\AdminProfilesSubMenu.png" />
+    <Content Include="docker-proxy\AdvanceToFinalSetupWizardScreen.png" />
+    <Content Include="docker-proxy\AqtsQualifierExample.png" />
+    <Content Include="docker-proxy\ClickHereToBeginSetup.png" />
+    <Content Include="docker-proxy\ClickStartInLowerRightCorner.png" />
+    <Content Include="docker-proxy\CompleteButNotComplete.png" />
+    <Content Include="docker-proxy\ConfigureCorrectedOrRawPoints.png" />
+    <Content Include="docker-proxy\ConfigureExtendedAttributeFilters.png" />
+    <Content Include="docker-proxy\ConfigureLimitQualifiers.png" />
+    <Content Include="docker-proxy\ConfigureProxyPollingIntervals.png" />
+    <Content Include="docker-proxy\EnterAqtsUrlAndCredentials.png" />
+    <Content Include="docker-proxy\FilterByPublishFlag.png" />
+    <Content Include="docker-proxy\OldSosExporterExtendedAttributeSetup.png" />
+    <Content Include="docker-proxy\SelectProxyInMemory.png" />
     <Content Include="docker\AdminProfilesMenu.png" />
     <Content Include="docker\ClickHereToStartInstallation.png" />
     <Content Include="docker\ConfirmDataSourceStep.png" />
