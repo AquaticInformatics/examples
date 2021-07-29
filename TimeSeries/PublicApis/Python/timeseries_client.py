@@ -21,7 +21,7 @@ def create_endpoint(hostname, root_path):
 def response_or_raise(response):
     if response.status_code >= 400:
         json = response.json()
-        if 'ResponseStatus' in json:
+        if isinstance(json, dict) and 'ResponseStatus' in json:
             http_error_msg = u'%s WebService Error: %s(%s) for url: %s' % (
                 response.status_code, response.reason, json['ResponseStatus']['Message'], response.url)
             raise HTTPError(http_error_msg, response=response)
