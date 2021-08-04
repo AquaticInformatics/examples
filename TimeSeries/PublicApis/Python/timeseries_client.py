@@ -20,8 +20,8 @@ def create_endpoint(hostname, root_path):
 
 def response_or_raise(response):
     if response.status_code >= 400:
-        json = response.json
-        if isinstance(json, dict) and json.has_key('ResponseStatus'):
+        json = response.json()
+        if type(json) == dict and 'ResponseStatus' in json:
             http_error_msg = u'%s WebService Error: %s(%s) for url: %s' % (
                 response.status_code, response.reason, json['ResponseStatus']['Message'], response.url)
             raise HTTPError(http_error_msg, response=response)
@@ -47,14 +47,16 @@ class LocationNotFoundException(ModelNotFoundException):
     """"Raised when the location identifier is not known"""
 
     def __init__(self, identifier):
-        super(ModelNotFoundException, self).__init__(identifier, "Location '{0}' not found.".format(identifier))
+        super(ModelNotFoundException, self).__init__(
+            identifier, "Location '{0}' not found.".format(identifier))
 
 
 class TimeSeriesNotFoundException(ModelNotFoundException):
     """Raised when the time-series identifier cannot be found."""
 
     def __init__(self, identifier):
-        super(ModelNotFoundException, self).__init__(identifier, "Time-series '{0}' not found.".format(identifier))
+        super(ModelNotFoundException, self).__init__(identifier,
+                                                     "Time-series '{0}' not found.".format(identifier))
 
 
 class TimeseriesSession(requests.sessions.Session):
@@ -92,19 +94,23 @@ class TimeseriesSession(requests.sessions.Session):
         return response.json()
 
     def _get_raw(self, url, **kwargs):
-        r = super(TimeseriesSession, self).get(self.base_url + url, verify=self.verify, **kwargs)
+        r = super(TimeseriesSession, self).get(
+            self.base_url + url, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def _post_raw(self, url, data=None, json=None, **kwargs):
-        r = super(TimeseriesSession, self).post(self.base_url + url, data, json, verify=self.verify, **kwargs)
+        r = super(TimeseriesSession, self).post(self.base_url +
+                                                url, data, json, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def _put_raw(self, url, data=None, **kwargs):
-        r = super(TimeseriesSession, self).put(self.base_url + url, data, verify=self.verify, **kwargs)
+        r = super(TimeseriesSession, self).put(
+            self.base_url + url, data, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def _delete_raw(self, url, **kwargs):
-        r = super(TimeseriesSession, self).delete(self.base_url + url, verify=self.verify, **kwargs)
+        r = super(TimeseriesSession, self).delete(
+            self.base_url + url, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def set_session_token(self, token):
@@ -138,10 +144,12 @@ class TimeseriesSession(requests.sessions.Session):
         url = "/json/reply/{0}[]".format(operation_name)
 
         # Split the list into batches
-        batched_requests = [requests[i:i + batch_size] for i in range(0, len(requests), batch_size)]
+        batched_requests = [requests[i:i + batch_size]
+                            for i in range(0, len(requests), batch_size)]
 
         # Get the response batches
-        batched_responses = [self.post(url, json=batch, headers={'X-Http-Method-Override': verb}) for batch in batched_requests]
+        batched_responses = [self.post(url, json=batch, headers={
+                                       'X-Http-Method-Override': verb}) for batch in batched_requests]
 
         # Return the flattened response list
         return [response for batch in batched_responses for response in batch]
@@ -158,7 +166,8 @@ class TimeseriesSession(requests.sessions.Session):
         if len(names) == 0:
             return url
         elif len(names) > 1:
-            raise ModelNotFoundException(url, "Found {0} possible names for URL.".format(len(names)))
+            raise ModelNotFoundException(
+                url, "Found {0} possible names for URL.".format(len(names)))
         else:
             return names[0]
 
@@ -193,16 +202,20 @@ class timeseries_client:
 
     def __init__(self, hostname, username, password, verify=True):
         # Create the three endpoint sessions
-        self.publish = TimeseriesSession(hostname, "/AQUARIUS/Publish/v2", verify=verify)
-        self.acquisition = TimeseriesSession(hostname, "/AQUARIUS/Acquisition/v2", verify=verify)
-        self.provisioning = TimeseriesSession(hostname, "/AQUARIUS/Provisioning/v1", verify=verify)
+        self.publish = TimeseriesSession(
+            hostname, "/AQUARIUS/Publish/v2", verify=verify)
+        self.acquisition = TimeseriesSession(
+            hostname, "/AQUARIUS/Acquisition/v2", verify=verify)
+        self.provisioning = TimeseriesSession(
+            hostname, "/AQUARIUS/Provisioning/v1", verify=verify)
 
         # Authenticate once
         self.configure_proxy()
         self.connect(username, password)
 
         # Cache the server version
-        versionSession = TimeseriesSession(hostname, "/AQUARIUS/apps/v1", verify=verify)
+        versionSession = TimeseriesSession(
+            hostname, "/AQUARIUS/apps/v1", verify=verify)
         self.serverVersion = versionSession.get('/version')["ApiVersion"]
 
     def __enter__(self):
@@ -233,7 +246,8 @@ class timeseries_client:
 
         All subsequent requests to any public endpoint will be authenticated using the stored session token.
         """
-        token = self.publish._post_raw('/session', json={'Username': username, 'EncryptedPassword': password}).text
+        token = self.publish._post_raw(
+            '/session', json={'Username': username, 'EncryptedPassword': password}).text
         self.publish.set_session_token(token)
         self.acquisition.set_session_token(token)
         self.provisioning.set_session_token(token)
@@ -343,7 +357,8 @@ class timeseries_client:
         except requests.exceptions.HTTPError as e:
             raise LocationNotFoundException(location)
 
-        matches = [d for d in descriptions if d['Identifier'] == timeSeriesIdentifier]
+        matches = [d for d in descriptions if d['Identifier']
+                   == timeSeriesIdentifier]
 
         if len(matches) != 1:
             raise TimeSeriesNotFoundException(timeSeriesIdentifier)
@@ -425,7 +440,8 @@ class timeseries_client:
 
     def getTimeSeriesData(self, timeSeriesIds, queryFrom=None, queryTo=None, outputUnitIds=None, includeGapMarkers=None):
         if isinstance(timeSeriesIds, list):
-            timeSeriesIds = [self.getTimeSeriesUniqueId(ts) for ts in timeSeriesIds]
+            timeSeriesIds = [self.getTimeSeriesUniqueId(
+                ts) for ts in timeSeriesIds]
         else:
             timeSeriesIds = self.getTimeSeriesUniqueId(timeSeriesIds)
 
@@ -473,3 +489,54 @@ class timeseries_client:
         """Uploads a file as a field visit to the given location"""
         return self.acquisition.post("/locations/" + locationUniqueId + "/visits/upload/plugins",
                                      files={'file': open(pathToFile, 'rb')})
+
+    def createLocation(self, location):
+        """ Creates a new location as specified by location dict.
+            See API docs for Location JSON/dict struct.
+
+            :param location: dict
+            :return: unique ID (str) of created location"""
+        response = self.provisioning.post('/locations', json=location)
+
+        return response['UniqueId']
+
+    def getLocationList(self):
+        locations = self.publish.get('/GetLocationDescriptionList')
+        return locations['LocationDescriptions']
+
+    def deleteLocation(self, locationUniqueId):
+        """ Deletes a location """
+        return self.provisioning.delete(f'/locations/{locationUniqueId}')
+
+    def createTimeseries(self, locationUniqueId, tsObj):
+        """ Creates a timeseries at a location as specified by tsObj
+
+            :param tsObj: dict (see API docs)
+            :return: unique ID of create timeseries """
+        response = self.provisioning.post(
+            f'/locations/{locationUniqueId}/timeseries/reflected', json=tsObj)
+        return response['UniqueId']
+
+    def deleteTimeseries(self, timeSeriesUniqueID):
+        """ Deletes a timeseries by unique ID. 
+            NOTE: Only works for reflected timeseries. """
+        return self.provisioning.delete(f'/timeseries/{timeSeriesUniqueID}')
+
+    def writeReflectedTimeseries(self, timeSeriesUniqueId, points, startTime, endTime):
+        """ Writes time-value pairs to a reflected timeseries
+
+            NOTE: need to ensure start and end times are outside time extent of
+            timeseries array (cause issue if they are equal).
+
+            :param timeSeriesUniqueId: str timeseries identifier
+            :param points: array of time-value points
+            :param startTime/endTime: datetime"""
+
+        series_data = {'Points': points,
+                       'TimeRange': {
+                           'Start': startTime.isoformat(),
+                           'End': endTime.isoformat()
+                       }}
+
+        self.acquisition.post(
+            f'/timeseries/{timeSeriesUniqueId}/reflected', json=series_data)
