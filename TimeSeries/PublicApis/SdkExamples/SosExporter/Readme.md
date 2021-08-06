@@ -43,7 +43,7 @@ Consider the following 15-line file named "sosconfig.txt":
 -AquariusServer=myappserver
 -AquariusUsername=myaqtsuser
 -AquariusPassword=abc123
--SosServer=http://mysosserver/sos-webapp
+-SosServer=http://mysosserver/
 -SosUsername=mysosuser
 -SosPassword=xyz456
 
