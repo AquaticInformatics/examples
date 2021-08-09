@@ -15,7 +15,7 @@ This server exposes a OGC-compliant SOS (Sensor Observation Service) facade arou
 The proxy code is available as a Docker image, and can be started with the following docker command:
 
 ```sh
-docker run --name sos -p 8080:8080 52north/sos:aq_pr.2
+docker run --name sos -p 8080:8080 52north/sos:aq_pr.3
 ```
 
 Alternatively you can use the [docker_compose.yml](./docker-compose/docker-compose.yml) file and then use the `docker-compose up` command to spin up the proxy behind an nginx instance.
@@ -40,7 +40,7 @@ sos_1    | 2021-07-23 23:53:48.319:INFO::main: Logging initialized @232ms to org
 
 ## First time setup
 
-Browse to `http://localhost:8080` to begin the setup process.
+Browse to `http://localhost` to begin the setup process.
 
 Most of the steps are quick and take only a few seconds, but you will probably spend the most time at step 6, configuring the AQTS-specific settings to filter the appropriate locations and time-series for your system.
 

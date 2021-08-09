@@ -9,9 +9,9 @@ version: '3.7'
 
 services:
   sos:
-    image: 52north/sos:aq_pr.2
-    ports:
-      - 8080:8080
+    image: 52north/sos:aq_pr.3
+    expose:
+      - "8080"
   proxy:
     image: nginx:alpine
     ports:
