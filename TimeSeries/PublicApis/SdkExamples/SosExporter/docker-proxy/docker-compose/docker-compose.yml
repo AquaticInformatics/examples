@@ -9,7 +9,7 @@ version: '3.7'
 
 services:
   sos:
-    image: 52north/sos:aq_pr.3
+    image: 52north/sos:aq_pr.4
     expose:
       - "8080"
   proxy:

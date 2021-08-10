@@ -10,12 +10,77 @@ This server exposes a OGC-compliant SOS (Sensor Observation Service) facade arou
 - The proxy does not synchronize every time-series point from your AQTS system (which was always very slow and problematic with the SosExporter tool). Instead, it quickly synchronizes the locations and time-series you want to expose.
 - All time-series points are retrieved "on-the-fly", as the proxy receives requests for a time-range of points.
 
+## How your AQTS time-series are mapped to SOS sensor observations
+
+| AQTS property | AQTS examples | SOS property | Notes |
+|---|---|---|---|
+| Time-series identifier | `Stage.Test@Location2` | **offering** | |
+| Parameter display name | `Stage` | **observedProperty** | This is the parameter display name, not the parameter ID. So `Stage` instead of `HG`.|
+| Interpolation type | `InstantaneousValues` | | (see table below) |
+| Location identifier | `Location2` | **featureOfInterest** | |
+| Location name | `The second location` | | |
+| Location type | `Atmosphere` | **procedure** | |
+
+The AQTS interpolation type (and sometimes its computation identifier) of each exported series is mapped to a WaterML interpolation types (section 9.15.3.2 of the [WaterML2 standard](https://www.ogc.org/standards/waterml)) as follows:
+
+| AQTS Intepolation Type | AQTS Computation Identifier | WaterML2 Interpolation | Notes |
+|---|---|---|---|
+| InstananeousValues | | `Continous` - Continous | |
+| DiscreteValues | | `Discontinous` - Discontinous | |
+| InstantaneousTotals | | `InstantTotal` - Instantaneous Total | |
+| PrecedingTotals | | `TotalPrec` - Preceding Total | |
+| PrecedingConstant | Mean | `AveragePrec` - Average in Preceding Interval | |
+| PrecedingConstant | Max | `MaxPrec` - Maximum in Preceding Interval  | |
+| PrecedingConstant | Min | `MinPrec` - Minimum in Preceding Interval | |
+| PrecedingConstant | | `ConstPrec` - Constant in Preceding Interval | Unless the AQTS computation identifier is Mean, Max, or Min. |
+| SucceedingConstant | Mean | `AverageSucc` - Average in Succeeding Interval (avarage-succ) | |
+| SucceedingConstant | Max | `MaxSucc` - Maximum in Succeeding Interval (max-succ) | |
+| SucceedingConstant | Min | `MinSucc` - Minimum in Succeeding Interval (min-succ) | |
+| SucceedingConstant | | `ConstSucc` - Constant in Succeeding Interval (const-succ) | Unless the AQTS computation identifier is Mean, Max, or Min. |
+| | | `TotalSucc` - Succeeding Total | Aquarius Time Series doesn't have the concept of Succeeding Total interpolation. |
+
+## Useful URLs from your SOS Server
+
+Once your SOS server is configured and running, the following URLs will be useful to test basic functionality:
+
+You will need substitute `http://{sosserver}` with the name or IP address of your SOS server or Docker container.
+
+The **GetDataAvailability** request will respond with a list of each exported AQTS time-series:
+
+http://{sosserver}/service?service=SOS&version=2.0.0&request=GetDataAvailability
+
+The **GetCapabilities** request will list each exported series in a bit more detail, including the time range of available points.
+
+http://{sosserver}/service?service=SOS&version=2.0.0&request=GetCapabilities&sections=Contents
+
+The **GetObservation** request can be used to fetch time-series data. In its simplest form, only the latest point in the series will be retrieved.
+
+Substitute `{offering}` with the AQTS time-series identifier.
+
+http://{sosserver}/service?service=SOS&version=2.0.0&request=GetObservation&offering={offering}
+
+Fetch a range of time-series points by specifying a temporal filter which describes the time range in one of three formats:
+
+http://{sosserver}/service?service=SOS&version=2.0.0&request=GetObservation&offering={offering}&temporalfilter=om:phenomenonTime,{timeRangeFilter}
+
+Note that the temporal filter value must begin with `om:phenomenonTime,` (including the trailing comma) and must used a forward slash `/` to separate the time-range components, which can be [ISO8601 datetimes](https://www.w3.org/TR/xmlschema-2/#dateTime) or [ISO8601 durations](https://www.w3.org/TR/xmlschema-2/#duration).
+
+| Format | Example filter value | Description |
+|---|---|---|
+| StartTime and EndTime | `2020-11-06T00:00:00/2020-11-06T09:00:00` | Use explicit start and end times|
+| StartTime and Duration | `2020-11-01T00:00:00/P1M` | The entire month of November 2020. |
+| Duration and EndTime | `P14D/2020-11-01T00:00:00` | The two weeks before November 2020. |
+
+- http://{sosserver}/service?service=SOS&version=2.0.0&request=GetObservation&offering={offering}&temporalfilter=om:phenomenonTime,{startTime}/{endTime}
+- http://{sosserver}/service?service=SOS&version=2.0.0&request=GetObservation&offering={offering}&temporalfilter=om:phenomenonTime,{startTime}/{duration}
+- http://{sosserver}/service?service=SOS&version=2.0.0&request=GetObservation&offering={offering}&temporalfilter=om:phenomenonTime,{duration}/{endTime}
+
 ## Docker setup
 
 The proxy code is available as a Docker image, and can be started with the following docker command:
 
 ```sh
-docker run --name sos -p 8080:8080 52north/sos:aq_pr.3
+docker run --name sos -p 8080:8080 52north/sos:aq_pr.4
 ```
 
 Alternatively you can use the [docker_compose.yml](./docker-compose/docker-compose.yml) file and then use the `docker-compose up` command to spin up the proxy behind an nginx instance.
@@ -167,3 +232,21 @@ Use the credentials you added in Step 8 to log into the SOS server in the "Admin
 ### Step 11 - Select the "hydrology" profile and click "Activate Profile!" to enable WaterML 2 output
 
 ![Activate Hydrology Profile](ActivateHydrologyProfile.png)
+
+### Step 12 - Wait a few minutes for the initial discovery of exported series
+
+Once Step 11 is complete, the SOS proxy will begin polling your AQTS system to discover the time-series matching the configuration you specified in Step 6.
+
+This step make take a few minutes to finish discovering the exported series.
+
+You will know the series discovery phase is complete when the GetDataAvailability request responds with a non-empty list.
+
+## Stopping and restarting the docker container
+
+Once the configuration is complete, the containers can be stopped and restarted using standard Docker commands, or via the Docker Dashboard GUI.
+
+```sh
+$ docker-compose down
+```
+
+Every time the container is restarted, it will need to re-discover the exported series and load them into memory, just like in Step 12.
