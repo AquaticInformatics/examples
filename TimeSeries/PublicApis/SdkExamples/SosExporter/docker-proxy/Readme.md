@@ -25,18 +25,18 @@ The AQTS interpolation type (and sometimes its computation identifier) of each e
 
 | AQTS Intepolation Type | AQTS Computation Identifier | WaterML2 Interpolation | Notes |
 |---|---|---|---|
-| InstananeousValues | | `Continous` - Continous | |
-| DiscreteValues | | `Discontinous` - Discontinous | |
+| InstantaneousValues | | `Continuous` - Continuous | |
+| DiscreteValues | | `Discontinuous` - Discontinuous | |
 | InstantaneousTotals | | `InstantTotal` - Instantaneous Total | |
 | PrecedingTotals | | `TotalPrec` - Preceding Total | |
 | PrecedingConstant | Mean | `AveragePrec` - Average in Preceding Interval | |
 | PrecedingConstant | Max | `MaxPrec` - Maximum in Preceding Interval  | |
 | PrecedingConstant | Min | `MinPrec` - Minimum in Preceding Interval | |
 | PrecedingConstant | | `ConstPrec` - Constant in Preceding Interval | Unless the AQTS computation identifier is Mean, Max, or Min. |
-| SucceedingConstant | Mean | `AverageSucc` - Average in Succeeding Interval (avarage-succ) | |
-| SucceedingConstant | Max | `MaxSucc` - Maximum in Succeeding Interval (max-succ) | |
-| SucceedingConstant | Min | `MinSucc` - Minimum in Succeeding Interval (min-succ) | |
-| SucceedingConstant | | `ConstSucc` - Constant in Succeeding Interval (const-succ) | Unless the AQTS computation identifier is Mean, Max, or Min. |
+| SucceedingConstant | Mean | `AverageSucc` - Average in Succeeding Interval | |
+| SucceedingConstant | Max | `MaxSucc` - Maximum in Succeeding Interval | |
+| SucceedingConstant | Min | `MinSucc` - Minimum in Succeeding Interval | |
+| SucceedingConstant | | `ConstSucc` - Constant in Succeeding Interval | Unless the AQTS computation identifier is Mean, Max, or Min. |
 | | | `TotalSucc` - Succeeding Total | Aquarius Time Series doesn't have the concept of Succeeding Total interpolation. |
 
 ## Useful URLs from your SOS Server
