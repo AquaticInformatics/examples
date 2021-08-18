@@ -3,9 +3,11 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
+using System.Web;
 using Aquarius.Samples.Client;
 using Aquarius.Samples.Client.ServiceModel;
 using Aquarius.TimeSeries.Client;
+using NodaTime;
 using ServiceStack;
 
 namespace LabFileImporter
@@ -65,13 +67,18 @@ namespace LabFileImporter
             {
                 FileType = "SIMPLE_CSV",
                 LinkFieldVisitsForNewObservations = true,
-                TimeZoneOffset = $"{_context.UtcOffset:m}"
+                TimeZoneOffset = FormatUtcOffset(_context.UtcOffset)
             };
 
             return FileUploader.UploadFile(
                 $"/v2/observationimports/dryrun?fileType={importRequest.FileType}&linkFieldVisitsForNewObservations={importRequest.LinkFieldVisitsForNewObservations}&timeZoneOffset={importRequest.TimeZoneOffset}",
                 contentBytes,
                 filename);
+        }
+
+        private static string FormatUtcOffset(Offset offset)
+        {
+            return HttpUtility.UrlEncode($"{offset:m}");
         }
 
         public string PostImportForStatusUrl(string filename, byte[] contentBytes)
@@ -82,7 +89,7 @@ namespace LabFileImporter
             {
                 FileType = "SIMPLE_CSV",
                 LinkFieldVisitsForNewObservations = true,
-                TimeZoneOffset = $"{_context.UtcOffset:m}"
+                TimeZoneOffset = FormatUtcOffset(_context.UtcOffset)
             };
 
             return FileUploader.UploadFile(
