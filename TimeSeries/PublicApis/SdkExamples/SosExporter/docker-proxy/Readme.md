@@ -80,7 +80,7 @@ Note that the temporal filter value must begin with `om:phenomenonTime,` (includ
 The proxy code is available as a Docker image, and can be started with the following docker command:
 
 ```sh
-docker run --name sos -p 8080:8080 52north/sos:aq_pr.4
+docker run --name sos -p 8080:8080 52north/sos:aq_pr.6
 ```
 
 Alternatively you can use the [docker_compose.yml](./docker-compose/docker-compose.yml) file and then use the `docker-compose up` command to spin up the proxy behind an nginx instance.
