@@ -1,29 +1,30 @@
 # Sample python code to Public API course
-# Requires python 2.7+
+# Requires python 3.7+
 # Install required dependencies via: $ pip install requests pytz pyrfc3339
 
-import subprocess
+from datetime import datetime
+from functools import total_ordering
 import os
+import platform
+import pyrfc3339
 import requests
 from requests.exceptions import HTTPError
-import pyrfc3339
-from datetime import datetime
 import re
+import subprocess
 
 
 def create_endpoint(hostname, root_path):
     prefix = "http://"
     if hostname.startswith("http://") or hostname.startswith("https://"):
         prefix = ""
-    return "{0}{1}{2}".format(prefix, hostname, root_path)
+    return f"{prefix}{hostname}{root_path}"
 
 
 def response_or_raise(response):
     if response.status_code >= 400:
-        json = response.json
-        if isinstance(json, dict) and json.has_key('ResponseStatus'):
-            http_error_msg = u'%s WebService Error: %s(%s) for url: %s' % (
-                response.status_code, response.reason, json['ResponseStatus']['Message'], response.url)
+        json = response.json()
+        if isinstance(json, dict) and 'ResponseStatus' in json:
+            http_error_msg = f"{response.status_code} WebService Error: {response.reason}({json['ResponseStatus']['Message']}) for url: {response.url}"
             raise HTTPError(http_error_msg, response=response)
 
     response.raise_for_status()
@@ -47,30 +48,137 @@ class LocationNotFoundException(ModelNotFoundException):
     """"Raised when the location identifier is not known"""
 
     def __init__(self, identifier):
-        super(ModelNotFoundException, self).__init__(identifier, "Location '{0}' not found.".format(identifier))
+        super(ModelNotFoundException, self).__init__(identifier, f"Location '{identifier}' not found.")
 
 
 class TimeSeriesNotFoundException(ModelNotFoundException):
     """Raised when the time-series identifier cannot be found."""
 
     def __init__(self, identifier):
-        super(ModelNotFoundException, self).__init__(identifier, "Time-series '{0}' not found.".format(identifier))
+        super(ModelNotFoundException, self).__init__(identifier, f"Time-series '{identifier}' not found.")
 
 
-class TimeseriesSession(requests.sessions.Session):
+@total_ordering
+class ServerVersion(object):
+    """
+    A comparable version object. Any number of dots are supported.
+
+    :param version_text: A dotted-integer version string. Eg. '20.3.43'
+    """
+    def __init__(self, version_text):
+        self.version_text = version_text
+        self._version_vector = self._create_integer_vector(version_text)
+
+    def __repr__(self):
+        return self.version_text
+
+    def __eq__(self, other):
+        return not self < other and not other < self
+
+    def __lt__(self, other):
+        if not isinstance(other, ServerVersion):
+            return NotImplemented
+
+        target = other._version_vector
+        source = self._version_vector
+
+        for i in range(len(source)):
+            if i >= len(target):
+                return False
+
+            if source[i] < target[i]:
+                return True
+
+            if source[i] > target[i]:
+                return False
+
+        return len(source) < len(target)
+
+    @staticmethod
+    def _create_integer_vector(version_text):
+        if version_text == '0.0.0.0':
+            # Force developer versions to be treated as latest-n-greatest
+            version_text = '9999.99'
+
+        versions = [int(i) for i in version_text.split('.')]
+
+        if len(versions) > 0 and 14 <= versions[0] <= 99:
+            # Adjust the leading component to match the 20xx.y release convention used by AQUARIUS products
+            versions[0] += 2000
+
+        return versions
+
+
+class RestSession(requests.sessions.Session):
     """
     A requests.Session object that:
     - Sends all requests to a base endpoint
+    - Expects a JSON response body
     - Always raises an exception if any HTTP errors are detected.
 
     >>> session.get('/invalidroute') # Raises HTTPError (404)
     """
+    _user_agent = None
+    _proxy_configured = None
 
     def __init__(self, hostname, root_path, verify=True):
-        super(TimeseriesSession, self).__init__()
+        super(RestSession, self).__init__()
+        self._configure_proxy()
         self.verify = verify
         self.base_url = create_endpoint(hostname, root_path)
-        self.metadata = None
+        self.headers.update({'User-Agent': self._compose_user_agent()})
+
+    @staticmethod
+    def _compose_user_agent():
+        if RestSession._user_agent is None:
+            script_id = os.path.basename(os.getcwd()) if __file__ == '<input>' else os.path.basename(__file__)
+
+            try:
+                os_system = platform.system()
+                os_version = platform.release()
+            except IOError:
+                os_system = "Unknown"
+                os_version = "Unknown"
+
+            os_agent = f"{os_system}/{os_version}"
+            requests_agent = requests.utils.default_user_agent()
+            py_agent = f"{platform.python_implementation()}/{platform.python_version()}"
+
+            RestSession._user_agent = f"{os_agent} {py_agent} {requests_agent} {script_id}"
+
+        return RestSession._user_agent
+
+    @staticmethod
+    def _configure_proxy():
+        if RestSession._proxy_configured or any(key in os.environ for key in ['PYTHON_DISABLE_FIDDLER', 'http_proxy', 'https_proxy']) or os.name != 'nt':
+            RestSession._proxy_configured = True
+            return
+
+        if RestSession._windows_process_exists('Fiddler.exe'):
+            os.environ['http_proxy'] = os.environ['https_proxy'] = 'http://127.0.0.1:8888'
+
+        RestSession._proxy_configured = True
+
+    @staticmethod
+    def _reset_proxy():
+        RestSession._proxy_configured = None
+
+    @staticmethod
+    def _disable_proxy():
+        if not RestSession._proxy_configured:
+            os.environ.pop('http_proxy')
+            os.environ.pop('https_proxy')
+            RestSession._proxy_configured = None
+
+    @staticmethod
+    def _windows_process_exists(process_name):
+        call = 'TASKLIST', '/FI', 'imagename eq %s' % process_name
+        # use builtin check_output right away
+        output = subprocess.check_output(call).decode()
+        # check in last line for process name
+        last_line = output.strip().split('\r\n')[-1]
+        # because Fail message could be translated
+        return last_line.lower().startswith(process_name.lower())
 
     def get(self, url, **kwargs):
         return self.json_or_none(self._get_raw(url, **kwargs))
@@ -92,23 +200,32 @@ class TimeseriesSession(requests.sessions.Session):
         return response.json()
 
     def _get_raw(self, url, **kwargs):
-        r = super(TimeseriesSession, self).get(self.base_url + url, verify=self.verify, **kwargs)
+        r = super(RestSession, self).get(self.base_url + url, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def _post_raw(self, url, data=None, json=None, **kwargs):
-        r = super(TimeseriesSession, self).post(self.base_url + url, data, json, verify=self.verify, **kwargs)
+        r = super(RestSession, self).post(self.base_url + url, data, json, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def _put_raw(self, url, data=None, **kwargs):
-        r = super(TimeseriesSession, self).put(self.base_url + url, data, verify=self.verify, **kwargs)
+        r = super(RestSession, self).put(self.base_url + url, data, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def _delete_raw(self, url, **kwargs):
-        r = super(TimeseriesSession, self).delete(self.base_url + url, verify=self.verify, **kwargs)
+        r = super(RestSession, self).delete(self.base_url + url, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
-    def set_session_token(self, token):
-        self.headers.update({"X-Authentication-Token": token})
+
+class ServiceStackSession(RestSession):
+    """
+    A requests.Session object for ServiceStack-based REST services.
+
+    AQUARIUS TimeSeries and AQUARIUS WebPortal both use ServiceStack back-ends
+    """
+
+    def __init__(self, hostname, root_path, verify=True):
+        super(ServiceStackSession, self).__init__(hostname=hostname, root_path=root_path, verify=verify)
+        self.metadata = None
 
     def send_batch_requests(self, route_or_operation_name, requests, batch_size=100, verb="GET"):
         """
@@ -133,9 +250,9 @@ class TimeseriesSession(requests.sessions.Session):
         :param verb: Optional HTTP verb of the operation (defaults to "GET")
         :return: A list of all the responses.
         """
-        operation_name = self.get_operation_name(route_or_operation_name, verb)
+        operation_name = self._get_operation_name(route_or_operation_name, verb)
 
-        url = "/json/reply/{0}[]".format(operation_name)
+        url = f"/json/reply/{operation_name}[]"
 
         # Split the list into batches
         batched_requests = [requests[i:i + batch_size] for i in range(0, len(requests), batch_size)]
@@ -146,26 +263,109 @@ class TimeseriesSession(requests.sessions.Session):
         # Return the flattened response list
         return [response for batch in batched_responses for response in batch]
 
-    def get_operation_name(self, url, verb='GET'):
+    def _get_operation_name(self, url, verb='GET'):
         if self.metadata is None:
             # Only fetch this once per session
-            self.metadata = self.get('/types/metadata')
+            self.metadata = {route['operation']: route['name'] for route in [
+                item for sublist in [self._get_operation_routes(operation) for operation in
+                                     self.get('/types/metadata')['Operations']] for item in sublist]}
 
-        names = [request['Name'] for request in [op['Request'] for op in self.metadata['Operations']] if any(
-            route for route in request['Routes'] if
-            verb.lower() == route['Verbs'].lower() and self.normalize_url(url) == self.normalize_url(route['Path']))]
+        target_route = self._normalize_operation(verb, url)
 
-        if len(names) == 0:
-            return url
-        elif len(names) > 1:
-            raise ModelNotFoundException(url, "Found {0} possible names for URL.".format(len(names)))
-        else:
-            return names[0]
+        if target_route in self.metadata:
+            return self.metadata[target_route]
 
-    def normalize_url(self, url):
+        return url
+
+    def _get_operation_routes(self, operation):
+        # ServiceStack 5.xx: metadata['Operations'][i]['Routes'][i]['Path']
+        # ServiceStack 4.xx: metadata['Operations'][i]['Request']['Routes'][i]['Path']
+        routes = operation['Routes'] if 'Routes' in operation else operation['Request']['Routes']
+
+        return [dict(
+            operation=self._normalize_operation(route['Verbs'], route['Path']),
+            name=operation['Request']['Name'])
+            for route in routes]
+
+    def _normalize_operation(self, verb, url):
+        return f"{verb.lower()}/{self._normalize_url(url)}"
+
+    def _normalize_url(self, url):
         # Fold any /{path}/ parameters into /{}/ so any parameter name will match
         # Then lowercase it and strip any trailing slash
         return re.sub('{[^}]+}', '{}', url).rstrip('/').lower()
+
+    def toJSV(self, item):
+        """
+        Converts non-scalar GET request parameters into JSV format.
+
+        Lists must be comma separated
+        Dictionaries must be in {Name1:Value1,Name2:Value2} format
+
+        https://github.com/ServiceStack/ServiceStack.Text/wiki/JSV-Format
+        :param item: item to be converted into JSV format
+        :return: the JSV representation of the item
+        """
+        if isinstance(item, list):
+            # Concatenate all values with commas
+            return '[' + ','.join([str(self.toJSV(i)) for i in item]) + ']'
+
+        if isinstance(item, dict):
+            # Concatenate all the name/value pairs
+            return '{' + ','.join([k+':'+str(self.toJSV(item[k])) for k in item.keys()]) + '}'
+
+        return item
+
+
+class SamplesSession(RestSession):
+    """
+    A requests.Session object for AQUARIUS Samples REST services.
+    """
+
+    def __init__(self, hostname, root_path, verify=True):
+        super(SamplesSession, self).__init__(hostname=hostname, root_path=root_path, verify=verify)
+
+    def paginated_get(self, url, early_exit=None, **kwargs):
+        # Get the supplied parameters, or an empty object if none was supplied
+        params = kwargs.pop('params', {})
+        next_cursor = None
+        total_count = 0
+        total_items = []
+
+        while True:
+            if next_cursor is not None:
+                params['cursor'] = next_cursor
+
+            page_response = self.json_or_none(self._get_raw(url, params=params, **kwargs))
+
+            page_items = page_response['domainObjects']
+
+            # Add this page of items
+            total_count = page_response['totalCount']
+            total_items.extend(page_items)
+
+            if early_exit is not None and any(early_exit(item) for item in page_items):
+                break
+
+            if len(total_items) >= total_count or not any(page_items) or 'cursor' not in page_response:
+                break
+
+            # Use this cursor to fetch the next page
+            next_cursor = page_response['cursor']
+
+        return {'total_count': total_count, 'domain_objects': total_items}
+
+
+class TimeSeriesSession(ServiceStackSession):
+    """
+    A requests.Session object for AQUARIUS TimeSeries REST services.
+    """
+
+    def __init__(self, hostname, root_path, verify=True):
+        super(ServiceStackSession, self).__init__(hostname=hostname, root_path=root_path, verify=verify)
+
+    def set_session_token(self, token):
+        self.headers.update({"X-Authentication-Token": token})
 
 
 class timeseries_client:
@@ -180,52 +380,35 @@ class timeseries_client:
 
     >>> timeseries = timeseries_client('localhost', 'admin', 'admin')
     >>> timeseries.publish.get('/session')
-    {u'Username': u'admin', u'Locale': u'en', u'Token': u'GWVheAEXYDkJrqKWxFA1vQ2', u'CanConfigureSystem': True, u'IpAddress': u'172.16.1.90'}
+    {'Username': 'admin', 'Locale': 'en', 'Token': 'GWVheAEXYDkJrqKWxFA1vQ2', 'CanConfigureSystem': True, 'IpAddress': '172.16.1.90'}
 
     Session resources will be automatically cleaned up if used in WITH statement.
 
     >>> with timeseries_client('localhost', 'admin', 'admin') as timeseries:
     ...   parameters = timeseries.publish.get('/GetParameterList')["Parameters"]
-    ...   print "There are {0} parameters".format(len(parameters))
+    ...   print (f"There are {len(parameters)} parameters")
     ...
     >>> # The session will be disconnected now, even if an exception was thrown in the body of the WITH statement.
     """
 
-    def __init__(self, hostname, username, password, verify=True):
+    def __init__(self, hostname, username="admin", password="admin", verify=True):
         # Create the three endpoint sessions
-        self.publish = TimeseriesSession(hostname, "/AQUARIUS/Publish/v2", verify=verify)
-        self.acquisition = TimeseriesSession(hostname, "/AQUARIUS/Acquisition/v2", verify=verify)
-        self.provisioning = TimeseriesSession(hostname, "/AQUARIUS/Provisioning/v1", verify=verify)
+        self.publish = TimeSeriesSession(hostname, "/AQUARIUS/Publish/v2", verify=verify)
+        self.acquisition = TimeSeriesSession(hostname, "/AQUARIUS/Acquisition/v2", verify=verify)
+        self.provisioning = TimeSeriesSession(hostname, "/AQUARIUS/Provisioning/v1", verify=verify)
 
         # Authenticate once
-        self.configure_proxy()
         self.connect(username, password)
 
         # Cache the server version
-        versionSession = TimeseriesSession(hostname, "/AQUARIUS/apps/v1", verify=verify)
-        self.serverVersion = versionSession.get('/version')["ApiVersion"]
+        version_session = TimeSeriesSession(hostname, "/AQUARIUS/apps/v1", verify=verify)
+        self.server_version = ServerVersion(version_session.get('/version')["ApiVersion"])
 
     def __enter__(self):
         return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         self.disconnect()
-
-    def process_exists(self, process_name):
-        call = 'TASKLIST', '/FI', 'imagename eq %s' % process_name
-        # use buildin check_output right away
-        output = subprocess.check_output(call).decode()
-        # check in last line for process name
-        last_line = output.strip().split('\r\n')[-1]
-        # because Fail message could be translated
-        return last_line.lower().startswith(process_name.lower())
-
-    def configure_proxy(self):
-        if any(key in os.environ for key in ['PYTHON_DISABLE_FIDDLER', 'http_proxy', 'https_proxy']) or os.name != 'nt':
-            return
-
-        if self.process_exists('Fiddler.exe'):
-            os.environ['http_proxy'] = os.environ['https_proxy'] = 'http://127.0.0.1:8888'
 
     def connect(self, username, password):
         """
@@ -242,48 +425,24 @@ class timeseries_client:
         """Destroys the authenticated session"""
         self.publish.delete('/session')
 
-    def isVersionLessThan(self, sourceVersion, targetVersion):
+    def isVersionLessThan(self, source_version, target_version=None):
         """
         Is the source version strictly less than the target version.
 
-        :param sourceVersion: The source version, in dotted.string notation
-        :param targetVersion: If None, the connected server version is used
+        :param source_version: The source version, in dotted.string notation
+        :param target_version: If None, the connected server version is used
         :return: True if the source version is strictly less than the target version
         """
-        if targetVersion is None:
-            targetVersion = self.serverVersion
+        if target_version is None:
+            target_version = self.server_version
 
-        def createIntegerVector(versionText):
+        if not isinstance(source_version, ServerVersion):
+            source_version = ServerVersion(source_version)
 
-            if versionText == '0.0.0.0':
-                # Force developer versions to be treated as latest-n-greatest
-                versionText = '9999.99'
+        return source_version < target_version
 
-            versions = [int(i) for i in versionText.split('.')]
-
-            if len(versions) > 0 and 14 <= versions[0] <= 99:
-                # Adjust the leading component to match the 20xx.y release convention
-                versions[0] += 2000
-
-            return versions
-
-        target = createIntegerVector(targetVersion)
-        source = createIntegerVector(sourceVersion)
-
-        for i in range(len(source)):
-            if i >= len(target):
-                return False
-
-            if source[i] < target[i]:
-                return True
-
-            if source[i] > target[i]:
-                return False
-
-        return len(source) < len(target)
-
-    def isServerVersionLessThan(self, targetVersion):
-        return self.isVersionLessThan(self.serverVersion, targetVersion)
+    def isServerVersionLessThan(self, target_version):
+        return self.isVersionLessThan(self.server_version, target_version)
 
     def iso8601(self, datetime):
         """Formats the datetime object as an ISO8601 timestamp"""
@@ -305,26 +464,6 @@ class timeseries_client:
 
         # Otherwise return the value as-is and hope for the best
         return querytime
-
-    def toJSV(self, item):
-        """
-        Converts non-scalar GET request parameters into JSV format.
-
-        Lists must be comma separated
-        Dictionaries must be in {Name1:Value1,Name2:Value2} format
-
-        https://github.com/ServiceStack/ServiceStack.Text/wiki/JSV-Format
-        :param item: item to be converted into JSV format
-        :return: the JSV representation of the item
-        """
-        if isinstance(item, list):
-            # Concatenate all values with commas
-            return '[' + ','.join([str(self.toJSV(i)) for i in item]) + ']'
-        if isinstance(item, dict):
-            # Concatenate all the name/value pairs
-            return '{' + ','.join([k+':'+str(self.toJSV(item[k])) for k in item.keys()]) + '}'
-
-        return item
 
     def getTimeSeriesUniqueId(self, timeSeriesIdentifier):
         """Gets the unique ID of a time-series"""
@@ -420,7 +559,7 @@ class timeseries_client:
                 'Publish': publish,
                 'ComputationIdentifier': computationIdentifier,
                 'ComputationPeriodIdentifier': computationPeriodIdentifier,
-                'ExtendedFilters': self.toJSV(extendedFilters)
+                'ExtendedFilters': self.publish.toJSV(extendedFilters)
             })['TimeSeriesDescriptions']
 
     def getTimeSeriesData(self, timeSeriesIds, queryFrom=None, queryTo=None, outputUnitIds=None, includeGapMarkers=None):
@@ -432,8 +571,8 @@ class timeseries_client:
         return self.publish.get(
             "/GetTimeSeriesData",
             params={
-                'TimeSeriesUniqueIds': self.toJSV(timeSeriesIds),
-                'TimeSeriesOutputUnitIds': self.toJSV(outputUnitIds),
+                'TimeSeriesUniqueIds': self.publish.toJSV(timeSeriesIds),
+                'TimeSeriesOutputUnitIds': self.publish.toJSV(outputUnitIds),
                 'QueryFrom': self.coerceQueryTime(queryFrom),
                 'QueryTo': self.coerceQueryTime(queryTo),
                 'IncludeGapMarkers': includeGapMarkers
@@ -456,7 +595,7 @@ class timeseries_client:
 
     def deleteReport(self, reportUniqueId):
         """Deletes the generated report from the system"""
-        self.acquisition.delete("/attachments/reports/" + reportUniqueId)
+        self.acquisition.delete(f"/attachments/reports/{reportUniqueId}")
 
     def uploadExternalReport(self, locationUniqueId, pathToFile, title, deleteDuplicateReports=False):
         """Uploads a file as external report to the given location"""
@@ -465,11 +604,11 @@ class timeseries_client:
             for r in [r for r in self.getReportList() if r['Title'] == title and not r['IsTransient']]:
                 self.deleteReport(r['ReportUniqueId'])
 
-        return self.acquisition.post("/locations/" + locationUniqueId + "/attachments/reports",
+        return self.acquisition.post(f"/locations/{locationUniqueId}/attachments/reports",
                                      params={'Title': title},
                                      files={'file': open(pathToFile, 'rb')})
 
     def uploadFieldVisit(self, locationUniqueId, pathToFile):
         """Uploads a file as a field visit to the given location"""
-        return self.acquisition.post("/locations/" + locationUniqueId + "/visits/upload/plugins",
+        return self.acquisition.post(f"/locations/{locationUniqueId}/visits/upload/plugins",
                                      files={'file': open(pathToFile, 'rb')})
