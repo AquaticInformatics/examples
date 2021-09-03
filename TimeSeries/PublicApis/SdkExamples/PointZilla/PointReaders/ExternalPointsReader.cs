@@ -67,14 +67,17 @@ namespace PointZilla.PointReaders
                 QueryTo = Context.SourceQueryTo?.ToDateTimeOffset()
             });
 
+            var gradesLookup = new MetadataLookup<Aquarius.TimeSeries.Client.ServiceModels.Publish.Grade>(timeSeriesData.Grades);
+            var qualifiersLookup = new MetadataLookup<Aquarius.TimeSeries.Client.ServiceModels.Publish.Qualifier>(timeSeriesData.Qualifiers);
+
             var points = timeSeriesData
                 .Points
                 .Select(p => new TimeSeriesPoint
                 {
                     Time = Instant.FromDateTimeOffset(p.Timestamp.DateTimeOffset),
                     Value = p.Value.Numeric,
-                    GradeCode = GetFirstMetadata(timeSeriesData.Grades, p.Timestamp.DateTimeOffset, g => int.Parse(g.GradeCode)),
-                    Qualifiers = GetManyMetadata(timeSeriesData.Qualifiers, p.Timestamp.DateTimeOffset, q => q.Identifier).ToList()
+                    GradeCode = GetFirstMetadata(gradesLookup, p.Timestamp.DateTimeOffset, g => int.Parse(g.GradeCode)),
+                    Qualifiers = GetManyMetadata(qualifiersLookup, p.Timestamp.DateTimeOffset, q => q.Identifier).ToList()
                 })
                 .ToList();
 
@@ -95,19 +98,94 @@ namespace PointZilla.PointReaders
             return points;
         }
 
-        private static T GetFirstMetadata<TMetadata, T>(IEnumerable<TMetadata> items, DateTimeOffset time, Func<TMetadata,T> func)
-            where TMetadata : TimeRange
+        public class MetadataLookup<TMetadata> where TMetadata : TimeRange
         {
-            var metadata = items.FirstOrDefault(i => i.StartTime <= time && time < i.EndTime);
+            private IEnumerator<TMetadata> Enumerator { get; }
+            private TMetadata CurrentItem { get; set; }
+            private List<TMetadata> CandidateItems { get; } = new List<TMetadata>();
 
-            return metadata == null ? default(T) : func(metadata);
+            public MetadataLookup(IEnumerable<TMetadata> items)
+            {
+                Enumerator = items.GetEnumerator();
+
+                AdvanceEnumerator();
+            }
+
+            private void AdvanceEnumerator()
+            {
+                CurrentItem = Enumerator.MoveNext()
+                    ? Enumerator.Current
+                    : null;
+            }
+
+            public TMetadata FirstOrDefault(DateTimeOffset timestamp)
+            {
+                do
+                {
+                    if (IsItemValid(CurrentItem, timestamp))
+                        return CurrentItem;
+
+                    if (IsItemExpired(CurrentItem, timestamp))
+                    {
+                        AdvanceEnumerator();
+                    }
+                    else
+                    {
+                        return null;
+                    }
+
+                } while (true);
+            }
+
+            private static bool IsItemValid(TMetadata item, DateTimeOffset timestamp)
+            {
+                return item?.StartTime <= timestamp && timestamp < item.EndTime;
+            }
+
+            private static bool IsItemExpired(TMetadata item, DateTimeOffset timestamp)
+            {
+                return item?.EndTime <= timestamp;
+            }
+
+            public IEnumerable<TMetadata> GetMany(DateTimeOffset timestamp)
+            {
+                if (IsItemValid(CurrentItem, timestamp))
+                {
+                    while (IsItemValid(CurrentItem, timestamp))
+                    {
+                        CandidateItems.Add(CurrentItem);
+
+                        AdvanceEnumerator();
+                    }
+                }
+
+                var expiredItems = CandidateItems
+                    .Where(item => IsItemExpired(item, timestamp))
+                    .ToList();
+
+                if (expiredItems.Any())
+                {
+                    CandidateItems.RemoveAll(item => IsItemExpired(item, timestamp));
+                }
+
+                return CandidateItems
+                    .Where(item => IsItemValid(item, timestamp));
+            }
         }
 
-        private static IEnumerable<T> GetManyMetadata<TMetadata, T>(IEnumerable<TMetadata> items, DateTimeOffset time, Func<TMetadata, T> func)
+        private static T GetFirstMetadata<TMetadata, T>(MetadataLookup<TMetadata> lookup, DateTimeOffset time, Func<TMetadata,T> func)
             where TMetadata : TimeRange
         {
-            return items
-                .Where(i => i.StartTime <= time && time < i.EndTime)
+            var metadata = lookup.FirstOrDefault(time);
+
+            return metadata == null ? default : func(metadata);
+        }
+
+        private static IEnumerable<T> GetManyMetadata<TMetadata, T>(MetadataLookup<TMetadata> lookup, DateTimeOffset time, Func<TMetadata, T> func)
+            where TMetadata : TimeRange
+        {
+            return lookup
+                .GetMany(time)
                 .Select(func);
         }
 
