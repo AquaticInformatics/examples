@@ -317,45 +317,6 @@ class ServiceStackSession(RestSession):
         return item
 
 
-class SamplesSession(RestSession):
-    """
-    A requests.Session object for AQUARIUS Samples REST services.
-    """
-
-    def __init__(self, hostname, root_path, verify=True):
-        super(SamplesSession, self).__init__(hostname=hostname, root_path=root_path, verify=verify)
-
-    def paginated_get(self, url, early_exit=None, **kwargs):
-        # Get the supplied parameters, or an empty object if none was supplied
-        params = kwargs.pop('params', {})
-        next_cursor = None
-        total_count = 0
-        total_items = []
-
-        while True:
-            if next_cursor is not None:
-                params['cursor'] = next_cursor
-
-            page_response = self.json_or_none(self._get_raw(url, params=params, **kwargs))
-
-            page_items = page_response['domainObjects']
-
-            # Add this page of items
-            total_count = page_response['totalCount']
-            total_items.extend(page_items)
-
-            if early_exit is not None and any(early_exit(item) for item in page_items):
-                break
-
-            if len(total_items) >= total_count or not any(page_items) or 'cursor' not in page_response:
-                break
-
-            # Use this cursor to fetch the next page
-            next_cursor = page_response['cursor']
-
-        return {'total_count': total_count, 'domain_objects': total_items}
-
-
 class TimeSeriesSession(ServiceStackSession):
     """
     A requests.Session object for AQUARIUS TimeSeries REST services.
@@ -612,3 +573,130 @@ class timeseries_client:
         """Uploads a file as a field visit to the given location"""
         return self.acquisition.post(f"/locations/{locationUniqueId}/visits/upload/plugins",
                                      files={'file': open(pathToFile, 'rb')})
+
+
+class SamplesSession(RestSession):
+    """
+    A client wrapper for AQUARIUS Samples REST API consumption.
+
+    Obtain a 32-digit API token by browsing to https://myinstance.aqsamples.com/api and following the instructions.
+
+    :param hostname: A thinger
+    :param api_token: Another thiner
+    :param callbacks: Callbacks for special handling
+
+    >>> samples = SamplesSession("https://myinstance.aqsamples.com", "01234567890123456789012345678901")
+    >>>
+    >>> # Get all the projects in the system
+    >>> projects = samples.get("/v1/projects")["domainObjects"]
+    """
+    def __init__(self, hostname, api_token, callbacks={}, verify=True):
+        super(SamplesSession, self).__init__(hostname=hostname, root_path="/api", verify=verify)
+        self.headers.update({"Authorization": f"token {api_token}"})
+
+        # Callbacks must be set before any API requests are issued
+        self.callbacks = callbacks
+        self.callbacks.setdefault('pagination_warning', self.default_pagination_warning)
+        self.callbacks.setdefault('pagination_progress', self.default_pagination_progress)
+        self.callbacks.setdefault('on_connected', self.default_on_connected)
+
+        self._connect()
+
+    def _connect(self):
+        self.server_version = ServerVersion(self.get('/v1/status')["releaseName"])
+        self.authenticated_user = self.get('/v1/usertokens')["user"]
+
+        if self.callbacks['on_connected']:
+            self.callbacks['on_connected'](self.base_url, self.server_version, self.authenticated_user)
+
+    def get(self, url, **kwargs):
+        json = super(SamplesSession, self).get(url, **kwargs)
+
+        if self.callbacks['pagination_warning'] and json \
+                and all(key in json for key in ['totalCount', 'cursor', 'domainObjects']) \
+                and json['totalCount'] > len(json['domainObjects']):
+            self.callbacks['pagination_warning'](json['domainObjects'], json['totalCount'])
+
+        return json
+
+    @staticmethod
+    def default_pagination_warning(page_items, total_count):
+        """
+        The default callback invoked when a get() response indicates that only a partial result set instead of all the results.
+
+        Set `samples.callbacks['pagination_warning'] = None` to disable the callback.
+
+        :param page_items: A collection of the received items.
+        :param total_count: The total item count of all results.
+        """
+        print(f"WARNING: Only {len(page_items)} of {total_count} items received. Try using the paginated_get() method instead.")
+
+    @staticmethod
+    def default_pagination_progress(page_limit, total_count, current_items):
+        """
+        The default callback invoked when each intermediate page of paginated data is received.
+
+        Set `samples.callbacks['pagination_progress'] = None` to disable the callback.
+
+        :param page_limit: The page size to be used for the next paginated get request.
+        :param total_count: The total item count of the entire result set.
+        :param current_items: The collection of currently retrieved items.
+        """
+        print(f"Fetching next page of {page_limit} items ... {len(current_items)/total_count:>3.0%} complete: {len(current_items)} of {total_count} items received.")
+
+    @staticmethod
+    def default_on_connected(base_url, server_version, authenticated_user):
+        """
+        The default callback for connection events.
+
+        Set `samples.callbacks['on_connected'] = None` to disable the callback.
+
+        :param base_url: The root URL of the connected AQUARIUS Samples instance
+        :param server_version: The current AQUARIUS Samples server release version
+        :param authenticated_user: The authenticated user associated with the API token
+        """
+        print(f"Connected to {base_url} (v{server_version}) as {authenticated_user['email']}")
+
+    def paginated_get(self, url, early_exit=None, **kwargs):
+        """
+        Make repeated GET requests from the given URL until all pages have been received.
+
+        :param url: The URL of the get() request for fetching pages of data (Eg. "/v1/samplinglocations")
+        :param early_exit: Optional predicate to be applied to each fetched item. When the predicate returns True,
+        the paginated sequence will exit early, before all pages have been fetched.
+        :param kwargs: Other keyword arguments for the get() request
+        :return: An object containing all the retrieved items.
+        """
+        # Get the supplied parameters, or an empty object if none was supplied
+        params = kwargs.pop('params', {})
+
+        next_cursor = None
+        total_count = 0
+        total_items = []
+
+        while True:
+            if next_cursor is not None:
+                params['cursor'] = next_cursor
+
+            page_response = self.json_or_none(self._get_raw(url, params=params, **kwargs))
+
+            page_items = page_response['domainObjects']
+
+            # Add this page of items
+            total_count = page_response['totalCount']
+            total_items.extend(page_items)
+
+            if early_exit is not None and any(early_exit(item) for item in page_items):
+                break
+
+            if len(total_items) >= total_count or not any(page_items) or 'cursor' not in page_response:
+                break
+
+            if self.callbacks['pagination_progress']:
+                page_limit = params['limit'] if 'limit' in params else len(page_items)
+                self.callbacks['pagination_progress'](page_limit, total_count, total_items)
+
+            # Use this cursor to fetch the next page
+            next_cursor = page_response['cursor']
+
+        return {'totalCount': total_count, 'domainObjects': total_items}

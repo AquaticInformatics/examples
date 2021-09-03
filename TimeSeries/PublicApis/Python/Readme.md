@@ -15,11 +15,11 @@ $ pip install requests pytz pyrfc3339
 
 ## Revision History
 
-- 2021-Sep-01 - Fairly big internal refactoring, with minimal external changes.
+- 2021-Sep-01 - Fairly big internal refactoring, with minimal breaking external changes.
     - Dropped Python 2.x support
     - Added an improved User Agent header to all requests
     - Fixed `send_batch_requests()` for AQTS 2021.1+ while still working with AQTS 2020.4-and-older
-    - Added AQUARIUS Samples support
+    - Added [AQUARIUS Samples API](#aquarius-samples-api) support
 - 2020-Sep-03 - Eliminated the `.json()` ceremony around each API operation
 - 2019-Dec-13 - Added field visit upload helper method
 - 2018-Dec-10 - Added some helper methods
@@ -201,10 +201,12 @@ If your target AQUARIUS server has HTTPS enabled (it should, and all our AQUARIU
 
 There is a small one-time price paid when your script is run, since the API wrapper attempts to detect if a `Fiddler.exe` process is running on your system.
 
-If you don't want your script's traffic to be routed through Fiddler (or even try to detect if Fiddler is running),
+If you don't want your script's traffic to be routed through Fiddler (or to not even try to detect if Fiddler is running),
 you can do any of the following before connecting to the server:
 - Set the `PYTHON_DISABLE_FIDDLER` environment variable to any value
 - Set the `http_proxy` or `https_proxy` environment variables to any string value, including and empty string `""`
+
+Since python inherits its environment variables from the operating system, you can set `PYTHON_DISABLE_FIDDLER` on your system, and all Python scripts run on your system will avoid the Fiddler-detection logic.
 
 ```python
 import os
@@ -447,3 +449,91 @@ locationData = timeseries.publish.send_batch_requests('/GetLocationData', [{'Loc
 ```
 
 Either approach is fine, but sometimes the batch-fetch might save a few minutes in a long-running script.
+
+# AQUARIUS Samples API
+
+The [AQUARIUS Samples](https://aquaticinformatics.com/products/aquarius/aquarius-samples/) API can also be consumed from your Python using the API wrapper classes.
+
+The API wrapper usage for Samples is similar to the Time-Series API, with some minor differences:
+- You authenticate using an API token, rather than an AQUARIUS Time-Series username and password.
+- Browse to https://yourinstance.aqsamples.com/api and follow the instructions to obtain an API token.
+- URLs for Samples API operations begin with a "/v1" or "/v2"
+- Some `get()` requests can respond with many pages of data. Use the `paginated_get()` method instead
+
+```python
+>>> from timeseries_client import SamplesSession
+
+>>> samples = SamplesSession("https://myorg.aqsamples.com", "01234567890123456789012345678901")
+>>> projects = samples.get("/v1/projects")
+```
+
+## Use the `paginated_get()` method to fetch all the relevant pages of data
+
+Some of the Samples API responses can return many results, split over multiple pages of data.
+
+Dealing with paginated results is important, especially when the result count can be millions or tens-of-millions of items.
+
+Some API operations like `get('/v1/projects')` to get all the configured projects return everything at once, since the list will never get too big. Other API operations like `get('/v2/observations')` may return tens of millions of records.
+
+It is sometimes difficult to know which operations are going to be paginated and may require multiple GET requests to fetch all the data.
+
+The API signature for a paginated operation is an operation which meets all of these criteria:
+
+1. The request supports an optional `limit` parameter to control the size of each page of data.
+1. The request supports an optional `cursor` parameter to provide a continuation context for fetching the next page of data.
+1. The response includes a `totalCount` integer property, indicating how many items exist in the entire result set.
+1. The response includes a `cursor` string property, to be provided on the next GET request to fetch the next page of data.
+1. The response includes a `domainObjects` collection property, containing one page of items.
+
+If any of the above 5 criteria are not met, then using the `get()` method to issue a single request will be sufficient.
+When all 5 criteria are met, then you should use the `paginated_get()` method to fetch all the pages of matching data.
+
+```python
+>>> from timeseries_client import SamplesSession
+
+>>> samples = SamplesSession("https://myorg.aqsamples.com", "01234567890123456789012345678901")
+>>> projects = samples.get("/v1/projects")
+
+# Oops! This API is actually paginated 
+>>> locations = samples.get("/v1/samplinglocations")
+WARNING: Only 100 or 4049 items received. Try using the paginated_get() method instead.
+
+# Call the paginated version instead and be willing to wait for all pages to be fetched.
+locations = samples.paginated_get("/v1/samplinglocations", params={'limit':1000})
+Fetching next page of 1000 items ... 25% complete: 1000 of 4049 items received.
+Fetching next page of 1000 items ... 49% complete: 2000 of 4049 items received.
+Fetching next page of 1000 items ... 74% complete: 3000 of 4049 items received.
+Fetching next page of 1000 items ... 99% complete: 4000 of 4049 items received.
+```
+
+### Disabling the pagination warnings and progress messages
+
+The API wrapper will print a warning if your script makes a `get()` request that only returns a subset of
+data and the API wrapper will print a progress message as each page of data is received as the `paginated_get()` method
+fetches page after page of results.
+
+These messages are enabled by default, to provide a hint that your script might need some rework, or might
+take a long time to complete. If your organization has 15 million Samples observations, then what looks
+like a simple call to `observations = samples.paginated_get('/v2/observations)` may actually take 3 weeks to complete!
+Without these warnings and progress messages enabled, it might appear that your small script is hung, when in fact it is just doing a LOT of data retrieval.
+
+The `SamplesSession` class has a `callbacks` dictionary, which allows you to override the default behavior of
+these events:
+- `samples.callbacks['pagination_warning']` - Uses `default_pagination_warning()` as the pagination warning event
+- `samples.callbacks['pagination_progress']` - Uses `default_pagination_progress()` as the pagination progress event
+- `samples.callbacks['on_connected']` - Uses `default_on_connected()` as the connection message
+
+You can set any of these callbacks to `None` to disable any messages from being logged.
+
+### You may need to supply more filters to reduce the number of retrieved pages
+
+You might not actually want to fetch all 15 million observations from your system.
+If you do need all 15 million records, there isn't much you can do other than wait 3 calendar weeks for
+`paginated_get()` to finish fetching the hundreds of thousands of pages of data, and hope that your Python interpreter has enough free memory (many gigabytes!) to store the entire collection of received records.
+
+But most operations which support paginated results also support optional request parameters, which can be used to filter the large result space into smaller pieces:
+- Filtering by time is quite common
+- Filtering by sampling location or project is also common
+- Filters are additive, so the more filters you provide, the smaller your result set becomes.
+
+Please refer to the Samples API Swagger page to see the list of filter parameters which can be applied to each paginated API operation.
