@@ -2,7 +2,9 @@
 
 [**Download** this project folder](https://minhaskamal.github.io/DownGit/#/home?url=https:%2F%2Fgithub.com%2FAquaticInformatics%2FExamples%2Ftree%2Fmaster%2FTimeSeries%2FPublicApis%2FPython)
 
-Requirements: Python 2.7-or-greater
+Requirements: Python 3.7-or-greater
+
+Are you stuck in the Python 2.7 past? [This older wrapper version](https://github.com/AquaticInformatics/examples/blob/ccd0f270d432c369e3b29b782a5db47cae251bea/TimeSeries/PublicApis/Python/timeseries_client.py) should still work, but seriously, [Python 2.x is dead](https://pythonclock.org/). Join the 21st century. ([2to3](https://docs.python.org/3/library/2to3.html) is your friend for quickly bringing your old code into the new world.) 
 
 ### Required dependencies
 
@@ -10,6 +12,20 @@ The [`timeseries_client.py`](./timeseries_client.py) wrapper class uses the awes
 ```bash
 $ pip install requests pytz pyrfc3339
 ```
+
+## Revision History
+
+- 2021-Sep-01 - Fairly big internal refactoring, with minimal breaking external changes.
+    - Dropped Python 2.x support
+    - Added an improved User Agent header to all requests
+    - Fixed `send_batch_requests()` for AQTS 2021.1+ while still working with AQTS 2020.4-and-older
+    - Added [AQUARIUS Samples API](#aquarius-samples-api) support
+- 2020-Sep-03 - Eliminated the `.json()` ceremony around each API operation
+- 2019-Dec-13 - Added field visit upload helper method
+- 2018-Dec-10 - Added some helper methods
+- 2017-Jun-08 - First release
+
+Only major changes are listed above. See the [change log](https://github.com/AquaticInformatics/examples/commits/master/TimeSeries/PublicApis/Python/timeseries_client.py) for the detailed history of the Python API wrapper.
 
 ## Connecting to your AQTS server
 
@@ -26,6 +42,7 @@ The `hostname` parameter of the `timeseries_client` constructor supports a numbe
 - `'123.231.132.213'` - IP address (IPv4 or IPv6)
 - `'http://myserver'` - HTTP URI
 - `'https://myserver'` - HTTPS URI (if you have enabled HTTPS on your AQTS server)
+- `'https://myinstance.aquaticinformatics.net'` - HTTPS URI for an AQUARIUS Cloud instance
 
 ```python
 # Connect to the server
@@ -34,7 +51,7 @@ The `hostname` parameter of the `timeseries_client` constructor supports a numbe
 
 Now the `timeseries` object represents an authenticated AQTS session.
 
-Note: API access from python requires a credentialed account. You cannot use an ActiveDirectory or OpenIDConnect account for API access.
+Note: AQTS API access from python requires a credentialed account. You cannot use an ActiveDirectory or OpenIDConnect account for API access.
 
 Step 3 - Make requests from the public API endpoints
 
@@ -141,6 +158,68 @@ Non-GET requests should specify any request parameters as a Python dictionary in
 # Issue the PUT request with the modified object
 >>> timeseries.provisioning.put('/parameters/'+stage['UniqueId'], json=stage)
 ```
+
+### Debugging your API scripts (Hint: use Fiddler to confirm the API request/response traffic!)
+
+_"The API didn't work"_ - Usually that isn't true.
+
+TL;DR - Run a web proxy like Fiddler in the background, while your Python script runs. If something fails unexpectedly, look at the traffic for a big red line indicating a failed API operation.
+
+REST APIs rarely actually fail. If your HTTP request receives an HTTP response,
+then the API operation has technically "worked as designed".
+
+Most of the time, an unexpected server response raises an HTTP error in your Python script because:
+- the request might be incorrect, causing the operation to respond with a 4xx response status.
+- a server-side error might have been encountered, causing the operation to respond with a 5xx response status.
+
+But receiving a 4xx or 5xx status code (instead of the expected 2xx status code for successful operations) is still a working API.
+
+The more common problem is that your script isn't handling errors in a meaningful way, but it should. See the [Error Handling](#error-handling) section for details.
+
+Usually the true source of the error can be quickly understood by examining the HTTP request and its HTTP response together. There is usually a clue somewhere in those two items which explains why things are going sideways.
+
+The API wrapper includes automatic support for the excellent-and-free [Fiddler](https://www.telerik.com/fiddler/fiddler-classic) web debugging proxy for Windows.
+
+If your Python script is run on a Windows system while Fiddler is running in the background, all the API requests from your script will be routed through Fiddler.
+
+When an API request fails, the server will respond with a 4xx or 5xx status code, which shows as a red session in the [Fiddler capture window](https://docs.telerik.com/fiddler/observe-traffic/tasks/examinewebtraffic).
+
+#### Using Fiddler for HTTPS connections
+
+Fiddler does have support for HTTPS traffic capture, but it [needs to be expilictly enabled](https://docs.telerik.com/fiddler/configure-fiddler/tasks/decrypthttps) on your development system, so that it can install a [self-signed certificate](https://docs.telerik.com/fiddler/configure-fiddler/tasks/trustfiddlerrootcert) to intercept and re-encrypt the traffic.
+
+If your target AQUARIUS server has HTTPS enabled (it should, and all our AQUARIUS Cloud instances only accept HTTPS requests), then you will need to do two things to allow Fiddler to capture your script's API traffic:
+- Configure Fiddler to [capture HTTPS traffic and trust the Fiddler Root certificate](https://docs.telerik.com/fiddler/configure-fiddler/tasks/trustfiddlerrootcert).
+- Specify the `verify=False` parameter when connecting, to tell Python to ignore certificate validation errors
+
+```python
+# Connect to the HTTPS server, allowing for Fiddler traffic interception
+>>> timeseries = timeseries_client('https://myserver.aquaticinformatics.net', 'myusername', 'mypassword', verify=False)
+```
+
+#### Disabling automatic Fiddler traffic routing
+
+There is a small one-time price paid when your script is run, since the API wrapper attempts to detect if a `Fiddler.exe` process is running on your system.
+
+If you don't want your script's traffic to be routed through Fiddler (or to not even try to detect if Fiddler is running),
+you can do any of the following before connecting to the server:
+- Set the `PYTHON_DISABLE_FIDDLER` environment variable to any value
+- Set the `http_proxy` or `https_proxy` environment variables to any string value, including and empty string `""`
+
+Since python inherits its environment variables from the operating system, you can set `PYTHON_DISABLE_FIDDLER` on your system, and all Python scripts run on your system will avoid the Fiddler-detection logic.
+
+```python
+import os
+
+# Disable any automatic Fiddler capture
+os.environ['PYTHON_DISABLE_FIDDLER'] = True
+
+# Now connect to your server
+timeseries = timeseries_client('https://myserver.aquaticinformatics.net', 'myusername', 'mypassword')
+
+# ... make API requests ...
+```  
+
 ### Refer to your API Reference Guides
 
 You will need to refer to the appropriate AQUARIUS Time-Series API reference guide for any request-specific details. Simply browse to the API endpoint to view the API reference guide.
@@ -165,7 +244,7 @@ The `iso8601(dt)` method does the reverse, converting a python datetime into an 
 
 ```python
 >>> ts['LastModified']
-u'2016-09-12T23:12:37.9704111+00:00'
+'2016-09-12T23:12:37.9704111+00:00'
 
 >>> timeseries.datetime(ts['LastModified'])
 datetime.datetime(2016, 9, 12, 23, 12, 37, 970411, tzinfo=<UTC>)
@@ -259,7 +338,7 @@ Many AQTS APIs which operate on a time-series require this `UniqueId` value as a
 # Now grab the UniqueId property
 >>> tsUniqueId = ts['UniqueId']
 >>> tsUniqueId
-u'4d5acfc21eb44ab6902dc6547ab82935'
+'4d5acfc21eb44ab6902dc6547ab82935'
 ```
 
 Since this operation is common enough, the wrapper includes a `getTimeSeriesUniqueId()` method which does this work for you.
@@ -268,7 +347,7 @@ Since this operation is common enough, the wrapper includes a `getTimeSeriesUniq
 # Use the helper method to do all the work
 >>> tsUniqueId = timeseries.getTimeSeriesUniqueId("Stage.Working@MyLocation")
 >>> tsUniqueId
-u'4d5acfc21eb44ab6902dc6547ab82935'
+'4d5acfc21eb44ab6902dc6547ab82935'
 ```
 
 The `getTimeSeriesUniqueId()` method is also smart enough to recognize unique IDs as input, so if your code passes in a unique ID, the method just returns it as-is. This gives your code a bit more flexibility in the types of arguments it can accept for your scripting tasks.
@@ -276,7 +355,7 @@ The `getTimeSeriesUniqueId()` method is also smart enough to recognize unique ID
 ```python
 >>> tsUniqueId = timeseries.getTimeSeriesUniqueId("4d5acfc21eb44ab6902dc6547ab82935")
 >>> tsUniqueId
-u'4d5acfc21eb44ab6902dc6547ab82935'
+'4d5acfc21eb44ab6902dc6547ab82935'
 ```
 
 # Example 2 - Appending a point to a time-series
@@ -306,13 +385,13 @@ Time | Value | Description
 >>> response = timeseries.acquisition.post('/timeseries/'+ts['UniqueId']+'/append', json={'Points': points})
 >>> job = response['AppendRequestIdentifier']
 >>> job
-u'775775'
+'775775'
 
 # The points were queued up for processing by AQTS as append request #775775
 # Poll the server for the status of that append job
 >>> response = timeseries.acquisition.get('/timeseries/appendstatus/'+job)
 >>> response
-{u'NumberOfPointsAppended': 2, u'NumberOfPointsDeleted': 0, u'AppendStatus': u'Completed'}
+{'NumberOfPointsAppended': 2, 'NumberOfPointsDeleted': 0, 'AppendStatus': 'Completed'}
 
 # The job status is no longer 'Pending' so we are done.
 ```
@@ -370,3 +449,91 @@ locationData = timeseries.publish.send_batch_requests('/GetLocationData', [{'Loc
 ```
 
 Either approach is fine, but sometimes the batch-fetch might save a few minutes in a long-running script.
+
+# AQUARIUS Samples API
+
+The [AQUARIUS Samples](https://aquaticinformatics.com/products/aquarius/aquarius-samples/) API can also be consumed from your Python using the API wrapper classes.
+
+The API wrapper usage for Samples is similar to the Time-Series API, with some minor differences:
+- You authenticate using an API token, rather than an AQUARIUS Time-Series username and password.
+- Browse to https://yourinstance.aqsamples.com/api and follow the instructions to obtain an API token.
+- URLs for Samples API operations begin with a "/v1" or "/v2"
+- Some `get()` requests can respond with many pages of data. Use the `paginated_get()` method instead
+
+```python
+>>> from timeseries_client import SamplesSession
+
+>>> samples = SamplesSession("https://myorg.aqsamples.com", "01234567890123456789012345678901")
+>>> projects = samples.get("/v1/projects")
+```
+
+## Use the `paginated_get()` method to fetch all the relevant pages of data
+
+Some of the Samples API responses can return many results, split over multiple pages of data.
+
+Dealing with paginated results is important, especially when the result count can be millions or tens-of-millions of items.
+
+Some API operations like `get('/v1/projects')` to get all the configured projects return everything at once, since the list will never get too big. Other API operations like `get('/v2/observations')` may return tens of millions of records.
+
+It is sometimes difficult to know which operations are going to be paginated and may require multiple GET requests to fetch all the data.
+
+The API signature for a paginated operation is an operation which meets all of these criteria:
+
+1. The request supports an optional `limit` parameter to control the size of each page of data.
+1. The request supports an optional `cursor` parameter to provide a continuation context for fetching the next page of data.
+1. The response includes a `totalCount` integer property, indicating how many items exist in the entire result set.
+1. The response includes a `cursor` string property, to be provided on the next GET request to fetch the next page of data.
+1. The response includes a `domainObjects` collection property, containing one page of items.
+
+If any of the above 5 criteria are not met, then using the `get()` method to issue a single request will be sufficient.
+When all 5 criteria are met, then you should use the `paginated_get()` method to fetch all the pages of matching data.
+
+```python
+>>> from timeseries_client import SamplesSession
+
+>>> samples = SamplesSession("https://myorg.aqsamples.com", "01234567890123456789012345678901")
+>>> projects = samples.get("/v1/projects")
+
+# Oops! This API is actually paginated 
+>>> locations = samples.get("/v1/samplinglocations")
+WARNING: Only 100 or 4049 items received. Try using the paginated_get() method instead.
+
+# Call the paginated version instead and be willing to wait for all pages to be fetched.
+locations = samples.paginated_get("/v1/samplinglocations", params={'limit':1000})
+Fetching next page of 1000 items ... 25% complete: 1000 of 4049 items received.
+Fetching next page of 1000 items ... 49% complete: 2000 of 4049 items received.
+Fetching next page of 1000 items ... 74% complete: 3000 of 4049 items received.
+Fetching next page of 1000 items ... 99% complete: 4000 of 4049 items received.
+```
+
+### Disabling the pagination warnings and progress messages
+
+The API wrapper will print a warning if your script makes a `get()` request that only returns a subset of
+data and the API wrapper will print a progress message as each page of data is received as the `paginated_get()` method
+fetches page after page of results.
+
+These messages are enabled by default, to provide a hint that your script might need some rework, or might
+take a long time to complete. If your organization has 15 million Samples observations, then what looks
+like a simple call to `observations = samples.paginated_get('/v2/observations)` may actually take 3 weeks to complete!
+Without these warnings and progress messages enabled, it might appear that your small script is hung, when in fact it is just doing a LOT of data retrieval.
+
+The `SamplesSession` class has a `callbacks` dictionary, which allows you to override the default behavior of
+these events:
+- `samples.callbacks['pagination_warning']` - Uses `default_pagination_warning()` as the pagination warning event
+- `samples.callbacks['pagination_progress']` - Uses `default_pagination_progress()` as the pagination progress event
+- `samples.callbacks['on_connected']` - Uses `default_on_connected()` as the connection message
+
+You can set any of these callbacks to `None` to disable any messages from being logged.
+
+### You may need to supply more filters to reduce the number of retrieved pages
+
+You might not actually want to fetch all 15 million observations from your system.
+If you do need all 15 million records, there isn't much you can do other than wait 3 calendar weeks for
+`paginated_get()` to finish fetching the hundreds of thousands of pages of data, and hope that your Python interpreter has enough free memory (many gigabytes!) to store the entire collection of received records.
+
+But most operations which support paginated results also support optional request parameters, which can be used to filter the large result space into smaller pieces:
+- Filtering by time is quite common
+- Filtering by sampling location or project is also common
+- Filters are additive, so the more filters you provide, the smaller your result set becomes.
+
+Please refer to the Samples API Swagger page to see the list of filter parameters which can be applied to each paginated API operation.
