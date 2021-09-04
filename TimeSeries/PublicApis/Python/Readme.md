@@ -15,6 +15,7 @@ $ pip install requests pytz pyrfc3339
 
 ## Revision History
 
+- 2021-Sep-03 - `timeseries_client.datetime()` now handles with "24:00" timestamps correctly
 - 2021-Sep-01 - Fairly big internal refactoring, with minimal breaking external changes.
     - Dropped Python 2.x support
     - Added an improved User Agent header to all requests

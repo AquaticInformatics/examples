@@ -3,6 +3,7 @@
 # Install required dependencies via: $ pip install requests pytz pyrfc3339
 
 from datetime import datetime
+from datetime import timedelta
 from functools import total_ordering
 import os
 import platform
@@ -11,6 +12,7 @@ import requests
 from requests.exceptions import HTTPError
 import re
 import subprocess
+from time import sleep
 
 
 def create_endpoint(hostname, root_path):
@@ -48,14 +50,14 @@ class LocationNotFoundException(ModelNotFoundException):
     """"Raised when the location identifier is not known"""
 
     def __init__(self, identifier):
-        super(ModelNotFoundException, self).__init__(identifier, f"Location '{identifier}' not found.")
+        super().__init__(identifier, f"Location '{identifier}' not found.")
 
 
 class TimeSeriesNotFoundException(ModelNotFoundException):
     """Raised when the time-series identifier cannot be found."""
 
     def __init__(self, identifier):
-        super(ModelNotFoundException, self).__init__(identifier, f"Time-series '{identifier}' not found.")
+        super().__init__(identifier, f"Time-series '{identifier}' not found.")
 
 
 @total_ordering
@@ -122,7 +124,7 @@ class RestSession(requests.sessions.Session):
     _proxy_configured = None
 
     def __init__(self, hostname, root_path, verify=True):
-        super(RestSession, self).__init__()
+        super().__init__()
         self._configure_proxy()
         self.verify = verify
         self.base_url = create_endpoint(hostname, root_path)
@@ -200,19 +202,19 @@ class RestSession(requests.sessions.Session):
         return response.json()
 
     def _get_raw(self, url, **kwargs):
-        r = super(RestSession, self).get(self.base_url + url, verify=self.verify, **kwargs)
+        r = super().get(self.base_url + url, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def _post_raw(self, url, data=None, json=None, **kwargs):
-        r = super(RestSession, self).post(self.base_url + url, data, json, verify=self.verify, **kwargs)
+        r = super().post(self.base_url + url, data, json, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def _put_raw(self, url, data=None, **kwargs):
-        r = super(RestSession, self).put(self.base_url + url, data, verify=self.verify, **kwargs)
+        r = super().put(self.base_url + url, data, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
     def _delete_raw(self, url, **kwargs):
-        r = super(RestSession, self).delete(self.base_url + url, verify=self.verify, **kwargs)
+        r = super().delete(self.base_url + url, verify=self.verify, **kwargs)
         return response_or_raise(r)
 
 
@@ -224,7 +226,7 @@ class ServiceStackSession(RestSession):
     """
 
     def __init__(self, hostname, root_path, verify=True):
-        super(ServiceStackSession, self).__init__(hostname=hostname, root_path=root_path, verify=verify)
+        super().__init__(hostname=hostname, root_path=root_path, verify=verify)
         self.metadata = None
 
     def send_batch_requests(self, route_or_operation_name, requests, batch_size=100, verb="GET"):
@@ -323,7 +325,7 @@ class TimeSeriesSession(ServiceStackSession):
     """
 
     def __init__(self, hostname, root_path, verify=True):
-        super(ServiceStackSession, self).__init__(hostname=hostname, root_path=root_path, verify=verify)
+        super().__init__(hostname=hostname, root_path=root_path, verify=verify)
 
     def set_session_token(self, token):
         self.headers.update({"X-Authentication-Token": token})
@@ -405,16 +407,32 @@ class timeseries_client:
     def isServerVersionLessThan(self, target_version):
         return self.isVersionLessThan(self.server_version, target_version)
 
-    def iso8601(self, datetime):
+    @staticmethod
+    def iso8601(datetime):
         """Formats the datetime object as an ISO8601 timestamp"""
         return pyrfc3339.generate(datetime, microseconds=True)
 
-    def datetime(self, text):
+    @staticmethod
+    def datetime(text):
         """Parses the ISO8601 timestamp to a standard python datetime object"""
+        if text[10:19] == "T24:00:00":
+            # Deal with the quirky end-of-day timestamps from the AQTS Publish API
+            # Parse a normalized version and add a day
+            return pyrfc3339.parse(text.replace("T24:", "T00:")) + timedelta(days=1)
+
         return pyrfc3339.parse(text)
 
     def coerceQueryTime(self, querytime):
-        """Coerces the timevalue into a best possible query time format"""
+        """
+        Coerces the timevalue into a best possible query time format.
+
+        Naive datetimes are treated as client-local times.
+        Unambiguous datetimes are formated as ISO8601.
+        Non datetime objects are left as-is.
+
+        :param querytime: a datetime to
+        :return: The coerced text value
+        """
         if isinstance(querytime, datetime):
             if querytime.tzinfo is None:
                 # Format naive date times as a local time
@@ -427,7 +445,15 @@ class timeseries_client:
         return querytime
 
     def getTimeSeriesUniqueId(self, timeSeriesIdentifier):
-        """Gets the unique ID of a time-series"""
+        """
+        Gets the unique ID of a time-series.
+
+        If the input is not a 'Parameter.Label@Location' identifier, then
+        the input is assumed to already be a unique ID and is not modified.
+
+        :param timeSeriesIdentifier: The identifier to lookup
+        :return: The unique ID of the series
+        """
         parts = timeSeriesIdentifier.split('@')
 
         if len(parts) < 2:
@@ -465,7 +491,14 @@ class timeseries_client:
             "/GetLocationData", params={'LocationIdentifier': identifier})
 
     def getLocationUniqueId(self, locationIdentifier):
-        """Gets the location unique ID for the location"""
+        """
+        Looks up the location unique ID from an identifier.
+
+        If the the input is already a unique ID, no lookup/transformation is performed.
+
+        :param locationIdentifier: The location indentifier to lookup
+        :return: The unique ID of the location
+        """
         if re.match('^[0-9a-f]{32}$', locationIdentifier):
             # Return existing GUIDs as-is
             return locationIdentifier
@@ -574,6 +607,166 @@ class timeseries_client:
         return self.acquisition.post(f"/locations/{locationUniqueId}/visits/upload/plugins",
                                      files={'file': open(pathToFile, 'rb')})
 
+    def createLocation(self, location):
+        """ Creates a new location as specified by location dict.
+            See API docs for Location JSON/dict struct.
+            :param location: dict
+            :return: unique ID (str) of created location"""
+        response = self.provisioning.post('/locations', json=location)
+
+        return response['UniqueId']
+
+    def getLocationDescriptionList(self, **kwargs):
+        locations = self.publish.get('/GetLocationDescriptionList', params=kwargs)
+        return locations['LocationDescriptions']
+
+    def getAllLocations(self, **kwargs):
+        """
+        Gets all the locations in a system.
+
+        :return: A list of Provisioning location objects
+        """
+        descriptions = self.getLocationDescriptionList(**kwargs)
+
+        return self.provisioning.send_batch_requests(
+            '/locations/{Id}',
+            [{'LocationUniqueId': loc['UniqueId']} for loc in descriptions])
+
+    def deleteLocation(self, location_identifier_or_unique_id):
+        """
+        Deletes a location, by location identifier or by unique ID.
+
+        Note: The location needs to be completely empty.
+        See https://github.com/AquaticInformatics/examples/tree/master/TimeSeries/PublicApis/SdkExamples/LocationDeleter#locationdeleter for an alternative tool.
+
+        :param location_identifier_or_unique_id: A location identifier or a unique ID string
+        """
+        location_unique_id = self.getLocationUniqueId(location_identifier_or_unique_id)
+
+        return self.provisioning.delete(f'/locations/{location_unique_id}')
+
+    def createReflectedTimeseries(self, location_identifier_or_unique_id, series):
+        """
+        Creates a reflected time-series at a location with the given attributes
+
+        :param location_identifier_or_unique_id: A location identifier or a unique ID string
+        :param series: dict (see API docs)
+        :return: unique ID of create time-series
+        """
+        location_unique_id = self.getLocationUniqueId(location_identifier_or_unique_id)
+
+        response = self.provisioning.post(
+            f'/locations/{location_unique_id}/timeseries/reflected', json=series)
+
+        return response['UniqueId']
+
+    def deleteReflectedTimeseries(self, series_identifier_or_unique_id):
+        """
+        Deletes a reflected time-series.
+
+        :param series_identifier_or_unique_id: A series identifier or unique ID
+        """
+        unique_id = self.getTimeSeriesUniqueId(series_identifier_or_unique_id)
+
+        return self.provisioning.delete(f'/timeseries/{unique_id}')
+
+    def appendReflectedPoints(self, series_identifier_or_unique_id, points, start=None, end=None):
+        """
+        Queues an append request of points to a reflected time-series.
+
+        If the start or end parameters are omitted, the first and last timestamp of the points are assumed.
+
+        :param series_identifier_or_unique_id: A series identifier or unique ID
+        :param points: A list of points to append
+        :param start: Optional start datetime
+        :param end: Optional end datetime
+        :return: The append job identifier
+        """
+
+        if start is None:
+            start = self.datetime(points[0]["Time"])
+
+        if end is None:
+            end = self.datetime(points[-1]["Time"]) + timedelta(microseconds=1)
+
+        series_data = {
+            'Points': points,
+            'TimeRange': {
+                'Start': start.isoformat(),
+                'End': end.isoformat()
+            }}
+
+        unique_id = self.getTimeSeriesUniqueId(series_identifier_or_unique_id)
+
+        return self.acquisition.post(
+            f'/timeseries/{unique_id}/reflected', json=series_data)["AppendRequestIdentifier"]
+
+    def appendPoints(self, series_identifier_or_unique_id, points, start=None, end=None):
+        """
+        Queues an append request of points to a basic time-series.
+
+        If the start and end parameters are omitted, a basic append request is queued. Only new points will be appended.
+
+        When the start and end parameters are provided, an overwrite append request is queued.
+
+        :param series_identifier_or_unique_id: A series identifier or unique ID
+        :param points: A list of points to append
+        :param start: Optional start datetime
+        :param end: Optional end datetime
+        :return: The append job identifier
+        """
+
+        unique_id = self.getTimeSeriesUniqueId(series_identifier_or_unique_id)
+        series_data = {'Points': points}
+
+        if start is None and end is None:
+            return self.acquisition.post(
+                f'/timeseries/{unique_id}/append', json=series_data)["AppendRequestIdentifier"]
+
+        series_data['TimeRange'] = {
+            'Start': start.isoformat(),
+            'End': end.isoformat()
+        }
+
+        return self.acquisition.post(
+            f'/timeseries/{unique_id}/overwriteappend', json=series_data)["AppendRequestIdentifier"]
+
+    def getAppendStatus(self, append_request_identifier):
+        """
+        Gets the status of a queue append request.
+
+        :param append_request_identifier: The request identifier
+        :return: The status of the append request
+        """
+        return self.acquisition.get(f'/timeseries/appendstatus/{append_request_identifier}')
+
+    def waitForCompletedAppendRequest(self, append_request_identifier, timeout=timedelta(minutes=5)):
+        """
+        Waits for a queued append request to complete.
+
+        :param append_request_identifier: The request identifier
+        :param timeout: Optional timeout parameter. Can be set to None to wait forever
+        :return: The completed or failed append request status
+        """
+        started = datetime.utcnow()
+        delay = timedelta(milliseconds=50)
+
+        while True:
+            status = self.getAppendStatus(append_request_identifier)
+
+            if status['AppendStatus'] != 'Pending':
+                return status
+
+            elapsed = datetime.utcnow() - started
+
+            if timeout and elapsed > timeout:
+                return status
+
+            sleep(delay.total_seconds())
+
+            if delay < timedelta(seconds=20):
+                delay = delay * 2
+
 
 class SamplesSession(RestSession):
     """
@@ -591,7 +784,7 @@ class SamplesSession(RestSession):
     >>> projects = samples.get("/v1/projects")["domainObjects"]
     """
     def __init__(self, hostname, api_token, callbacks={}, verify=True):
-        super(SamplesSession, self).__init__(hostname=hostname, root_path="/api", verify=verify)
+        super().__init__(hostname=hostname, root_path="/api", verify=verify)
         self.headers.update({"Authorization": f"token {api_token}"})
 
         # Callbacks must be set before any API requests are issued
@@ -610,7 +803,7 @@ class SamplesSession(RestSession):
             self.callbacks['on_connected'](self.base_url, self.server_version, self.authenticated_user)
 
     def get(self, url, **kwargs):
-        json = super(SamplesSession, self).get(url, **kwargs)
+        json = super().get(url, **kwargs)
 
         if self.callbacks['pagination_warning'] and json \
                 and all(key in json for key in ['totalCount', 'cursor', 'domainObjects']) \
