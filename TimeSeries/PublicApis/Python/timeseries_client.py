@@ -25,8 +25,25 @@ def create_endpoint(hostname, root_path):
 def response_or_raise(response):
     if response.status_code >= 400:
         json = response.json()
-        if isinstance(json, dict) and 'ResponseStatus' in json:
-            http_error_msg = f"{response.status_code} WebService Error: {response.reason}({json['ResponseStatus']['Message']}) for url: {response.url}"
+        if isinstance(json, dict):
+            error_summary = ''
+
+            if 'ResponseStatus' in json:
+                # AQTS & AQWP style of errors
+                response_status = json['ResponseStatus']
+                error_summary = f'{response_status.get("ErrorCode", "Unknown error code")} - {response_status.get("Message", "Unknown error message")}'
+                error_details = response_status.get('Errors', [])
+
+                if isinstance(error_details, list):
+                    details = ", ".join([f'[{", ".join([f"{k}:{v}" for (k,v) in error.items()])}]' for error in error_details])
+                    error_summary = f'{error_summary}{f": {details}" if details else ""}'
+
+                error_summary = f' ({error_summary})'
+            elif 'message' in json:
+                # AQSamples style of errors
+                error_summary = f' ({json.get("errorCode", "Unknown error code")} - {json["message"]})'
+
+            http_error_msg = f"{response.status_code} WebService Error: {response.reason}{error_summary} for url: {response.url}"
             raise HTTPError(http_error_msg, response=response)
 
     response.raise_for_status()
