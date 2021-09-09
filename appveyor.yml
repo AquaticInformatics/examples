@@ -98,7 +98,7 @@ artifacts:
     name: LabFileImporter
     type: file
 
-  - path: Samples\DotNetSdk\LabFileImporter\bin\Release\NWFWMD-LabFileImporter.exe
+  - path: Samples\DotNetSdk\NWFWMD-LabFileImporter\bin\Release\NWFWMD-LabFileImporter.exe
     name: NWFWMD-LabFileImporter
     type: file
 
