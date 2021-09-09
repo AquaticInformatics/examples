@@ -13,6 +13,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SamplesObservationExporter"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LabFileImporter", "LabFileImporter\LabFileImporter.csproj", "{D061D5A5-BB33-4689-8F86-B5A8D06CA879}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Root", "Root", "{5CD4DD8E-B1D0-4710-B154-867002A3D1DB}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\appveyor.yml = ..\..\appveyor.yml
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NWFWMD-LabFileImporter", "NWFWMD-LabFileImporter\NWFWMD-LabFileImporter.csproj", "{68A1831C-8662-40F5-B12F-3A4E1A1E72A7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +46,10 @@ Global
 		{D061D5A5-BB33-4689-8F86-B5A8D06CA879}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D061D5A5-BB33-4689-8F86-B5A8D06CA879}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D061D5A5-BB33-4689-8F86-B5A8D06CA879}.Release|Any CPU.Build.0 = Release|Any CPU
+		{68A1831C-8662-40F5-B12F-3A4E1A1E72A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68A1831C-8662-40F5-B12F-3A4E1A1E72A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68A1831C-8662-40F5-B12F-3A4E1A1E72A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68A1831C-8662-40F5-B12F-3A4E1A1E72A7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

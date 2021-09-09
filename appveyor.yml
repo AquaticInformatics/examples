@@ -97,13 +97,17 @@ artifacts:
   - path: Samples\DotNetSdk\LabFileImporter\bin\Release\LabFileImporter.exe
     name: LabFileImporter
     type: file
-    
+
+  - path: Samples\DotNetSdk\LabFileImporter\bin\Release\NWFWMD-LabFileImporter.exe
+    name: NWFWMD-LabFileImporter
+    type: file
+
 deploy:
   - provider: GitHub
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: Example utilities $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor, SondeFileImporter, SamplesPlannedSpecimenInstantiator, SamplesObservationExporter, LabFileImporter, NEM12PreProcessor
+    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SosExporter, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor, SondeFileImporter, SamplesPlannedSpecimenInstantiator, SamplesObservationExporter, LabFileImporter, NWFWMD-LabFileImporter, NEM12PreProcessor
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true
