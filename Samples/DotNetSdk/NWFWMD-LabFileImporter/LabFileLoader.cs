@@ -239,9 +239,10 @@ namespace NWFWMDLabFileImporter
             if (!AnalysisMethods.TryGetValue(labAnalysisMethod, out var analysisMethod))
             {
                 LogValidationWarning($"'{originalMethodCode}' is not a known analysis method or alias.{BestGuess(labAnalysisMethod, AnalysisMethods.Values, item => item.MethodId)}");
+                return originalMethodCode;
             }
 
-            return analysisMethod?.MethodId;
+            return $"{analysisMethod.MethodId};{analysisMethod.Name};{analysisMethod.Context}";
         }
 
         private string BestGuess<TItem>(string target, IEnumerable<TItem> items, Func<TItem,string> selector)
