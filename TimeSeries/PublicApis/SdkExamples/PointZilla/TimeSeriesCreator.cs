@@ -5,7 +5,6 @@ using System.Reflection;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.Helpers;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
-using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using Humanizer;
 using NodaTime;
 using ServiceStack.Logging;
@@ -31,12 +30,7 @@ namespace PointZilla
 
         private Location GetOrCreateLocation(string locationIdentifier)
         {
-            var locationDescription = Client.Publish.Get(new LocationDescriptionListServiceRequest
-                    {LocationIdentifier = locationIdentifier})
-                .LocationDescriptions
-                .SingleOrDefault();
-
-            return locationDescription == null
+            return !Client.TryGetLocationDescription(locationIdentifier, out var locationDescription)
                 ? CreateLocation(locationIdentifier)
                 : Client.Provisioning.Get(new GetLocation {LocationUniqueId = locationDescription.UniqueId});
         }
