@@ -14,7 +14,7 @@ namespace PointZilla
             return match.Groups["location"].Value;
         }
 
-        private static readonly Regex IdentifierRegex = new Regex(@"^(\[(?<server>[^:\]]+)(:(?<username>[^:]+):(?<password>[^\]]+))?\])?(?<identifier>(?<parameter>[^.]+)\.(?<label>[^@]+)@(?<location>.*))$");
+        private static readonly Regex IdentifierRegex = new Regex(@"^(\[(?<server>(https?://)?[^:\]]+)(:(?<username>[^:]+):(?<password>[^\]]+))?\])?(?<identifier>(?<parameter>[^.]+)\.(?<label>[^@]+)@(?<location>.*))$");
 
         public static TimeSeriesIdentifier ParseExtendedIdentifier(string extendedIdentifier)
         {
