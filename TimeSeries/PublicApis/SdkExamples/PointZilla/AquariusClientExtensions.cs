@@ -20,16 +20,31 @@ namespace PointZilla
 
         public static TimeSeriesDescription GetTimeSeriesDescription(this IAquariusClient client, string identifier)
         {
-            var location = TimeSeriesIdentifierParser.ParseLocationIdentifier(identifier);
+            var locationIdentifier = TimeSeriesIdentifierParser.ParseLocationIdentifier(identifier);
 
-            var response = client.Publish.Get(new TimeSeriesDescriptionServiceRequest { LocationIdentifier = location });
+            var response = client.Publish.Get(new TimeSeriesDescriptionServiceRequest
+            {
+                LocationIdentifier = client.FindLocationDescription(locationIdentifier).Identifier
+            });
 
-            var timeSeriesDescription = response.TimeSeriesDescriptions.FirstOrDefault(t => t.Identifier == identifier);
+            var caseInsensitiveMatches = response
+                .TimeSeriesDescriptions
+                .Where(t => t.Identifier.Equals(identifier, StringComparison.InvariantCultureIgnoreCase))
+                .ToList();
 
-            if (timeSeriesDescription == null)
-                throw new ExpectedException($"Can't find '{identifier}' at location '{location}'");
+            if (!caseInsensitiveMatches.Any())
+                throw new ExpectedException($"Can't find '{identifier}' at location '{locationIdentifier}'");
 
-            return timeSeriesDescription;
+            if (caseInsensitiveMatches.Count == 1)
+                return caseInsensitiveMatches.Single();
+
+            var exactMatch = caseInsensitiveMatches
+                .FirstOrDefault(t => t.Identifier == identifier);
+
+            if (exactMatch != null)
+                return exactMatch;
+
+            throw new ExpectedException($"{caseInsensitiveMatches.Count} ambiguous matches for '{identifier}': {string.Join(", ", caseInsensitiveMatches.Select(t => t.Identifier))}");
         }
 
         public static TimeSeries GetTimeSeriesInfo(this IAquariusClient client, string identifier)
@@ -38,6 +53,37 @@ namespace PointZilla
             {
                 TimeSeriesUniqueId = GetTimeSeriesUniqueId(client, identifier)
             });
+        }
+
+        public static LocationDescription FindLocationDescription(this IAquariusClient client, string locationIdentifier)
+        {
+            if (client.TryGetLocationDescription(locationIdentifier, out var locationDescription))
+                return locationDescription;
+
+            throw new ExpectedException($"Location '{locationIdentifier}' does not exist in the system.");
+        }
+
+        public static bool TryGetLocationDescription(this IAquariusClient client, string locationIdentifier, out LocationDescription locationDescription)
+        {
+            var locationDescriptions = client.Publish.Get(new LocationDescriptionListServiceRequest
+            {
+                LocationIdentifier = locationIdentifier
+            }).LocationDescriptions;
+
+            if (locationDescriptions.Count == 1)
+            {
+                locationDescription = locationDescriptions
+                    .First();
+
+                return true;
+            }
+
+            locationDescription = default;
+
+            if (!locationDescriptions.Any())
+                return false;
+
+            throw new ExpectedException($"{locationDescriptions.Count} ambiguous location identifiers matched '{locationIdentifier}': {string.Join(", ", locationDescriptions.Select(l => l.Identifier))}");
         }
     }
 }
