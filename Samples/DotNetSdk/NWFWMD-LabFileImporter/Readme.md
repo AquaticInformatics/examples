@@ -100,7 +100,10 @@ Supported -option=value settings (/option=value works too):
   -LabResultStatus          Lab result status. [default: Preliminary]
   -DefaultLaboratory        Default laboratory ID for lab results
   -DefaultMedium            Default medium for results [default: Water]
+  -DefaultCollectionAgency  Default collection agency [default: NWFWMD]
   -NonDetectCondition       Lab detect condition for non-detect events. [default: Non-Detect]
+  -EquipmentBlankLocation   The sampling location ID used for equipment blanks. [default: 000000]
+  -EquipmentBlankPatterns   When the FIELD_ID column contains one of these patterns, use the configured -EquipmentBlankLocation=value.
   -VerboseErrors            Show row-by-row errors? [default: False]
 
   ========================= Alias options: (these help you map from your external system to AQUARIUS Samples)

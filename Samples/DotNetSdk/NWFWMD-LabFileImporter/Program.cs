@@ -121,7 +121,10 @@ namespace NWFWMDLabFileImporter
                 new Option {Key = nameof(context.LabResultStatus), Setter = value => context.LabResultStatus = value, Getter = () => context.LabResultStatus, Description = $"Lab result status."},
                 new Option {Key = nameof(context.DefaultLaboratory), Setter = value => context.DefaultLaboratory = value, Getter = () => context.DefaultLaboratory, Description = $"Default laboratory ID for lab results"},
                 new Option {Key = nameof(context.DefaultMedium), Setter = value => context.DefaultMedium = value, Getter = () => context.DefaultMedium, Description = $"Default medium for results"},
+                new Option {Key = nameof(context.DefaultCollectionAgency), Setter = value => context.DefaultCollectionAgency = value, Getter = () => context.DefaultCollectionAgency, Description = $"Default collection agency"},
                 new Option {Key = nameof(context.NonDetectCondition), Setter = value => context.NonDetectCondition = value, Getter = () => context.NonDetectCondition, Description = $"Lab detect condition for non-detect events."},
+                new Option {Key = nameof(context.EquipmentBlankLocation), Setter = value => context.EquipmentBlankLocation = value, Getter = () => context.EquipmentBlankLocation, Description = $"The sampling location ID used for equipment blanks."},
+                new Option {Key = nameof(context.EquipmentBlankPatterns), Setter = value => context.EquipmentBlankPatterns.Add(value), Getter = () => string.Join(", ", context.EquipmentBlankPatterns), Description = $"When the FIELD_ID column contains one of these patterns, use the configured -{nameof(Context.EquipmentBlankLocation)}=value."},
                 new Option {Key = nameof(context.VerboseErrors), Setter = value => context.VerboseErrors = ParseBoolean(value), Getter = () => $"{context.VerboseErrors}", Description = "Show row-by-row errors?"},
 
                 new Option(), new Option{Description = "Alias options: (these help you map from your external system to AQUARIUS Samples)"},
