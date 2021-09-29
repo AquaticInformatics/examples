@@ -45,9 +45,9 @@ namespace NWFWMDLabFileImporter
                 {nameof(ObservationV2.LabComment), "Lab: Comment"},
                 {nameof(ObservationV2.QCType), "QC: Type"},
                 {nameof(ObservationV2.QCSourceSampleID), "QC: Source Sample ID"},
-                {nameof(ObservationV2.EARequestID), "EA: RequestId"},
-                {nameof(ObservationV2.EASampler), "EA: Sampler"},
-                {nameof(ObservationV2.EACollectionAgency), "EA: CollectionAgency"},
+                {nameof(ObservationV2.EARequestID), "EA_RequestID"},
+                {nameof(ObservationV2.EASampler), "EA_Sampler"},
+                {nameof(ObservationV2.EACollectionAgency), "EA_Collection Agency"},
             };
 
             writer.Write(CsvSerializer.SerializeToCsv(observations).Trim());
