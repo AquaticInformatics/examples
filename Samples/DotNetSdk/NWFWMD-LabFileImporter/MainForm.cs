@@ -122,7 +122,14 @@ namespace NWFWMDLabFileImporter
             labResultStatusTextBox.Text = Context.LabResultStatus;
             defaultLaboratoryTextBox.Text = Context.DefaultLaboratory;
             defaultMediumTextBox.Text = Context.DefaultMedium;
+            defaultCollectionAgencyTextBox.Text = Context.DefaultCollectionAgency;
             nonDetectConditionTextBox.Text = Context.NonDetectCondition;
+
+            equipmentBlankLocationTextBox.Text = Context.EquipmentBlankLocation;
+            foreach (var pattern in Context.EquipmentBlankPatterns)
+            {
+                equipmentBlankPatternsListView.Items.Add(pattern);
+            }
 
             overwriteCheckBox.Checked = Context.Overwrite;
             CsvOutputPathTextBox.Text = Context.CsvOutputPath;
@@ -365,9 +372,19 @@ namespace NWFWMDLabFileImporter
             Context.DefaultLaboratory = defaultLaboratoryTextBox.Text.Trim();
         }
 
+        private void defaultCollectionAgencyTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Context.DefaultCollectionAgency = defaultCollectionAgencyTextBox.Text.Trim();
+        }
+
         private void defaultMediumTextBox_TextChanged(object sender, EventArgs e)
         {
             Context.DefaultMedium = defaultMediumTextBox.Text.Trim();
+        }
+
+        private void equipmentBlankLocationTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Context.EquipmentBlankLocation = equipmentBlankLocationTextBox.Text.Trim();
         }
 
         private void nonDetectConditionTextBox_TextChanged(object sender, EventArgs e)

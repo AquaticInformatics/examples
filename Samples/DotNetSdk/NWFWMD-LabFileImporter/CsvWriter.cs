@@ -47,6 +47,7 @@ namespace NWFWMDLabFileImporter
                 {nameof(ObservationV2.QCSourceSampleID), "QC: Source Sample ID"},
                 {nameof(ObservationV2.EARequestID), "EA: RequestId"},
                 {nameof(ObservationV2.EASampler), "EA: Sampler"},
+                {nameof(ObservationV2.EACollectionAgency), "EA: CollectionAgency"},
             };
 
             writer.Write(CsvSerializer.SerializeToCsv(observations).Trim());

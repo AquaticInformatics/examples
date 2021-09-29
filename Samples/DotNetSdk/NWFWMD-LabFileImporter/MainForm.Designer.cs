@@ -39,6 +39,18 @@
             this.apiTokenTextBox = new System.Windows.Forms.TextBox();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.importOptionsTabPage = new System.Windows.Forms.TabPage();
+            this.maxObservationsCheckBox = new System.Windows.Forms.CheckBox();
+            this.maxObservationsNumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.nonDetectConditionTextBox = new System.Windows.Forms.TextBox();
+            this.label14 = new System.Windows.Forms.Label();
+            this.label13 = new System.Windows.Forms.Label();
+            this.defaultMediumTextBox = new System.Windows.Forms.TextBox();
+            this.label12 = new System.Windows.Forms.Label();
+            this.defaultLaboratoryTextBox = new System.Windows.Forms.TextBox();
+            this.label11 = new System.Windows.Forms.Label();
+            this.labResultStatusTextBox = new System.Windows.Forms.TextBox();
+            this.resultGradeTextBox = new System.Windows.Forms.TextBox();
+            this.label8 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
             this.utcOffsetComboBox = new System.Windows.Forms.ComboBox();
             this.endDateTimePicker = new System.Windows.Forms.DateTimePicker();
@@ -80,29 +92,25 @@
             this.importButton = new System.Windows.Forms.Button();
             this.dryRunCheckBox = new System.Windows.Forms.CheckBox();
             this.verboseErrorsCheckBox = new System.Windows.Forms.CheckBox();
-            this.resultGradeTextBox = new System.Windows.Forms.TextBox();
-            this.label8 = new System.Windows.Forms.Label();
-            this.label11 = new System.Windows.Forms.Label();
-            this.labResultStatusTextBox = new System.Windows.Forms.TextBox();
-            this.label12 = new System.Windows.Forms.Label();
-            this.defaultLaboratoryTextBox = new System.Windows.Forms.TextBox();
-            this.label13 = new System.Windows.Forms.Label();
-            this.defaultMediumTextBox = new System.Windows.Forms.TextBox();
-            this.nonDetectConditionTextBox = new System.Windows.Forms.TextBox();
-            this.label14 = new System.Windows.Forms.Label();
-            this.maxObservationsCheckBox = new System.Windows.Forms.CheckBox();
-            this.maxObservationsNumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.label2 = new System.Windows.Forms.Label();
+            this.defaultCollectionAgencyTextBox = new System.Windows.Forms.TextBox();
+            this.equipmentBlanksTabPage = new System.Windows.Forms.TabPage();
+            this.label3 = new System.Windows.Forms.Label();
+            this.equipmentBlankLocationTextBox = new System.Windows.Forms.TextBox();
+            this.equipmentBlankPatternsListView = new System.Windows.Forms.ListView();
+            this.label9 = new System.Windows.Forms.Label();
             this.tabControl.SuspendLayout();
             this.connectionTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.importOptionsTabPage.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.maxObservationsNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.errorLimitNumericUpDown)).BeginInit();
             this.locationAliasesTabPage.SuspendLayout();
             this.propertyAliasesTabPage.SuspendLayout();
             this.methodAliasesTabPage.SuspendLayout();
             this.unitAliasesTabPage.SuspendLayout();
             this.csvOutputTabPage.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.maxObservationsNumericUpDown)).BeginInit();
+            this.equipmentBlanksTabPage.SuspendLayout();
             this.SuspendLayout();
             // 
             // outputTextBox
@@ -135,6 +143,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tabControl.Controls.Add(this.connectionTabPage);
             this.tabControl.Controls.Add(this.importOptionsTabPage);
+            this.tabControl.Controls.Add(this.equipmentBlanksTabPage);
             this.tabControl.Controls.Add(this.locationAliasesTabPage);
             this.tabControl.Controls.Add(this.propertyAliasesTabPage);
             this.tabControl.Controls.Add(this.methodAliasesTabPage);
@@ -209,6 +218,8 @@
             // 
             // importOptionsTabPage
             // 
+            this.importOptionsTabPage.Controls.Add(this.label2);
+            this.importOptionsTabPage.Controls.Add(this.defaultCollectionAgencyTextBox);
             this.importOptionsTabPage.Controls.Add(this.maxObservationsCheckBox);
             this.importOptionsTabPage.Controls.Add(this.maxObservationsNumericUpDown);
             this.importOptionsTabPage.Controls.Add(this.nonDetectConditionTextBox);
@@ -237,6 +248,115 @@
             this.importOptionsTabPage.TabIndex = 1;
             this.importOptionsTabPage.Text = "Import Options";
             this.importOptionsTabPage.UseVisualStyleBackColor = true;
+            // 
+            // maxObservationsCheckBox
+            // 
+            this.maxObservationsCheckBox.AutoSize = true;
+            this.maxObservationsCheckBox.Location = new System.Drawing.Point(14, 73);
+            this.maxObservationsCheckBox.Name = "maxObservationsCheckBox";
+            this.maxObservationsCheckBox.Size = new System.Drawing.Size(114, 17);
+            this.maxObservationsCheckBox.TabIndex = 27;
+            this.maxObservationsCheckBox.Text = "Max. Observations";
+            this.maxObservationsCheckBox.UseVisualStyleBackColor = true;
+            this.maxObservationsCheckBox.CheckedChanged += new System.EventHandler(this.maxObservationsCheckBox_CheckedChanged);
+            // 
+            // maxObservationsNumericUpDown
+            // 
+            this.maxObservationsNumericUpDown.Location = new System.Drawing.Point(129, 71);
+            this.maxObservationsNumericUpDown.Maximum = new decimal(new int[] {
+            1000000,
+            0,
+            0,
+            0});
+            this.maxObservationsNumericUpDown.Name = "maxObservationsNumericUpDown";
+            this.maxObservationsNumericUpDown.Size = new System.Drawing.Size(96, 20);
+            this.maxObservationsNumericUpDown.TabIndex = 26;
+            this.maxObservationsNumericUpDown.ValueChanged += new System.EventHandler(this.maxObservationsNumericUpDown_ValueChanged);
+            // 
+            // nonDetectConditionTextBox
+            // 
+            this.nonDetectConditionTextBox.Location = new System.Drawing.Point(447, 168);
+            this.nonDetectConditionTextBox.Name = "nonDetectConditionTextBox";
+            this.nonDetectConditionTextBox.Size = new System.Drawing.Size(100, 20);
+            this.nonDetectConditionTextBox.TabIndex = 25;
+            this.nonDetectConditionTextBox.TextChanged += new System.EventHandler(this.nonDetectConditionTextBox_TextChanged);
+            // 
+            // label14
+            // 
+            this.label14.AutoSize = true;
+            this.label14.Location = new System.Drawing.Point(332, 171);
+            this.label14.Name = "label14";
+            this.label14.Size = new System.Drawing.Size(109, 13);
+            this.label14.TabIndex = 24;
+            this.label14.Text = "Non-Detect Condition";
+            // 
+            // label13
+            // 
+            this.label13.AutoSize = true;
+            this.label13.Location = new System.Drawing.Point(361, 19);
+            this.label13.Name = "label13";
+            this.label13.Size = new System.Drawing.Size(81, 13);
+            this.label13.TabIndex = 23;
+            this.label13.Text = "Default Medium";
+            // 
+            // defaultMediumTextBox
+            // 
+            this.defaultMediumTextBox.Location = new System.Drawing.Point(448, 16);
+            this.defaultMediumTextBox.Name = "defaultMediumTextBox";
+            this.defaultMediumTextBox.Size = new System.Drawing.Size(100, 20);
+            this.defaultMediumTextBox.TabIndex = 22;
+            this.defaultMediumTextBox.TextChanged += new System.EventHandler(this.defaultMediumTextBox_TextChanged);
+            // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.Location = new System.Drawing.Point(347, 48);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(94, 13);
+            this.label12.TabIndex = 21;
+            this.label12.Text = "Default Laboratory";
+            // 
+            // defaultLaboratoryTextBox
+            // 
+            this.defaultLaboratoryTextBox.Location = new System.Drawing.Point(448, 45);
+            this.defaultLaboratoryTextBox.Name = "defaultLaboratoryTextBox";
+            this.defaultLaboratoryTextBox.Size = new System.Drawing.Size(100, 20);
+            this.defaultLaboratoryTextBox.TabIndex = 20;
+            this.defaultLaboratoryTextBox.TextChanged += new System.EventHandler(this.defaultLaboratoryTextBox_TextChanged);
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(351, 114);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(91, 13);
+            this.label11.TabIndex = 19;
+            this.label11.Text = "Lab Result Status";
+            // 
+            // labResultStatusTextBox
+            // 
+            this.labResultStatusTextBox.Location = new System.Drawing.Point(448, 111);
+            this.labResultStatusTextBox.Name = "labResultStatusTextBox";
+            this.labResultStatusTextBox.Size = new System.Drawing.Size(100, 20);
+            this.labResultStatusTextBox.TabIndex = 18;
+            this.labResultStatusTextBox.TextChanged += new System.EventHandler(this.labResultStatusTextBox_TextChanged);
+            // 
+            // resultGradeTextBox
+            // 
+            this.resultGradeTextBox.Location = new System.Drawing.Point(448, 138);
+            this.resultGradeTextBox.Name = "resultGradeTextBox";
+            this.resultGradeTextBox.Size = new System.Drawing.Size(100, 20);
+            this.resultGradeTextBox.TabIndex = 17;
+            this.resultGradeTextBox.TextChanged += new System.EventHandler(this.resultGradeTextBox_TextChanged);
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(373, 141);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(69, 13);
+            this.label8.TabIndex = 16;
+            this.label8.Text = "Result Grade";
             // 
             // label4
             // 
@@ -639,114 +759,75 @@
             this.verboseErrorsCheckBox.UseVisualStyleBackColor = true;
             this.verboseErrorsCheckBox.CheckedChanged += new System.EventHandler(this.verboseErrorsCheckBox_CheckedChanged);
             // 
-            // resultGradeTextBox
+            // label2
             // 
-            this.resultGradeTextBox.Location = new System.Drawing.Point(448, 138);
-            this.resultGradeTextBox.Name = "resultGradeTextBox";
-            this.resultGradeTextBox.Size = new System.Drawing.Size(100, 20);
-            this.resultGradeTextBox.TabIndex = 17;
-            this.resultGradeTextBox.TextChanged += new System.EventHandler(this.resultGradeTextBox_TextChanged);
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(313, 73);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(129, 13);
+            this.label2.TabIndex = 29;
+            this.label2.Text = "Default Collection Agency";
             // 
-            // label8
+            // defaultCollectionAgencyTextBox
             // 
-            this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(373, 141);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(69, 13);
-            this.label8.TabIndex = 16;
-            this.label8.Text = "Result Grade";
+            this.defaultCollectionAgencyTextBox.Location = new System.Drawing.Point(448, 71);
+            this.defaultCollectionAgencyTextBox.Name = "defaultCollectionAgencyTextBox";
+            this.defaultCollectionAgencyTextBox.Size = new System.Drawing.Size(100, 20);
+            this.defaultCollectionAgencyTextBox.TabIndex = 28;
+            this.defaultCollectionAgencyTextBox.TextChanged += new System.EventHandler(this.defaultCollectionAgencyTextBox_TextChanged);
             // 
-            // label11
+            // equipmentBlanksTabPage
             // 
-            this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(351, 114);
-            this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(91, 13);
-            this.label11.TabIndex = 19;
-            this.label11.Text = "Lab Result Status";
+            this.equipmentBlanksTabPage.Controls.Add(this.label9);
+            this.equipmentBlanksTabPage.Controls.Add(this.equipmentBlankPatternsListView);
+            this.equipmentBlanksTabPage.Controls.Add(this.label3);
+            this.equipmentBlanksTabPage.Controls.Add(this.equipmentBlankLocationTextBox);
+            this.equipmentBlanksTabPage.Location = new System.Drawing.Point(4, 22);
+            this.equipmentBlanksTabPage.Name = "equipmentBlanksTabPage";
+            this.equipmentBlanksTabPage.Size = new System.Drawing.Size(708, 217);
+            this.equipmentBlanksTabPage.TabIndex = 8;
+            this.equipmentBlanksTabPage.Text = "Equipment Blanks";
+            this.equipmentBlanksTabPage.UseVisualStyleBackColor = true;
             // 
-            // labResultStatusTextBox
+            // label3
             // 
-            this.labResultStatusTextBox.Location = new System.Drawing.Point(448, 111);
-            this.labResultStatusTextBox.Name = "labResultStatusTextBox";
-            this.labResultStatusTextBox.Size = new System.Drawing.Size(100, 20);
-            this.labResultStatusTextBox.TabIndex = 18;
-            this.labResultStatusTextBox.TextChanged += new System.EventHandler(this.labResultStatusTextBox_TextChanged);
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(18, 16);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(131, 13);
+            this.label3.TabIndex = 25;
+            this.label3.Text = "Equipment Blank Location";
             // 
-            // label12
+            // equipmentBlankLocationTextBox
             // 
-            this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(347, 48);
-            this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(94, 13);
-            this.label12.TabIndex = 21;
-            this.label12.Text = "Default Laboratory";
+            this.equipmentBlankLocationTextBox.Location = new System.Drawing.Point(154, 13);
+            this.equipmentBlankLocationTextBox.Name = "equipmentBlankLocationTextBox";
+            this.equipmentBlankLocationTextBox.Size = new System.Drawing.Size(100, 20);
+            this.equipmentBlankLocationTextBox.TabIndex = 24;
+            this.equipmentBlankLocationTextBox.TextChanged += new System.EventHandler(this.equipmentBlankLocationTextBox_TextChanged);
             // 
-            // defaultLaboratoryTextBox
+            // equipmentBlankPatternsListView
             // 
-            this.defaultLaboratoryTextBox.Location = new System.Drawing.Point(448, 45);
-            this.defaultLaboratoryTextBox.Name = "defaultLaboratoryTextBox";
-            this.defaultLaboratoryTextBox.Size = new System.Drawing.Size(100, 20);
-            this.defaultLaboratoryTextBox.TabIndex = 20;
-            this.defaultLaboratoryTextBox.TextChanged += new System.EventHandler(this.defaultLaboratoryTextBox_TextChanged);
+            this.equipmentBlankPatternsListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.equipmentBlankPatternsListView.HideSelection = false;
+            this.equipmentBlankPatternsListView.Location = new System.Drawing.Point(21, 62);
+            this.equipmentBlankPatternsListView.MultiSelect = false;
+            this.equipmentBlankPatternsListView.Name = "equipmentBlankPatternsListView";
+            this.equipmentBlankPatternsListView.Size = new System.Drawing.Size(673, 140);
+            this.equipmentBlankPatternsListView.TabIndex = 26;
+            this.equipmentBlankPatternsListView.UseCompatibleStateImageBehavior = false;
+            this.equipmentBlankPatternsListView.View = System.Windows.Forms.View.List;
             // 
-            // label13
+            // label9
             // 
-            this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(361, 19);
-            this.label13.Name = "label13";
-            this.label13.Size = new System.Drawing.Size(81, 13);
-            this.label13.TabIndex = 23;
-            this.label13.Text = "Default Medium";
-            // 
-            // defaultMediumTextBox
-            // 
-            this.defaultMediumTextBox.Location = new System.Drawing.Point(448, 16);
-            this.defaultMediumTextBox.Name = "defaultMediumTextBox";
-            this.defaultMediumTextBox.Size = new System.Drawing.Size(100, 20);
-            this.defaultMediumTextBox.TabIndex = 22;
-            this.defaultMediumTextBox.TextChanged += new System.EventHandler(this.defaultMediumTextBox_TextChanged);
-            // 
-            // nonDetectConditionTextBox
-            // 
-            this.nonDetectConditionTextBox.Location = new System.Drawing.Point(447, 168);
-            this.nonDetectConditionTextBox.Name = "nonDetectConditionTextBox";
-            this.nonDetectConditionTextBox.Size = new System.Drawing.Size(100, 20);
-            this.nonDetectConditionTextBox.TabIndex = 25;
-            this.nonDetectConditionTextBox.TextChanged += new System.EventHandler(this.nonDetectConditionTextBox_TextChanged);
-            // 
-            // label14
-            // 
-            this.label14.AutoSize = true;
-            this.label14.Location = new System.Drawing.Point(332, 171);
-            this.label14.Name = "label14";
-            this.label14.Size = new System.Drawing.Size(109, 13);
-            this.label14.TabIndex = 24;
-            this.label14.Text = "Non-Detect Condition";
-            // 
-            // maxObservationsCheckBox
-            // 
-            this.maxObservationsCheckBox.AutoSize = true;
-            this.maxObservationsCheckBox.Location = new System.Drawing.Point(14, 73);
-            this.maxObservationsCheckBox.Name = "maxObservationsCheckBox";
-            this.maxObservationsCheckBox.Size = new System.Drawing.Size(114, 17);
-            this.maxObservationsCheckBox.TabIndex = 27;
-            this.maxObservationsCheckBox.Text = "Max. Observations";
-            this.maxObservationsCheckBox.UseVisualStyleBackColor = true;
-            this.maxObservationsCheckBox.CheckedChanged += new System.EventHandler(this.maxObservationsCheckBox_CheckedChanged);
-            // 
-            // maxObservationsNumericUpDown
-            // 
-            this.maxObservationsNumericUpDown.Location = new System.Drawing.Point(129, 71);
-            this.maxObservationsNumericUpDown.Maximum = new decimal(new int[] {
-            1000000,
-            0,
-            0,
-            0});
-            this.maxObservationsNumericUpDown.Name = "maxObservationsNumericUpDown";
-            this.maxObservationsNumericUpDown.Size = new System.Drawing.Size(96, 20);
-            this.maxObservationsNumericUpDown.TabIndex = 26;
-            this.maxObservationsNumericUpDown.ValueChanged += new System.EventHandler(this.maxObservationsNumericUpDown_ValueChanged);
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(18, 46);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(132, 13);
+            this.label9.TabIndex = 27;
+            this.label9.Text = "Equipment Blank Patterns:";
             // 
             // MainForm
             // 
@@ -775,6 +856,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.importOptionsTabPage.ResumeLayout(false);
             this.importOptionsTabPage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.maxObservationsNumericUpDown)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.errorLimitNumericUpDown)).EndInit();
             this.locationAliasesTabPage.ResumeLayout(false);
             this.locationAliasesTabPage.PerformLayout();
@@ -786,7 +868,8 @@
             this.unitAliasesTabPage.PerformLayout();
             this.csvOutputTabPage.ResumeLayout(false);
             this.csvOutputTabPage.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.maxObservationsNumericUpDown)).EndInit();
+            this.equipmentBlanksTabPage.ResumeLayout(false);
+            this.equipmentBlanksTabPage.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -857,5 +940,12 @@
         private System.Windows.Forms.TextBox labResultStatusTextBox;
         private System.Windows.Forms.TextBox resultGradeTextBox;
         private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.TextBox defaultCollectionAgencyTextBox;
+        private System.Windows.Forms.TabPage equipmentBlanksTabPage;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.TextBox equipmentBlankLocationTextBox;
+        private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.ListView equipmentBlankPatternsListView;
     }
 }

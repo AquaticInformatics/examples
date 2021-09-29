@@ -39,5 +39,6 @@
         public string QCSourceSampleID { get; set; }
         public string EARequestID { get; set; }
         public string EASampler { get; set; }
+        public string EACollectionAgency { get; set; }
     }
 }

@@ -16,11 +16,14 @@ namespace NWFWMDLabFileImporter
         public Dictionary<string, string> AnalysisMethodAliases { get; } = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
         public Dictionary<string, string> UnitAliases { get; } = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
         public List<string> Files { get; } = new List<string>();
+        public string EquipmentBlankLocation { get; set; } = "000000";
+        public HashSet<string> EquipmentBlankPatterns { get; } = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         public bool DryRun { get; set; }
         public string ResultGrade { get; set; } = "OK";
         public string LabResultStatus { get; set; } = "Preliminary";
         public string DefaultLaboratory { get; set; } = "";
         public string DefaultMedium { get; set; } = "Water";
+        public string DefaultCollectionAgency { get; set; } = "NWFWMD";
         public string NonDetectCondition { get; set; } = "Non-Detect";
         public bool StopOnFirstError { get; set; }
         public int ErrorLimit { get; set; } = 10;

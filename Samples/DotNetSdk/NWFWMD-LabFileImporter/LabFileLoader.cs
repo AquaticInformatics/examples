@@ -169,13 +169,14 @@ namespace NWFWMDLabFileImporter
                 LabQualityFlag = valueQualifier,
                 EARequestID = GetColumn("REQUEST_ID"),
                 EASampler = GetColumn("SAMPLER"),
+                EACollectionAgency = Context.DefaultCollectionAgency,
             };
         }
 
         private string LookupLocation(string fieldId)
         {
-            if (EquipmentBlanks.Any(text => fieldId.IndexOf(text, StringComparison.InvariantCultureIgnoreCase) >= 0))
-                return "000000";
+            if (Context.EquipmentBlankPatterns.Any(text => fieldId.IndexOf(text, StringComparison.InvariantCultureIgnoreCase) >= 0))
+                return Context.EquipmentBlankLocation;
 
             var leadingNumberText = fieldId.Split('-')[0];
             var locationId = leadingNumberText;
@@ -196,12 +197,6 @@ namespace NWFWMDLabFileImporter
 
             return fieldId;
         }
-
-        private static readonly string[] EquipmentBlanks =
-        {
-            "Equipment Blank",
-            "Equipment Blk",
-        };
 
         private (string PropertyId, string UnitId) LookupObservedProperty(string paramCode, string paramName, string unitOfMeasure)
         {
