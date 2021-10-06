@@ -37,6 +37,7 @@ A few interesting operations include:
 - [Appending points from Excel](#appending-values-from-an-excel-spreadsheet)
 - [Appending points from a database](#appending-values-from-a-database-query)
 - [Appending points with grades or qualifiers](#appending-grades-and-qualifiers)
+- [Appending points with notes](#appending-points-with-notes)
 - [Copy points from another time-series](#copying-points-from-another-time-series)
 - [Copy points from a separate AQTS system](#copying-points-from-another-time-series-on-another-aqts-system)
 - [Delete all the points from a time-series](#deleting-all-points-in-a-time-series)
@@ -215,13 +216,14 @@ You can use the `/ExcelSheetNumber=integer` or `/ExcelSheetName=name` options to
 
 PointZilla can also execute a database query and import the results from the query as a time-series.
 
-Three new options control the type of DB connection and the query to execute.
+Four options control the type of DB connection and the query to execute.
 
 | DbOption | Description |
 |---|---|
 | `-DbType=type` | The database connection type.<br/>Must be one of `SqlServer`, `Postgres`, `MySql`, or `Odbc`. |
 | `-DbConnectionString=connectionString` | The connection string, the syntax of which varies by DB type.<br/><br/>See [https://www.connectionstrings.com/](https://www.connectionstrings.com/) for plenty of examples. |
-| `-DbQuery=queryToExecute` | The SQL query to execute, in one of two forms:<br/><br/>**Inline SQL:** (the entire SQL query as a single line of text)<br/>`-DbQuery="select Time, Value from Sensor where Parameter='HG' and Location='Loc33' order by Time"`<br/><br/>**External SQL File:** (an @ sign, followed by a path to the SQL file)<br/>`-DbQuery=@somePath\myQuery.sql` |
+| `-DbQuery=queryToExecute` | The SQL query to execute, in one of two forms:<br/><br/>**Inline SQL:** (the entire SQL query as a single line of text)<br/>`-DbQuery="SELECT Time, Value FROM Sensor WHERE Parameter='HG' AND Location='Loc33' ORDER BY Time"`<br/><br/>**External SQL File:** (an @ sign, followed by a path to the SQL file)<br/>`-DbQuery=@somePath\myQuery.sql` |
+| `-DbNotesQuery=queryToExecute` | An optional query to fetch notes using time ranges.<br/><br/>The query should produce the columns named by the `/NoteStartField`,  `/NoteEndField`,  `/NoteTextField` options.<br/><br/>`/DbNotesQuery="SELECT StartTime, EndTime, NoteText FROM ExternalNotes"`<br/><br/>Both **inline SQL** and **external SQL files** are supported here as well. |
 
 The remaining CSV parsing field options can be used to specify the result columns, by index or by name, to use for constructing the points.
 
@@ -322,6 +324,17 @@ Ex. If your source file defines grades from 1 (best) to 5 (worst), and 6 through
 # Map all the weird grades to the stock AQTS Unusable grade of -2
 /MappedGrades=6,10:-2
 ```
+## Appending points with notes
+
+PointZilla v1.0.332+ adds comprehensive support for dealing with time-series notes.
+
+Time-series notes have a start time, and end time, and a text value. Notes can overlap in time, meaning more than one note can apply to any given point (just like qualifiers).
+
+- Notes can be read from a source time-series in the same or separate AQTS system.
+- Notes can be read from a CSV, Excel, or database column using the `/CsvNotesField=indexOrName` option.
+- Notes can be read from a separate CSV file using the `/CsvNotesFile=path`, `/NoteStartField=`, `/NoteEndField=`, and `/NoteTextField=` options.
+- Notes can be read from a separate database query using the `/DbNotesQuery=query`, `/NoteStartField=`, `/NoteEndField=`, and `/NoteTextField=` options.
+- Note support can be disabled by setting the `/IgnoreNotes=true` option.
 
 ## Copying points from another time-series
 
@@ -329,7 +342,13 @@ When the `/SourceTimeSeries` option is set, the corrected point values from the 
 
 Unlike the target time-series, which are restricted to basic or reflected time-series types, a source time-series can be of any type.
 
-The `/SourceQueryFrom` and `/SourceQueryTo` options can be used to restrict the range of points copied. When omitted, the entire record will be copied.
+- Corrected point values will be copied
+- Corrected point grade codes will be copied, unless the `/IgnoreGrades=true` option is set.
+- Corrected point qualifier codes will be copied, unless the `/IgnoreQualifiers=true` option is set.
+- Corrected point notes will be copied, unless the `/IgnoreNotes=true` option is set.
+- The correction history of the source series will be converted into time-series notes in the destination series, unless the `/IgnoreNotes=true` option is set.
+
+The `/SourceQueryFrom` and `/SourceQueryTo` options can be used to restrict the range of points and metadata copied. When omitted, the entire record will be copied.
 
 ```sh
 $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation -sourceTimeSeries=Stage.Working@OtherLocation
@@ -401,6 +420,54 @@ ISO 8601 UTC, Value, Grade, Qualifiers
 1954-06-10T21:00:00Z, 27.3137423987, 0,
 ```
 
+### Exporting the notes from a time-series
+
+The `/SaveNotesMode=Disabled|WithPoints|SeparateCsv` option controls how any loaded notes are exported.
+
+By default, the `/SaveNotesMode=Disabled` option is assumed, since dealing with multi-line notes in CSV files can be tricky for some external tools. PointZilla follows the de-facto CSV standard of enclosing any text in double quotes `"` and allowing the text to span multiple lines. But there is no true CSV standard for this feature and many popular tools (*cough* Excel! *cough*) can easily be confused when a line of text spans multiple lines.
+
+The `/SaveNotesMode=WithPoints` option will add a fifth column, named "Notes" to the CSV file, and append all the notes in effect at any given time. `WithPoints` mode can quickly explode the size of the exported CSV file, since a year long note of the 20-character note "This data is suspect" applied to a 15-minute signal will create 35,000 copies of that note, taking roughly 770KB to do so.
+
+```
+# Stage.Label@MyLocation.EntireRecord.csv generated by PointZilla v1.0.331.0
+#
+# Time series identifier: Stage.Label@MyLocation
+# Location: MyLocation
+# UTC offset: (UTC-07:00)
+# Value units: m
+# Value parameter: Stage
+# Interpolation type: InstantaneousValues
+# Time series type: ProcessorDerived
+#
+# Export options: Corrected signal from StartOfRecord to EndOfRecord
+#
+# CSV data starts at line 15.
+#
+ISO 8601 UTC, Value, Grade, Qualifiers, Notes
+1954-06-08T21:00:00Z, 33.3375062721, 0, This data is suspect
+1954-06-09T21:00:00Z, 30.2475987522, 0, This data is suspect
+1954-06-10T21:00:00Z, 27.3137423987, 0, This data is suspect
+...
+```
+
+The `/SaveNotesMode=SeparateCsv` option will export the notes into a separate "**.Notes.csv" file, using just a single line to represent the year-long comment. This yields the smallest  CSV export, but with the trade-off of required two files per series.
+
+```
+# Stage.Label@MyLocation.EntireRecord.Notes.csv generated by PointZilla v1.0.331.0
+#
+# Time series identifier: Stage.Label@MyLocation
+# Location: MyLocation
+# UTC offset: (UTC-07:00)
+#
+# Export options: Corrected signal notes from StartOfRecord to EndOfRecord
+#
+# CSV data starts at line 11.
+#
+StartTime, EndTime, NoteText
+1950-01-01T00:00:00Z, 2005-04-01T00:00:00Z, This data is suspect
+...
+```
+
 ## Comparing the points in two different time-series
 
 This builds on the previous export scenario, to export two series to two CSV files, and then use standard text differencing tools to see if anything is different.
@@ -415,7 +482,7 @@ $ diff system1/Stage.Primary@Location1.EntireRecord.csv system2/Stage.Primary@Lo
 
 ## Deleting all points in a time-series
 
-The `DeleteAllPoints` command can be used to delete the entire record of point values from a time-series.
+The `DeleteAllPoints` command can be used to delete the entire record of point values and notes from a time-series.
 
 ```sh
 $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation deleteallpoints
@@ -429,7 +496,7 @@ With great power ... yada yada yada. Please don't wipe out your production data 
 
 ## Deleting a range of points in a time-series
 
-You can delete a range of points in a basic or reflected time-series by:
+You can delete a range of points and notes in a basic or reflected time-series by:
 - specifying the `DeleteTimeRange` command
 - specifying the `/TimeRange=startTime/endTime` option to define the exact time range to be replaced with no points at all
 
@@ -476,8 +543,8 @@ Supported -option=value settings (/option=value works too):
   -MappedQualifiers         Qualifier mapping in sourceValue:mappedValue syntax. Can be set multiple times.
   -ManualNotes              Set a time-series note, in StartTime/EndTime/NoteText format. Can be set multiple times.
   -CsvNotesFile             Load time-series notes from a file with StartTime, EndTime, and NoteText columns.
-  -NoteStartField           CSV column index or name for note start times [default: Start]
-  -NoteEndField             CSV column index or name for note end times [default: End]
+  -NoteStartField           CSV column index or name for note start times [default: StartTime]
+  -NoteEndField             CSV column index or name for note end times [default: EndTime]
   -NoteTextField            CSV column index or name for note text [default: NoteText]
 
   ========================= Time-series creation options:
@@ -547,6 +614,7 @@ Supported -option=value settings (/option=value works too):
 
   ========================= CSV saving options:
   -SaveCsvPath              When set, saves the extracted/generated points to a CSV file. If only a directory is specified, an appropriate filename will be generated.
+  -SaveNotesMode            Controls how extracted notes are save. Should be one of: Disabled, WithPoints, SeparateCsv [default: Disabled]
   -StopAfterSavingCsv       When true, stop after saving a CSV file, before appending any points. [default: False]
 
 Use the @optionsFile syntax to read more options from a file.

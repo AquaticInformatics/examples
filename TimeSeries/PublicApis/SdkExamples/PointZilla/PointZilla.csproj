@@ -161,6 +161,7 @@
     <Compile Include="CommandType.cs" />
     <Compile Include="Context.cs" />
     <Compile Include="CreateMode.cs" />
+    <Compile Include="PointReaders\CsvNotesReader.cs" />
     <Compile Include="PointReaders\CsvReader.cs" />
     <Compile Include="CsvWriter.cs" />
     <Compile Include="DbClient\DbClientBase.cs" />
@@ -171,13 +172,16 @@
     <Compile Include="DbClient\OdbcClient.cs" />
     <Compile Include="DbClient\PostgresDbClient.cs" />
     <Compile Include="DbClient\SqlServerClient.cs" />
+    <Compile Include="PointReaders\CsvReaderBase.cs" />
     <Compile Include="PointReaders\DbPointsReader.cs" />
     <Compile Include="DoubleHelper.cs" />
     <Compile Include="ExpectedException.cs" />
     <Compile Include="PointReaders\ExternalPointsReader.cs" />
     <Compile Include="Field.cs" />
     <Compile Include="PointReaders\IPointReader.cs" />
+    <Compile Include="PointReaders\MetadataLookup.cs" />
     <Compile Include="PointReaders\PointReaderBase.cs" />
+    <Compile Include="SaveNotesMode.cs" />
     <Compile Include="TextGenerator.cs" />
     <Compile Include="TimeSeriesCreator.cs" />
     <Compile Include="VectorFont.cs" />

@@ -225,7 +225,8 @@ namespace PointZilla
 
                 new Option(), new Option {Description = "CSV saving options:"},
                 new Option {Key = nameof(context.SaveCsvPath), Setter = value => context.SaveCsvPath = value, Getter = () => context.SaveCsvPath, Description = "When set, saves the extracted/generated points to a CSV file. If only a directory is specified, an appropriate filename will be generated."},
-                new Option {Key = nameof(context.StopAfterSavingCsv), Setter = value => context.StopAfterSavingCsv = bool.Parse(value), Getter = () => context.StopAfterSavingCsv.ToString(), Description = "When true, stop after saving a CSV file, before appending any points."},
+                new Option {Key = nameof(context.SaveNotesMode), Setter = value => context.SaveNotesMode = ParseEnum<SaveNotesMode>(value), Getter = () => $"{context.SaveNotesMode}", Description = $"Controls how extracted notes are save. Should be one of: {string.Join(", ", Enum.GetNames(typeof(SaveNotesMode)))}"},
+                new Option {Key = nameof(context.StopAfterSavingCsv), Setter = value => context.StopAfterSavingCsv = bool.Parse(value), Getter = () => $"{context.StopAfterSavingCsv}", Description = "When true, stop after saving a CSV file, before appending any points."},
             };
 
             var usageMessage
