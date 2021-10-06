@@ -127,7 +127,7 @@ namespace PointZilla.PointReaders
 
             ParseNullableColumn<string>(row, Context.CsvNotesField?.ColumnIndex, text =>
             {
-                if (time.HasValue && !string.IsNullOrWhiteSpace(text))
+                if (time.HasValue)
                     AddRowNote(time.Value, text);
             });
 

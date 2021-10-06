@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -6,7 +7,9 @@ using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Humanizer;
 using NodaTime;
 using NodaTime.Text;
+using PointZilla.PointReaders;
 using ServiceStack.Logging;
+using PublishNote = Aquarius.TimeSeries.Client.ServiceModels.Publish.Note;
 
 namespace PointZilla
 {
@@ -38,6 +41,12 @@ namespace PointZilla
                 Directory.CreateDirectory(dir);
             }
 
+            var publishNotes = notes
+                .Select(Convert)
+                .ToList();
+
+            var notesLookup = new MetadataLookup<PublishNote>(publishNotes);
+
             using (var writer = new StreamWriter(csvPath))
             {
                 var offsetPattern = OffsetPattern.CreateWithInvariantCulture("m");
@@ -58,16 +67,30 @@ namespace PointZilla
                 writer.WriteLine($"#");
                 writer.WriteLine($"# CSV data starts at line 15.");
                 writer.WriteLine($"#");
-                writer.WriteLine($"ISO 8601 UTC, Value, Grade, Qualifiers");
+
+                var optionalNotesHeader = Context.SaveNotesMode == SaveNotesMode.WithPoints
+                    ? ", Notes"
+                    : string.Empty;
+
+                writer.WriteLine($"ISO 8601 UTC, Value, Grade, Qualifiers{optionalNotesHeader}");
 
                 foreach (var point in points)
                 {
                     var time = point.Time ?? Instant.MinValue;
 
-                    writer.WriteLine($"{InstantPattern.ExtendedIsoPattern.Format(time)}, {point.Value:G12}, {point.GradeCode}, {FormatQualifiers(point.Qualifiers)}");
+                    var line = $"{InstantPattern.ExtendedIsoPattern.Format(time)}, {point.Value:G12}, {point.GradeCode}, {FormatQualifiers(point.Qualifiers)}";
+
+                    if (Context.SaveNotesMode == SaveNotesMode.WithPoints)
+                    {
+                        var pointNotes = string.Join("\r\n", notesLookup.GetMany(time.ToDateTimeOffset()).Select(note => note.NoteText));
+
+                        line += $", {CsvEscapedColumn(pointNotes)}";
+                    }
+
+                    writer.WriteLine(line);
                 }
 
-                if (!Context.IgnoreNotes && notes.Any())
+                if (Context.SaveNotesMode == SaveNotesMode.SeparateCsv)
                 {
                     var notesCsvPath = Path.ChangeExtension(csvPath, ".Notes.csv");
 
@@ -100,20 +123,15 @@ namespace PointZilla
             }
         }
 
-        private static string CsvEscapedColumn(string text)
+        private static PublishNote Convert(TimeSeriesNote note)
         {
-            return !CharactersRequiringEscaping.Any(text.Contains)
-                ? text
-                : $"\"{text.Replace("\"", "\"\"")}\"";
+            return new PublishNote
+            {
+                StartTime = note.TimeRange?.Start.ToDateTimeOffset() ?? DateTimeOffset.MinValue,
+                EndTime = note.TimeRange?.End.ToDateTimeOffset() ?? DateTimeOffset.MaxValue,
+                NoteText = note.NoteText
+            };
         }
-
-        private static readonly char[] CharactersRequiringEscaping = new[]
-        {
-            ',',
-            '"',
-            '\n',
-            '\r'
-        };
 
         public static void SetPointZillaCsvFormat(Context context)
         {
@@ -121,9 +139,9 @@ namespace PointZilla
 
             // # CSV data starts at line 15.
             // # 
-            // ISO 8601 UTC, Value, Grade, Qualifiers
-            // 2015-12-04T00:01:00Z, 3.523200823975, 500, 
-            // 2015-12-04T00:02:00Z, 3.525279357147, 500, 
+            // ISO 8601 UTC, Value, Grade, Qualifiers, Notes
+            // 2015-12-04T00:01:00Z, 3.523200823975, 500, ,
+            // 2015-12-04T00:02:00Z, 3.525279357147, 500, ,
 
             context.CsvSkipRows = 0;
             context.CsvComment = "#";
@@ -134,6 +152,7 @@ namespace PointZilla
             context.CsvValueField = Field.Parse("Value", nameof(context.CsvValueField));
             context.CsvGradeField = Field.Parse("Grade", nameof(context.CsvGradeField));
             context.CsvQualifiersField = Field.Parse("Qualifiers", nameof(context.CsvQualifiersField));
+            context.CsvNotesField = Field.Parse("Notes", nameof(context.CsvNotesField));
             context.CsvIgnoreInvalidRows = true;
             context.CsvRealign = false;
         }
@@ -194,7 +213,6 @@ namespace PointZilla
                 start == Instant.MinValue ? "StartOfRecord" : InstantPattern.ExtendedIsoPattern.Format(start),
                 end == Instant.MaxValue ? "EndOfRecord" : InstantPattern.ExtendedIsoPattern.Format(end)
             );
-
         }
 
         private static string FormatQualifiers(List<string> qualifiers)
@@ -202,11 +220,23 @@ namespace PointZilla
             if (qualifiers == null || !qualifiers.Any())
                 return string.Empty;
 
-            if (qualifiers.Count == 1)
-                return qualifiers.First();
-
-            return $"\"{string.Join(",", qualifiers)}\"";
+            return CsvEscapedColumn(string.Join(",", qualifiers));
         }
+
+        private static string CsvEscapedColumn(string text)
+        {
+            return !CharactersRequiringEscaping.Any(text.Contains)
+                ? text
+                : $"\"{text.Replace("\"", "\"\"")}\"";
+        }
+
+        private static readonly char[] CharactersRequiringEscaping = new[]
+        {
+            ',',
+            '"',
+            '\n',
+            '\r'
+        };
 
         private static string SanitizeFilename(string s)
         {

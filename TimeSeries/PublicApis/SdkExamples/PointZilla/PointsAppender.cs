@@ -351,7 +351,7 @@ namespace PointZilla
                 return (new List<TimeSeriesPoint>(), new List<TimeSeriesNote>());
 
             if (Context.ManualPoints.Any())
-                return (Context.ManualPoints, Context.ManualNotes);
+                return (Context.ManualPoints, LoadNotes());
 
             if (Context.SourceTimeSeries != null)
                 return new ExternalPointsReader(Context)
@@ -366,10 +366,10 @@ namespace PointZilla
                     .LoadPoints();
 
             if (!string.IsNullOrEmpty(Context.WaveFormTextX) || !string.IsNullOrEmpty(Context.WaveFormTextY))
-                return (new TextGenerator(Context).GeneratePoints(), Context.ManualNotes);
+                return (new TextGenerator(Context).GeneratePoints(), LoadNotes());
 
             return (new WaveformGenerator(Context)
-                .GeneratePoints(), Context.ManualNotes);
+                .GeneratePoints(), LoadNotes());
         }
 
         private static readonly HashSet<CommandType> DeleteCommands = new HashSet<CommandType>
@@ -377,6 +377,15 @@ namespace PointZilla
             CommandType.DeleteAllPoints,
             CommandType.DeleteTimeRange,
         };
+
+        private List<TimeSeriesNote> LoadNotes()
+        {
+            return Context
+                .ManualNotes
+                .Concat(new CsvNotesReader(Context)
+                    .LoadNotes())
+                .ToList();
+        }
 
 
         private Interval GetTimeRange()

@@ -11,52 +11,18 @@ using ExcelDataReader.Exceptions;
 using Humanizer;
 using Microsoft.VisualBasic.FileIO;
 using NodaTime;
-using NodaTime.Text;
 using ServiceStack.Logging;
 
 namespace PointZilla.PointReaders
 {
-    public class CsvReader : PointReaderBase, IPointReader
+    public class CsvReader : CsvReaderBase, IPointReader
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
-        private InstantPattern TimePattern { get; }
 
         public CsvReader(Context context)
             : base(context)
         {
             ValidateConfiguration(Context);
-
-            if (!string.IsNullOrEmpty(Context.CsvNotesFile) && !File.Exists(Context.CsvNotesFile))
-                throw new ExpectedException($"File '{Context.CsvNotesFile}' does not exist.");
-
-            if (!string.IsNullOrEmpty(Context.CsvNotesFile) && Context.CsvNotesField != null)
-                throw new ExpectedException($"Only one of the /{nameof(Context.CsvNotesFile)}= and /{nameof(Context.CsvNotesField)}= options can be set.");
-
-            TimePattern = string.IsNullOrWhiteSpace(Context.CsvDateTimeFormat)
-                ? InstantPattern.ExtendedIsoPattern
-                : InstantPattern.CreateWithInvariantCulture(Context.CsvDateTimeFormat);
-
-            var isTimeFormatUtc = TimePattern.PatternText.Contains("'Z'");
-
-            if(Context.CsvDateOnlyField != null)
-            {
-                isTimeFormatUtc = Context.CsvDateOnlyFormat.Contains("Z");
-            }
-
-            DefaultBias = isTimeFormatUtc
-                ? Duration.Zero
-                : Duration.FromTimeSpan((Context.UtcOffset ?? Offset.FromTicks(DateTimeOffset.Now.Offset.Ticks)).ToTimeSpan());
-        }
-
-        private Instant? ParseInstant(string text)
-        {
-            var result = TimePattern.Parse(text);
-
-            if (result.Success)
-                return result.Value.Minus(DefaultBias);
-
-            return null;
         }
 
         public (List<TimeSeriesPoint> Points, List<TimeSeriesNote> Notes) LoadPoints()
@@ -454,11 +420,14 @@ namespace PointZilla.PointReaders
             if (pointType != PointType.Gap)
                 pointType = null;
 
-            ParseField(fields, Context.CsvNotesField?.ColumnIndex, text =>
+            if (string.IsNullOrWhiteSpace(Context.CsvNotesFile))
             {
-                if (time.HasValue && !string.IsNullOrWhiteSpace(text))
-                    AddRowNote(time.Value, text);
-            });
+                ParseField(fields, Context.CsvNotesField?.ColumnIndex, text =>
+                {
+                    if (time.HasValue)
+                        AddRowNote(time.Value, text);
+                });
+            }
 
             return new TimeSeriesPoint
             {
@@ -475,100 +444,8 @@ namespace PointZilla.PointReaders
             if (RowNotes.Any())
                 return RowNotes;
 
-            if (string.IsNullOrEmpty(Context.CsvNotesFile))
-                return new List<TimeSeriesNote>();
-
-            return LoadNotes(Context.CsvNotesFile);
-        }
-
-        private List<TimeSeriesNote> LoadNotes(string path)
-        {
-            var notes = new List<TimeSeriesNote>();
-
-            var csvDelimiter = string.IsNullOrEmpty(Context.CsvDelimiter)
-                ? ","
-                : Context.CsvDelimiter;
-
-            var parser = new TextFieldParser(path)
-            {
-                TextFieldType = FieldType.Delimited,
-                Delimiters = new[] { csvDelimiter },
-                TrimWhiteSpace = true,
-                HasFieldsEnclosedInQuotes = true
-            };
-
-            if (!string.IsNullOrWhiteSpace(Context.CsvComment))
-            {
-                parser.CommentTokens = new[] { Context.CsvComment };
-            }
-
-            var skipCount = Context.CsvSkipRows;
-
-            var parseHeaderRow = Context.CsvHasHeaderRow;
-
-            while (!parser.EndOfData)
-            {
-                var lineNumber = parser.LineNumber;
-
-                var fields = parser.ReadFields();
-                if (fields == null) continue;
-
-                if (skipCount > 0)
-                {
-                    --skipCount;
-                    continue;
-                }
-
-                if (parseHeaderRow)
-                {
-                    ValidateHeaderFields(fields, new List<Field>
-                    {
-                        Context.NoteStartField,
-                        Context.NoteEndField,
-                        Context.NoteTextField,
-                    });
-                    parseHeaderRow = false;
-
-                    if (Context.CsvHasHeaderRow)
-                        continue;
-                }
-
-                var note = ParseNote(fields);
-
-                if (note == null)
-                {
-                    if (Context.CsvIgnoreInvalidRows) continue;
-
-                    throw new ExpectedException($"Can't parse '{path}' ({lineNumber}): {string.Join(", ", fields)}");
-                }
-
-                notes.Add(note);
-            }
-
-            return notes;
-        }
-
-        private TimeSeriesNote ParseNote(string[] fields)
-        {
-            Instant? start = null;
-            Instant? end = null;
-            var noteText = default(string);
-
-            ParseField(fields, Context.NoteStartField.ColumnIndex, text => start = ParseInstant(text));
-            ParseField(fields, Context.NoteEndField.ColumnIndex, text => end = ParseInstant(text));
-            ParseField(fields, Context.NoteTextField.ColumnIndex, text => noteText = text);
-
-            if (!start.HasValue || !end.HasValue || string.IsNullOrWhiteSpace(noteText))
-                return null;
-
-            if (end < start)
-                return null;
-
-            return new TimeSeriesNote
-            {
-                TimeRange = new Interval(start.Value, end.Value),
-                NoteText = noteText
-            };
+            return new CsvNotesReader(Context)
+                .LoadNotes();
         }
 
         private static DateTime ParseDateOnly(string text, string format)
@@ -590,19 +467,5 @@ namespace PointZilla.PointReaders
             {
                 {PointType.Gap.ToString(), PointType.Gap},
             };
-
-        private static void ParseField(string[] fields, int? fieldIndex, Action<string> parseAction)
-        {
-            if (!fieldIndex.HasValue)
-                return;
-
-            if (fieldIndex > 0 && fields.Length > fieldIndex - 1)
-            {
-                var text = fields[fieldIndex.Value - 1];
-
-                if (!string.IsNullOrWhiteSpace(text))
-                    parseAction(text);
-            }
-        }
     }
 }

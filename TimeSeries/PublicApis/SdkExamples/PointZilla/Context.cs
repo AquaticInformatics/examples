@@ -55,6 +55,7 @@ namespace PointZilla
         public Instant? SourceQueryTo { get; set; }
         public string SaveCsvPath { get; set; }
         public bool StopAfterSavingCsv { get; set; }
+        public SaveNotesMode SaveNotesMode { get; set; }
 
         public List<TimeSeriesPoint> ManualPoints { get; set; } = new List<TimeSeriesPoint>();
         public List<TimeSeriesNote> ManualNotes { get; set; } = new List<TimeSeriesNote>();
@@ -103,8 +104,8 @@ namespace PointZilla
         public string DbNotesQuery { get; set; }
 
         public bool IgnoreNotes { get; set; }
-        public Field NoteStartField { get; set; } = Field.Parse("Start", "Start");
-        public Field NoteEndField { get; set; } = Field.Parse("End", "End");
-        public Field NoteTextField { get; set; } = Field.Parse("NoteText", "NoteText");
+        public Field NoteStartField { get; set; } = Field.Parse("StartTime", nameof(Context.NoteStartField));
+        public Field NoteEndField { get; set; } = Field.Parse("EndTime", nameof(Context.NoteEndField));
+        public Field NoteTextField { get; set; } = Field.Parse("NoteText", nameof(Context.NoteTextField));
     }
 }

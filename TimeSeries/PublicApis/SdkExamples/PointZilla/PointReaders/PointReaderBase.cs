@@ -19,6 +19,7 @@ namespace PointZilla.PointReaders
         protected TimeSpan DefaultTimeOfDay { get; }
         protected Duration DefaultBias { get; set; }
         protected List<TimeSeriesNote> RowNotes { get; } = new List<TimeSeriesNote>();
+        private TimeSeriesNote CurrentNote { get; set; }
 
         protected PointReaderBase(Context context)
         {
@@ -56,7 +57,7 @@ namespace PointZilla.PointReaders
                     Context.CsvValueField,
                     Context.CsvGradeField,
                     Context.CsvQualifiersField,
-                    Context.CsvNotesField,
+                    string.IsNullOrWhiteSpace(Context.CsvNotesFile) ? Context.CsvNotesField : null,
                 }
                 .Where(f => f != null)
                 .ToList();
@@ -137,21 +138,26 @@ namespace PointZilla.PointReaders
 
         protected void AddRowNote(Instant time, string text)
         {
-            var lastRowNote = RowNotes
-                .LastOrDefault();
-
-            if (lastRowNote != null && lastRowNote.NoteText == text)
+            if (string.IsNullOrWhiteSpace(text))
             {
-                // Extend the last note
-                lastRowNote.TimeRange = new Interval(lastRowNote.TimeRange?.Start ?? time, time);
+                CurrentNote = null;
                 return;
             }
 
-            RowNotes.Add(new TimeSeriesNote
+            if (CurrentNote != null && CurrentNote.NoteText == text)
+            {
+                // Extend the last note
+                CurrentNote.TimeRange = new Interval(CurrentNote.TimeRange?.Start ?? time, time);
+                return;
+            }
+
+            CurrentNote = new TimeSeriesNote
             {
                 TimeRange = new Interval(time, time),
                 NoteText = text
-            });
+            };
+
+            RowNotes.Add(CurrentNote);
         }
     }
 }
