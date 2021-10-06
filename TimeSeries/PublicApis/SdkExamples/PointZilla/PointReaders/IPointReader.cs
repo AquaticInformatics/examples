@@ -5,6 +5,6 @@ namespace PointZilla.PointReaders
 {
     public interface IPointReader
     {
-        List<TimeSeriesPoint> LoadPoints();
+        (List<TimeSeriesPoint> Points, List<TimeSeriesNote> Notes) LoadPoints();
     }
 }

@@ -57,6 +57,7 @@ namespace PointZilla
         public bool StopAfterSavingCsv { get; set; }
 
         public List<TimeSeriesPoint> ManualPoints { get; set; } = new List<TimeSeriesPoint>();
+        public List<TimeSeriesNote> ManualNotes { get; set; } = new List<TimeSeriesNote>();
 
         public Instant StartTime { get; set; } = Instant.FromDateTimeUtc(DateTime.UtcNow);
         public TimeSpan PointInterval { get; set; } = TimeSpan.FromMinutes(1);
@@ -72,6 +73,7 @@ namespace PointZilla
         public string WaveFormTextY { get; set; }
 
         public List<string> CsvFiles { get; set; } = new List<string>();
+        public string CsvNotesFile { get; set; }
 
         public Field CsvDateTimeField { get; set; }
         public string CsvDateTimeFormat { get; set; }
@@ -83,6 +85,7 @@ namespace PointZilla
         public Field CsvValueField { get; set; }
         public Field CsvGradeField { get; set; }
         public Field CsvQualifiersField { get; set; }
+        public Field CsvNotesField { get; set; }
         public string CsvComment { get; set; }
         public int CsvSkipRows { get; set; }
         public bool CsvHasHeaderRow { get; set; }
@@ -97,5 +100,11 @@ namespace PointZilla
         public DbType? DbType { get; set; }
         public string DbConnectionString { get; set; }
         public string DbQuery { get; set; }
+        public string DbNotesQuery { get; set; }
+
+        public bool IgnoreNotes { get; set; }
+        public Field NoteStartField { get; set; } = Field.Parse("Start", "Start");
+        public Field NoteEndField { get; set; } = Field.Parse("End", "End");
+        public Field NoteTextField { get; set; } = Field.Parse("NoteText", "NoteText");
     }
 }

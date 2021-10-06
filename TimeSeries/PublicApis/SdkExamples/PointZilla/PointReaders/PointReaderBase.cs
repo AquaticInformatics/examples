@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Humanizer;
 using NodaTime;
 using ILog = ServiceStack.Logging.ILog;
@@ -17,6 +18,7 @@ namespace PointZilla.PointReaders
         protected Context Context { get; }
         protected TimeSpan DefaultTimeOfDay { get; }
         protected Duration DefaultBias { get; set; }
+        protected List<TimeSeriesNote> RowNotes { get; } = new List<TimeSeriesNote>();
 
         protected PointReaderBase(Context context)
         {
@@ -54,14 +56,16 @@ namespace PointZilla.PointReaders
                     Context.CsvValueField,
                     Context.CsvGradeField,
                     Context.CsvQualifiersField,
+                    Context.CsvNotesField,
                 }
                 .Where(f => f != null)
                 .ToList();
         }
 
-        protected void ValidateHeaderFields(string[] columnNames)
+        protected void ValidateHeaderFields(string[] columnNames, List<Field> fields = null)
         {
-            var fields = GetFields();
+            if (fields == null)
+                fields = GetFields();
 
             var indexedFields = fields
                 .Where(f => f.HasColumnIndex)
@@ -90,7 +94,7 @@ namespace PointZilla.PointReaders
 
                         if (namedField.HasColumnIndex)
                         {
-                            errors.Add($"{namedField.FieldName}='{namedField.ColumnName}' is an ambiguous field name. Does it column {namedField.ColumnIndex} or {index}?");
+                            errors.Add($"{namedField.FieldName}='{namedField.ColumnName}' is an ambiguous field name. Does it mean column {namedField.ColumnIndex} or {index}?");
                             continue;
                         }
 
@@ -129,6 +133,25 @@ namespace PointZilla.PointReaders
             return dateTime.Kind == DateTimeKind.Utc
                 ? Instant.FromDateTimeUtc(dateTime)
                 : Instant.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), DefaultBias.ToTimeSpan()));
+        }
+
+        protected void AddRowNote(Instant time, string text)
+        {
+            var lastRowNote = RowNotes
+                .LastOrDefault();
+
+            if (lastRowNote != null && lastRowNote.NoteText == text)
+            {
+                // Extend the last note
+                lastRowNote.TimeRange = new Interval(lastRowNote.TimeRange?.Start ?? time, time);
+                return;
+            }
+
+            RowNotes.Add(new TimeSeriesNote
+            {
+                TimeRange = new Interval(time, time),
+                NoteText = text
+            });
         }
     }
 }

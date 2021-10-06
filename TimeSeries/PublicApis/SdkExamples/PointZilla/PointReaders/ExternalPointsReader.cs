@@ -8,13 +8,22 @@ using Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Humanizer;
 using NodaTime;
+using ServiceStack;
 using ServiceStack.Logging;
 using Get3xCorrectedData = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.TimeSeriesDataCorrectedServiceRequest;
 using Get3xTimeSeriesDescription = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.TimeSeriesDescriptionServiceRequest;
+using Get3xCorrectionList = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.CorrectionListServiceRequest;
+using Publish3xCorrection = Aquarius.TimeSeries.Client.ServiceModels.Legacy.Publish3x.Correction;
 using InterpolationType = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.InterpolationType;
 using TimeRange = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeRange;
 using TimeSeriesDataCorrectedServiceRequest = Aquarius.TimeSeries.Client.ServiceModels.Publish.TimeSeriesDataCorrectedServiceRequest;
+using CorrectionListServiceRequest = Aquarius.TimeSeries.Client.ServiceModels.Publish.CorrectionListServiceRequest;
 using TimeSeriesPoint = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.TimeSeriesPoint;
+using TimeSeriesNote = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.TimeSeriesNote;
+using PublishGrade = Aquarius.TimeSeries.Client.ServiceModels.Publish.Grade;
+using PublishQualifier = Aquarius.TimeSeries.Client.ServiceModels.Publish.Qualifier;
+using PublishNote = Aquarius.TimeSeries.Client.ServiceModels.Publish.Note;
+using PublishCorrection = Aquarius.TimeSeries.Client.ServiceModels.Publish.Correction;
 
 namespace PointZilla.PointReaders
 {
@@ -22,12 +31,14 @@ namespace PointZilla.PointReaders
     {
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
+        private List<TimeSeriesNote> Notes { get; } = new List<TimeSeriesNote>();
+
         public ExternalPointsReader(Context context)
             : base(context)
         {
         }
 
-        public List<TimeSeriesPoint> LoadPoints()
+        public (List<TimeSeriesPoint> Points, List<TimeSeriesNote> Notes) LoadPoints()
         {
             var server = !string.IsNullOrEmpty(Context.SourceTimeSeries.Server) ? Context.SourceTimeSeries.Server : Context.Server;
             var username = !string.IsNullOrEmpty(Context.SourceTimeSeries.Username) ? Context.SourceTimeSeries.Username : Context.Username;
@@ -39,9 +50,9 @@ namespace PointZilla.PointReaders
             {
                 Log.Info($"Connected to {server} ({client.ServerVersion})");
 
-                return client.ServerVersion.IsLessThan(MinimumNgVersion)
+                return (client.ServerVersion.IsLessThan(MinimumNgVersion)
                     ? LoadPointsFrom3X(client)
-                    : LoadPointsFromNg(client);
+                    : LoadPointsFromNg(client), Notes);
             }
         }
 
@@ -67,8 +78,11 @@ namespace PointZilla.PointReaders
                 QueryTo = Context.SourceQueryTo?.ToDateTimeOffset()
             });
 
-            var gradesLookup = new MetadataLookup<Aquarius.TimeSeries.Client.ServiceModels.Publish.Grade>(timeSeriesData.Grades);
-            var qualifiersLookup = new MetadataLookup<Aquarius.TimeSeries.Client.ServiceModels.Publish.Qualifier>(timeSeriesData.Qualifiers);
+            var gradesLookup = new MetadataLookup<PublishGrade>(timeSeriesData.Grades);
+            var qualifiersLookup = new MetadataLookup<PublishQualifier>(timeSeriesData.Qualifiers);
+
+            if (!Context.IgnoreNotes)
+                Notes.AddRange(LoadAllNotes(client, timeSeriesInfo, timeSeriesData.Notes));
 
             var points = timeSeriesData
                 .Points
@@ -93,9 +107,128 @@ namespace PointZilla.PointReaders
                 gapTolerance,
                 interpolationType);
 
-            Log.Info($"Loaded {"point".ToQuantity(points.Count)} from {timeSeriesInfo.Identifier}");
+            Log.Info($"Loaded {"point".ToQuantity(points.Count)} and {"note".ToQuantity(Notes.Count)} from {timeSeriesInfo.Identifier}");
 
             return points;
+        }
+
+        private IEnumerable<TimeSeriesNote> LoadAllNotes(IAquariusClient client, TimeSeries timeSeriesInfo, List<PublishNote> notes)
+        {
+            var corrections = client.Publish.Get(new CorrectionListServiceRequest
+            {
+                TimeSeriesUniqueId = timeSeriesInfo.UniqueId,
+                QueryFrom = Context.SourceQueryFrom?.ToDateTimeOffset(),
+                QueryTo = Context.SourceQueryTo?.ToDateTimeOffset()
+            }).Corrections;
+
+            var utcOffset = timeSeriesInfo.UtcOffset.ToTimeSpan();
+
+            return notes
+                .Select(ConvertNgNote)
+                .Concat(corrections
+                    .Select(c => ConvertNgCorrection(utcOffset, c)));
+        }
+
+        private static TimeSeriesNote ConvertNgNote(PublishNote note)
+        {
+            return new TimeSeriesNote
+            {
+                TimeRange = new Interval(Instant.FromDateTimeOffset(note.StartTime), Instant.FromDateTimeOffset(note.EndTime)),
+                NoteText = note.NoteText
+            };
+        }
+
+        private static TimeSeriesNote ConvertNgCorrection(TimeSpan utcOffset, PublishCorrection correction)
+        {
+            return new TimeSeriesNote
+            {
+                TimeRange = new Interval(Instant.FromDateTimeOffset(correction.StartTime), Instant.FromDateTimeOffset(correction.EndTime)),
+                NoteText = string.Join("\r\n", new[]
+                    {
+                        correction.Comment,
+                        $"{correction.Type} correction added by {correction.User} @ {FriendlyTimestamp(utcOffset, correction.AppliedTimeUtc)} with {correction.ProcessingOrder} processing order.",
+                    }
+                    .Concat(correction.Parameters?.Any() ?? false
+                        ? correction.Parameters.SelectMany(kvp => FormatParameterValue($"{correction.Type}.Parameter", kvp.Key, kvp.Value))
+                        : Array.Empty<string>())
+                    .Where(s => !string.IsNullOrWhiteSpace(s)))
+            };
+        }
+
+        private static TimeSeriesNote Convert3XCorrection(TimeSpan utcOffset, Publish3xCorrection correction)
+        {
+            return new TimeSeriesNote
+            {
+                TimeRange = new Interval(Instant.FromDateTimeOffset(correction.StartTime), Instant.FromDateTimeOffset(correction.EndTime)),
+                NoteText = string.Join("\r\n", new[]
+                    {
+                        correction.Comment,
+                        $"{correction.Type} correction added by {correction.User} @ {FriendlyTimestamp(utcOffset, correction.AppliedTime.UtcDateTime)}",
+                    }
+                    .Concat(correction.Parameters?.Any() ?? false
+                        ? correction.Parameters.SelectMany(kvp => FormatParameterValue($"{correction.Type}.Parameter", kvp.Key, kvp.Value))
+                        : Array.Empty<string>())
+                    .Where(s => !string.IsNullOrWhiteSpace(s)))
+            };
+        }
+
+        private static string FriendlyTimestamp(TimeSpan utcOffset, DateTime dateTimeUtc)
+        {
+            if (dateTimeUtc.Kind != DateTimeKind.Utc)
+            {
+                dateTimeUtc = DateTime.SpecifyKind(dateTimeUtc, DateTimeKind.Utc);
+            }
+
+            // Convert from UTC to time-series local
+            var dateTime = DateTime.SpecifyKind(dateTimeUtc + utcOffset, DateTimeKind.Unspecified);
+
+            if (dateTime.TimeOfDay == TimeSpan.Zero)
+            {
+                // No need to clutter the comment with 00:00:00.0000000
+                return $"{dateTime:yyyy-MM-dd}";
+            }
+
+            // Full-ish precision. No need for seconds/subseconds for these human-driven edits
+            return $"{dateTime:yyyy-MM-dd HH:mm}";
+        }
+
+        private static IEnumerable<string> FormatParameterValue(string label, string key, object obj)
+        {
+            switch (obj)
+            {
+                case IDictionary<string, object> value:
+                    return value
+                        .SelectMany(kvp => FormatParameterValue($"{label}.{key}", kvp.Key, kvp.Value));
+
+                case string value:
+                    if (value.StartsWith("{") && value.EndsWith("}"))
+                    {
+                        var dict = value.FromJson<Dictionary<string, object>>();
+
+                        return dict
+                            .SelectMany(kvp => FormatParameterValue($"{label}.{key}", kvp.Key, kvp.Value));
+                    }
+                    else if (value.StartsWith("[") && value.EndsWith("]"))
+                    {
+                        var values = value.FromJsv<List<Dictionary<string, object>>>();
+
+                        return values
+                            .SelectMany((v,i) => FormatParameterValue($"{label}.{key}", $"[{i}]", v));
+                    }
+                    else
+                        return new[] { $"{label}.{key}: {value}" };
+
+                case bool value:
+                    return new[] { $"{label}.{key}: {value}" };
+
+                case int value:
+                    return new[] { $"{label}.{key}: {value}" };
+
+                case double value:
+                    return new[] { $"{label}.{key}: {value}" };
+            }
+
+            throw new ExpectedException($"Unsupported parameter type {obj.GetType().Name} for {label} {key}={obj}");
         }
 
         public class MetadataLookup<TMetadata> where TMetadata : TimeRange
@@ -222,7 +355,6 @@ namespace PointZilla.PointReaders
             }
         }
 
-
         private List<TimeSeriesPoint> LoadPointsFrom3X(IAquariusClient client)
         {
             var timeSeriesDescription = client.Publish.Get(new Get3xTimeSeriesDescription
@@ -291,7 +423,20 @@ namespace PointZilla.PointReaders
 
             SetTimeSeriesCreationProperties(timeSeries, interpolationType: interpolationType);
 
-            Log.Info($"Loaded {"point".ToQuantity(points.Count)} from {Context.SourceTimeSeries.Identifier}");
+            if (!Context.IgnoreNotes)
+            {
+                var corrections = client.Publish.Get(new Get3xCorrectionList
+                {
+                    TimeSeriesIdentifier = Context.SourceTimeSeries.Identifier,
+                    QueryFrom = Context.SourceQueryFrom?.ToDateTimeOffset(),
+                    QueryTo = Context.SourceQueryTo?.ToDateTimeOffset()
+                }).Corrections;
+
+                var utcTimespan = utcOffset.ToTimeSpan();
+                Notes.AddRange(corrections.Select(c => Convert3XCorrection(utcTimespan, c)));
+            }
+
+            Log.Info($"Loaded {"point".ToQuantity(points.Count)} and {"note".ToQuantity(Notes.Count)} from {Context.SourceTimeSeries.Identifier}");
 
             return points;
         }

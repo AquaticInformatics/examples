@@ -20,6 +20,7 @@ namespace PointZilla
 
         private Context Context { get; }
         private List<TimeSeriesPoint> Points { get; set; }
+        private List<TimeSeriesNote> Notes { get; set; }
 
         public PointsAppender(Context context)
         {
@@ -30,7 +31,10 @@ namespace PointZilla
         {
             Log.Info(Context.ExecutingFileVersion);
 
-            Points = GetPoints();
+            (Points, Notes) = GetPoints();
+
+            if (Context.IgnoreNotes)
+                Notes.Clear();
 
             if (Points.All(p => p.Type != PointType.Gap))
             {
@@ -46,7 +50,7 @@ namespace PointZilla
             if (!string.IsNullOrEmpty(Context.SaveCsvPath))
             {
                 new CsvWriter(Context)
-                    .WritePoints(Points);
+                    .WritePoints(Points, Notes);
 
                 if (Context.StopAfterSavingCsv)
                     return;
@@ -74,6 +78,17 @@ namespace PointZilla
                 var isReflected = Context.Command == CommandType.Reflected || timeSeries.TimeSeriesType == TimeSeriesType.Reflected;
                 var hasTimeRange = isReflected || DeleteCommands.Contains(Context.Command) || Context.Command == CommandType.OverwriteAppend;
 
+                if (hasTimeRange)
+                {
+                    var timeRange = GetTimeRange();
+
+                    if (Notes.Any(note => note.TimeRange != null && (!timeRange.Contains(note.TimeRange.Value.Start) ||
+                                                                     !timeRange.Contains(note.TimeRange.Value.End))))
+                    {
+                        throw new ExpectedException($"All notes to append must be completely within the {timeRange} interval.");
+                    }
+                }
+
                 var pointExtents = Points.Any()
                     ? $" [{Points.First().Time} to {Points.Last().Time}]"
                     : "";
@@ -86,6 +101,8 @@ namespace PointZilla
 
                 var numberOfPointsAppended = 0;
                 var numberOfPointsDeleted = 0;
+                var numberOfNotesAppended = 0;
+                var numberOfNotesDeleted = 0;
                 var stopwatch = Stopwatch.StartNew();
 
                 var pointBatches = GetPointBatches(Points).ToList();
@@ -113,8 +130,13 @@ namespace PointZilla
                         throw new ExpectedException($"Unexpected append status={result.AppendStatus}");
                 }
 
+                if (DeleteCommands.Contains(Context.Command))
+                    numberOfNotesDeleted += DeleteNotesWithinTimeRange(client, timeSeries, GetTimeRange());
+                else
+                    numberOfNotesAppended += AppendNotes(client, timeSeries);
+ 
                 var batchText = isBatched ? $" using {"append".ToQuantity(pointBatches.Count)}" : "";
-                Log.Info($"Appended {"point".ToQuantity(numberOfPointsAppended)} (deleting {"point".ToQuantity(numberOfPointsDeleted)}) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds{batchText}.");
+                Log.Info($"Appended {"point".ToQuantity(numberOfPointsAppended)} and {"note".ToQuantity(numberOfNotesAppended)} (deleting {"point".ToQuantity(numberOfPointsDeleted)} and {"note".ToQuantity(numberOfNotesDeleted)}) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds{batchText}.");
             }
         }
 
@@ -138,6 +160,80 @@ namespace PointZilla
         }
 
         private static readonly AquariusServerVersion MinimumGapVersion = AquariusServerVersion.Create("19.1");
+
+        private int DeleteNotesWithinTimeRange(IAquariusClient client, TimeSeries timeSeries, Interval timeRange)
+        {
+            if (Context.IgnoreNotes)
+                return 0;
+
+            if (client.ServerVersion.IsLessThan(MinimumNotesVersion))
+                throw new ExpectedException($"You can't delete time-series notes before AQTS v{MinimumNotesVersion}");
+
+            return client.Acquisition.Delete(new DeleteTimeSeriesNotes
+            {
+                UniqueId = timeSeries.UniqueId,
+                TimeRange = timeRange
+            }).NotesDeleted;
+        }
+
+        private int AppendNotes(IAquariusClient client, TimeSeries timeSeries)
+        {
+            if (Context.IgnoreNotes || !Notes.Any())
+                return 0;
+
+            if (client.ServerVersion.IsLessThan(MinimumNotesVersion))
+                throw new ExpectedException($"You can't append time-series notes before AQTS v{MinimumNotesVersion}");
+
+            var notes = CoalesceAdjacentNotes(Notes)
+                    .Select(note =>
+                    {
+                        const int maxNoteLength = 500;
+
+                        if (note.NoteText.Length > maxNoteLength)
+                        {
+                            note.NoteText = note.NoteText.Substring(0, maxNoteLength - 20) + " ... note truncated.";
+                        }
+
+                        return note;
+                    })
+                .ToList();
+
+            return client.Acquisition.Post(new PostTimeSeriesMetadata
+            {
+                UniqueId = timeSeries.UniqueId,
+                Notes = notes
+            }).NotesCreated;
+        }
+
+        private static readonly AquariusServerVersion MinimumNotesVersion = AquariusServerVersion.Create("19.2.185");
+
+        private IEnumerable<TimeSeriesNote> CoalesceAdjacentNotes(IEnumerable<TimeSeriesNote> notes)
+        {
+            TimeSeriesNote previousNote = null;
+
+            foreach (var note in notes
+                .OrderBy(note => note.TimeRange?.Start)
+                .ThenBy(note => note.TimeRange?.End))
+            {
+                if (previousNote != null)
+                {
+                    if (previousNote.TimeRange?.End == note.TimeRange?.Start && previousNote.NoteText == note.NoteText)
+                    {
+                        previousNote.TimeRange = new Interval(
+                            previousNote.TimeRange?.Start ?? throw new ExpectedException("Invalid TimeRange Start value"),
+                            note.TimeRange?.End ?? throw new ExpectedException("Invalid TimeRange End value"));
+                        continue;
+                    }
+
+                    yield return previousNote;
+                }
+
+                previousNote = note;
+            }
+
+            if (previousNote != null)
+                yield return previousNote;
+        }
 
         private TimeSeriesAppendStatus AppendPointBatch(IAquariusClient client, TimeSeries timeSeries, List<TimeSeriesPoint> points, Interval timeRange, bool isReflected, bool hasTimeRange)
         {
@@ -249,13 +345,13 @@ namespace PointZilla
             yield return (points.Skip(index).ToList(), remainingTimeRange);
         }
 
-        private List<TimeSeriesPoint> GetPoints()
+        private (List<TimeSeriesPoint> Points, List<TimeSeriesNote> Notes) GetPoints()
         {
             if (DeleteCommands.Contains(Context.Command))
-                return new List<TimeSeriesPoint>();
+                return (new List<TimeSeriesPoint>(), new List<TimeSeriesNote>());
 
             if (Context.ManualPoints.Any())
-                return Context.ManualPoints;
+                return (Context.ManualPoints, Context.ManualNotes);
 
             if (Context.SourceTimeSeries != null)
                 return new ExternalPointsReader(Context)
@@ -270,11 +366,10 @@ namespace PointZilla
                     .LoadPoints();
 
             if (!string.IsNullOrEmpty(Context.WaveFormTextX) || !string.IsNullOrEmpty(Context.WaveFormTextY))
-                return new TextGenerator(Context)
-                    .GeneratePoints();
+                return (new TextGenerator(Context).GeneratePoints(), Context.ManualNotes);
 
-            return new WaveformGenerator(Context)
-                .GeneratePoints();
+            return (new WaveformGenerator(Context)
+                .GeneratePoints(), Context.ManualNotes);
         }
 
         private static readonly HashSet<CommandType> DeleteCommands = new HashSet<CommandType>

@@ -27,6 +27,12 @@ namespace PointZilla.PointReaders
         {
             ValidateConfiguration(Context);
 
+            if (!string.IsNullOrEmpty(Context.CsvNotesFile) && !File.Exists(Context.CsvNotesFile))
+                throw new ExpectedException($"File '{Context.CsvNotesFile}' does not exist.");
+
+            if (!string.IsNullOrEmpty(Context.CsvNotesFile) && Context.CsvNotesField != null)
+                throw new ExpectedException($"Only one of the /{nameof(Context.CsvNotesFile)}= and /{nameof(Context.CsvNotesField)}= options can be set.");
+
             TimePattern = string.IsNullOrWhiteSpace(Context.CsvDateTimeFormat)
                 ? InstantPattern.ExtendedIsoPattern
                 : InstantPattern.CreateWithInvariantCulture(Context.CsvDateTimeFormat);
@@ -53,10 +59,19 @@ namespace PointZilla.PointReaders
             return null;
         }
 
-        public List<TimeSeriesPoint> LoadPoints()
+        public (List<TimeSeriesPoint> Points, List<TimeSeriesNote> Notes) LoadPoints()
         {
-            return Context.CsvFiles.SelectMany(LoadPoints)
+            var points = Context
+                .CsvFiles
+                .SelectMany(LoadPoints)
                 .ToList();
+
+            var notes = LoadNotes();
+
+            if (!Context.IgnoreNotes && notes.Any())
+                Log.Info($"Loaded {"note".ToQuantity(notes.Count)}");
+
+            return (points, notes);
         }
 
         private List<TimeSeriesPoint> LoadPoints(string path)
@@ -315,7 +330,8 @@ namespace PointZilla.PointReaders
             {
                 TextFieldType = FieldType.Delimited,
                 Delimiters = new[] { csvDelimiter },
-                TrimWhiteSpace = true
+                TrimWhiteSpace = true,
+                HasFieldsEnclosedInQuotes = true
             };
 
             if (!string.IsNullOrWhiteSpace(Context.CsvComment))
@@ -438,6 +454,12 @@ namespace PointZilla.PointReaders
             if (pointType != PointType.Gap)
                 pointType = null;
 
+            ParseField(fields, Context.CsvNotesField?.ColumnIndex, text =>
+            {
+                if (time.HasValue && !string.IsNullOrWhiteSpace(text))
+                    AddRowNote(time.Value, text);
+            });
+
             return new TimeSeriesPoint
             {
                 Type = pointType,
@@ -445,6 +467,107 @@ namespace PointZilla.PointReaders
                 Value = value,
                 GradeCode = gradeCode,
                 Qualifiers = qualifiers
+            };
+        }
+
+        private List<TimeSeriesNote> LoadNotes()
+        {
+            if (RowNotes.Any())
+                return RowNotes;
+
+            if (string.IsNullOrEmpty(Context.CsvNotesFile))
+                return new List<TimeSeriesNote>();
+
+            return LoadNotes(Context.CsvNotesFile);
+        }
+
+        private List<TimeSeriesNote> LoadNotes(string path)
+        {
+            var notes = new List<TimeSeriesNote>();
+
+            var csvDelimiter = string.IsNullOrEmpty(Context.CsvDelimiter)
+                ? ","
+                : Context.CsvDelimiter;
+
+            var parser = new TextFieldParser(path)
+            {
+                TextFieldType = FieldType.Delimited,
+                Delimiters = new[] { csvDelimiter },
+                TrimWhiteSpace = true,
+                HasFieldsEnclosedInQuotes = true
+            };
+
+            if (!string.IsNullOrWhiteSpace(Context.CsvComment))
+            {
+                parser.CommentTokens = new[] { Context.CsvComment };
+            }
+
+            var skipCount = Context.CsvSkipRows;
+
+            var parseHeaderRow = Context.CsvHasHeaderRow;
+
+            while (!parser.EndOfData)
+            {
+                var lineNumber = parser.LineNumber;
+
+                var fields = parser.ReadFields();
+                if (fields == null) continue;
+
+                if (skipCount > 0)
+                {
+                    --skipCount;
+                    continue;
+                }
+
+                if (parseHeaderRow)
+                {
+                    ValidateHeaderFields(fields, new List<Field>
+                    {
+                        Context.NoteStartField,
+                        Context.NoteEndField,
+                        Context.NoteTextField,
+                    });
+                    parseHeaderRow = false;
+
+                    if (Context.CsvHasHeaderRow)
+                        continue;
+                }
+
+                var note = ParseNote(fields);
+
+                if (note == null)
+                {
+                    if (Context.CsvIgnoreInvalidRows) continue;
+
+                    throw new ExpectedException($"Can't parse '{path}' ({lineNumber}): {string.Join(", ", fields)}");
+                }
+
+                notes.Add(note);
+            }
+
+            return notes;
+        }
+
+        private TimeSeriesNote ParseNote(string[] fields)
+        {
+            Instant? start = null;
+            Instant? end = null;
+            var noteText = default(string);
+
+            ParseField(fields, Context.NoteStartField.ColumnIndex, text => start = ParseInstant(text));
+            ParseField(fields, Context.NoteEndField.ColumnIndex, text => end = ParseInstant(text));
+            ParseField(fields, Context.NoteTextField.ColumnIndex, text => noteText = text);
+
+            if (!start.HasValue || !end.HasValue || string.IsNullOrWhiteSpace(noteText))
+                return null;
+
+            if (end < start)
+                return null;
+
+            return new TimeSeriesNote
+            {
+                TimeRange = new Interval(start.Value, end.Value),
+                NoteText = noteText
             };
         }
 

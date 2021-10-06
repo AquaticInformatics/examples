@@ -471,8 +471,14 @@ Supported -option=value settings (/option=value works too):
   ========================= Metadata options:
   -IgnoreGrades             Ignore any specified grade codes. [default: False]
   -IgnoreQualifiers         Ignore any specified qualifiers. [default: False]
+  -IgnoreNotes              Ignore any specified notes. [default: False]
   -MappedGrades             Grade mapping in sourceValue:mappedValue syntax. Can be set multiple times.
   -MappedQualifiers         Qualifier mapping in sourceValue:mappedValue syntax. Can be set multiple times.
+  -ManualNotes              Set a time-series note, in StartTime/EndTime/NoteText format. Can be set multiple times.
+  -CsvNotesFile             Load time-series notes from a file with StartTime, EndTime, and NoteText columns.
+  -NoteStartField           CSV column index or name for note start times [default: Start]
+  -NoteEndField             CSV column index or name for note end times [default: End]
+  -NoteTextField            CSV column index or name for note text [default: NoteText]
 
   ========================= Time-series creation options:
   -CreateMode               Mode for creating missing time-series. One of Never, Basic, Reflected. [default: Never]
@@ -520,6 +526,7 @@ Supported -option=value settings (/option=value works too):
   -CsvValueField            CSV column index or name for values
   -CsvGradeField            CSV column index or name for grade codes
   -CsvQualifiersField       CSV column index or name for qualifiers
+  -CsvNotesField            CSV column index or name for notes
   -CsvComment               CSV comment lines begin with this prefix
   -CsvSkipRows              Number of CSV rows to skip before parsing [default: 0]
   -CsvHasHeaderRow          Does the CSV have a header row naming the columns. [default: true if any columns are referenced by name]
@@ -536,6 +543,7 @@ Supported -option=value settings (/option=value works too):
   -DbType                   Database type. Should be one of: SqlServer, Postgres, MySql, Odbc
   -DbConnectionString       Database connection string. See https://connectionstrings.com for examples.
   -DbQuery                  SQL query to fetch the time-series points
+  -DbNotesQuery             SQL query to fetch the time-series notes from StartTime, EndTime, and NoteText columns.
 
   ========================= CSV saving options:
   -SaveCsvPath              When set, saves the extracted/generated points to a CSV file. If only a directory is specified, an appropriate filename will be generated.
