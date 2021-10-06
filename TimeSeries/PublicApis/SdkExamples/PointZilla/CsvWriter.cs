@@ -93,7 +93,7 @@ namespace PointZilla
                             if (!note.TimeRange.HasValue)
                                 continue;
 
-                            writer.WriteLine($"{InstantPattern.ExtendedIsoPattern.Format(note.TimeRange.Value.Start)}, {InstantPattern.ExtendedIsoPattern.Format(note.TimeRange.Value.End)}, {CsvEscapedColumn(note.NoteText)}");
+                            notesWriter.WriteLine($"{InstantPattern.ExtendedIsoPattern.Format(note.TimeRange.Value.Start)}, {InstantPattern.ExtendedIsoPattern.Format(note.TimeRange.Value.End)}, {CsvEscapedColumn(note.NoteText)}");
                         }
                     }
                 }
