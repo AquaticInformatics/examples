@@ -11,7 +11,6 @@ using System.Xml;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
-using Humanizer;
 using log4net;
 using NodaTime;
 using NodaTime.Text;
@@ -131,8 +130,14 @@ namespace PointZilla
                 new Option(), new Option {Description = "Metadata options:"},
                 new Option {Key = nameof(context.IgnoreGrades), Setter = value => context.IgnoreGrades = bool.Parse(value), Getter = () => $"{context.IgnoreGrades}", Description = "Ignore any specified grade codes."},
                 new Option {Key = nameof(context.IgnoreQualifiers), Setter = value => context.IgnoreQualifiers = bool.Parse(value), Getter = () => $"{context.IgnoreQualifiers}", Description = "Ignore any specified qualifiers."},
+                new Option {Key = nameof(context.IgnoreNotes), Setter = value => context.IgnoreNotes = bool.Parse(value), Getter = () => $"{context.IgnoreNotes}", Description = "Ignore any specified notes."},
                 new Option {Key = nameof(context.MappedGrades), Setter = value => ParseMappedGrade(context, value), Getter = () => string.Empty, Description = "Grade mapping in sourceValue:mappedValue syntax. Can be set multiple times."},
                 new Option {Key = nameof(context.MappedQualifiers), Setter = value => ParseMappedQualifier(context, value), Getter = () => string.Empty, Description = "Qualifier mapping in sourceValue:mappedValue syntax. Can be set multiple times."},
+                new Option {Key = nameof(context.ManualNotes), Setter = value => context.ManualNotes.Add(ParseNote(value)), Description = "Set a time-series note, in StartTime/EndTime/NoteText format. Can be set multiple times."},
+                new Option {Key = nameof(context.CsvNotesFile), Setter = value => context.CsvNotesFile = value, Description = "Load time-series notes from a file with StartTime, EndTime, and NoteText columns."},
+                new Option {Key = nameof(context.NoteStartField), Setter = value => context.NoteStartField = Field.Parse(value, nameof(context.NoteStartField)), Getter = () => FormatField(context.NoteStartField), Description = "CSV column index or name for note start times"},
+                new Option {Key = nameof(context.NoteEndField), Setter = value => context.NoteEndField = Field.Parse(value, nameof(context.NoteEndField)), Getter = () => FormatField(context.NoteEndField), Description = "CSV column index or name for note end times"},
+                new Option {Key = nameof(context.NoteTextField), Setter = value => context.NoteTextField = Field.Parse(value, nameof(context.NoteTextField)), Getter = () => FormatField(context.NoteTextField), Description = "CSV column index or name for note text"},
 
                 new Option(), new Option {Description = "Time-series creation options:"},
                 new Option {Key = nameof(context.CreateMode), Setter = value => context.CreateMode = ParseEnum<CreateMode>(value), Getter = () => context.CreateMode.ToString(), Description = $"Mode for creating missing time-series. {EnumOptions<CreateMode>()}"},
@@ -180,6 +185,7 @@ namespace PointZilla
                 new Option {Key = nameof(context.CsvValueField), Setter = value => context.CsvValueField = Field.Parse(value, nameof(context.CsvValueField)), Getter = () => string.Empty, Description = "CSV column index or name for values"},
                 new Option {Key = nameof(context.CsvGradeField), Setter = value => context.CsvGradeField = Field.Parse(value, nameof(context.CsvGradeField)), Getter = () => string.Empty, Description = "CSV column index or name for grade codes"},
                 new Option {Key = nameof(context.CsvQualifiersField), Setter = value => context.CsvQualifiersField = Field.Parse(value, nameof(context.CsvQualifiersField)), Getter = () => string.Empty, Description = "CSV column index or name for qualifiers"},
+                new Option {Key = nameof(context.CsvNotesField), Setter = value => context.CsvNotesField = Field.Parse(value, nameof(context.CsvNotesField)), Getter = () => string.Empty, Description = "CSV column index or name for notes"},
                 new Option {Key = nameof(context.CsvComment), Setter = value => context.CsvComment = value, Getter = () => context.CsvComment, Description = "CSV comment lines begin with this prefix"},
                 new Option {Key = nameof(context.CsvSkipRows), Setter = value => context.CsvSkipRows = int.Parse(value), Getter = () => context.CsvSkipRows.ToString(), Description = "Number of CSV rows to skip before parsing"},
                 new Option {Key = nameof(context.CsvHasHeaderRow), Setter = value => context.CsvHasHeaderRow = bool.Parse(value), Getter = () => string.Empty, Description = "Does the CSV have a header row naming the columns. [default: true if any columns are referenced by name]"},
@@ -215,6 +221,7 @@ namespace PointZilla
                 new Option {Key = nameof(context.DbType), Setter = value => context.DbType = ParseEnum<DbType>(value), Getter = () => $"{context.DbType}", Description = $"Database type. Should be one of: {string.Join(", ", Enum.GetNames(typeof(DbType)))}"},
                 new Option {Key = nameof(context.DbConnectionString), Setter = value => context.DbConnectionString = value, Getter = () => context.DbConnectionString, Description = "Database connection string. See https://connectionstrings.com for examples."},
                 new Option {Key = nameof(context.DbQuery), Setter = value => context.DbQuery = value, Getter = () => context.DbQuery, Description = "SQL query to fetch the time-series points"},
+                new Option {Key = nameof(context.DbNotesQuery), Setter = value => context.DbNotesQuery = value, Getter = () => context.DbNotesQuery, Description = "SQL query to fetch the time-series notes from StartTime, EndTime, and NoteText columns."},
 
                 new Option(), new Option {Description = "CSV saving options:"},
                 new Option {Key = nameof(context.SaveCsvPath), Setter = value => context.SaveCsvPath = value, Getter = () => context.SaveCsvPath, Description = "When set, saves the extracted/generated points to a CSV file. If only a directory is specified, an appropriate filename will be generated."},
@@ -293,6 +300,12 @@ namespace PointZilla
                         continue;
                     }
 
+                    if (TryParseNote(arg, out var timeSeriesNote))
+                    {
+                        context.ManualNotes.Add(timeSeriesNote);
+                        continue;
+                    }
+
                     throw new ExpectedException($"Unknown argument: {arg}\n\n{helpGuidance}");
                 }
 
@@ -343,6 +356,7 @@ namespace PointZilla
                     context.CsvValueField,
                     context.CsvGradeField,
                     context.CsvQualifiersField,
+                    context.CsvNotesField,
                 }
                 .Any(f => f != null);
         }
@@ -471,7 +485,7 @@ namespace PointZilla
 
         private static Interval ParseInterval(string text)
         {
-            var components = text.Split(new[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
+            var components = text.Split(IntervalSeparators, StringSplitOptions.RemoveEmptyEntries);
 
             if (components.Length != 2)
                 throw new ExpectedException($"'{text}' is an invalid Interval format. Use 'StartInstant/EndInstant' (two ISO8601 timestamps, separated by a forward slash)");
@@ -484,6 +498,8 @@ namespace PointZilla
 
             return new Interval(start, end);
         }
+
+        private static readonly char[] IntervalSeparators = { '/' };
 
         private static void ParseExtendedAttributeValue(Context context, string text)
         {
@@ -500,6 +516,45 @@ namespace PointZilla
                 ColumnIdentifier = columnIdentifier,
                 Value = value
             });
+        }
+
+        private static TimeSeriesNote ParseNote(string text)
+        {
+            if (TryParseNote(text, out var timeSeriesNote))
+                return timeSeriesNote;
+
+            throw new ExpectedException($"'{text}' does not match the expected 'StartTime/EndTime/Note' format");
+        }
+
+        private static bool TryParseNote(string text, out TimeSeriesNote timeSeriesNote)
+        {
+            timeSeriesNote = default;
+
+            var components = text.Split(IntervalSeparators, 3, StringSplitOptions.RemoveEmptyEntries);
+
+            if (components.Length != 3)
+                return false;
+
+            var start = ParseInstant(components[0]);
+            var end = ParseInstant(components[1]);
+
+            if (end < start)
+                throw new ExpectedException($"Invalid {nameof(Context.ManualNotes)}: Start={start} must be less than or equal to End={end}.");
+
+            timeSeriesNote = new TimeSeriesNote
+            {
+                TimeRange = new Interval(start, end),
+                NoteText = components[2]
+            };
+
+            return true;
+        }
+
+        private static string FormatField(Field field)
+        {
+            return field.HasColumnName
+                ? field.ColumnName
+                : $"{field.ColumnIndex}";
         }
 
         private static string[] SplitOnFirstSeparator(string text, params char[] separators)

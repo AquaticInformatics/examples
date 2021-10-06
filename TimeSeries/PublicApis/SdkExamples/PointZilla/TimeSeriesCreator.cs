@@ -96,7 +96,7 @@ namespace PointZilla
 
             PostBasicTimeSeries basicTimeSeries = null;
             PostReflectedTimeSeries reflectedTimeSeries = null;
-            TimeSeriesBase request;
+            IPostTimeSeriesRequest request;
 
             if (Context.CreateMode == CreateMode.Reflected)
             {

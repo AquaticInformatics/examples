@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
+using Humanizer;
 using NodaTime;
 using PointZilla.DbClient;
 using ServiceStack.Logging;
@@ -20,14 +21,14 @@ namespace PointZilla.PointReaders
         {
         }
 
-        public List<TimeSeriesPoint> LoadPoints()
+        public (List<TimeSeriesPoint> Points, List<TimeSeriesNote> Notes) LoadPoints()
         {
             if (!Context.DbType.HasValue)
                 throw new ExpectedException($"/{nameof(Context.DbType)} must be set");
 
             ValidateContext();
 
-            var query = ResolveQuery();
+            var query = ResolveQuery(Context.DbQuery, nameof(Context.DbQuery));
 
             Log.Info($"Querying {Context.DbType} database for points ...");
 
@@ -37,10 +38,17 @@ namespace PointZilla.PointReaders
 
                 ValidateTable(table);
 
-                return table
+                var points = table
                     .Rows.Cast<DataRow>()
                     .Select(ConvertRowToPoint)
+                    .Where(point => point != null)
                     .ToList();
+
+                var notes = LoadNotes(dbClient);
+
+                Log.Info($"Loaded {"point".ToQuantity(points.Count)} and {"note".ToQuantity(notes.Count)} from the database source.");
+
+                return (points, notes);
             }
         }
 
@@ -55,20 +63,23 @@ namespace PointZilla.PointReaders
             ValidateConfiguration(Context);
         }
 
-        private string ResolveQuery()
+        private static string ResolveQuery(string query, string name)
         {
-            if (!Context.DbQuery.StartsWith("@"))
-                return Context.DbQuery;
+            if (string.IsNullOrEmpty(query))
+                return query;
 
-            var queryPath = Context.DbQuery.Substring(1);
+            if (!query.StartsWith("@"))
+                return query;
+
+            var queryPath = query.Substring(1);
 
             if (!File.Exists(queryPath))
-                throw new ExpectedException($"{nameof(Context.DbQuery)} file '{queryPath}' does not exist.");
+                throw new ExpectedException($"{name} file '{queryPath}' does not exist.");
 
             return File.ReadAllText(queryPath);
         }
 
-        private void ValidateTable(DataTable dataTable)
+        private void ValidateTable(DataTable dataTable, List<Field> fields = null)
         {
             Context.CsvHasHeaderRow = true;
 
@@ -76,7 +87,7 @@ namespace PointZilla.PointReaders
                 .Columns
                 .Cast<DataColumn>()
                 .Select(c => c.ColumnName)
-                .ToArray());
+                .ToArray(), fields);
         }
 
         private TimeSeriesPoint ConvertRowToPoint(DataRow row)
@@ -114,12 +125,64 @@ namespace PointZilla.PointReaders
             if (time == null)
                 return null;
 
+            ParseNullableColumn<string>(row, Context.CsvNotesField?.ColumnIndex, text =>
+            {
+                if (time.HasValue && !string.IsNullOrWhiteSpace(text))
+                    AddRowNote(time.Value, text);
+            });
+
             return new TimeSeriesPoint
             {
                 Time = time,
                 Value = value,
                 GradeCode = gradeCode,
                 Qualifiers = qualifiers
+            };
+        }
+
+        private List<TimeSeriesNote> LoadNotes(IDbClient dbClient)
+        {
+            if (RowNotes.Any())
+                return RowNotes;
+
+            if (string.IsNullOrWhiteSpace(Context.DbNotesQuery))
+                return new List<TimeSeriesNote>();
+
+            var query = ResolveQuery(Context.DbNotesQuery, nameof(Context.DbNotesQuery));
+
+            var table = dbClient.ExecuteTable(query);
+
+            ValidateTable(table, new List<Field>
+            {
+                Context.NoteStartField,
+                Context.NoteEndField,
+                Context.NoteTextField,
+            });
+
+            return table
+                .Rows.Cast<DataRow>()
+                .Select(ConvertRowToNote)
+                .Where(note => note != null)
+                .ToList();
+        }
+
+        private TimeSeriesNote ConvertRowToNote(DataRow row)
+        {
+            Instant? start = null;
+            Instant? end = null;
+            var noteText = default(string);
+
+            ParseColumn<DateTime>(row, Context.NoteStartField.ColumnIndex, dateTime => start = InstantFromDateTime(dateTime));
+            ParseColumn<DateTime>(row, Context.NoteEndField.ColumnIndex, dateTime => end = InstantFromDateTime(dateTime));
+            ParseNullableColumn<string>(row, Context.NoteTextField.ColumnIndex, text => noteText = text);
+
+            if (!start.HasValue || !end.HasValue || string.IsNullOrWhiteSpace(noteText))
+                return null;
+
+            return new TimeSeriesNote
+            {
+                TimeRange = new Interval(start.Value, end.Value),
+                NoteText = noteText
             };
         }
 
