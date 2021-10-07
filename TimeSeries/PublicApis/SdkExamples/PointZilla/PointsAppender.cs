@@ -33,8 +33,7 @@ namespace PointZilla
 
             (Points, Notes) = GetPoints();
 
-            if (Context.IgnoreNotes)
-                Notes.Clear();
+            AdjustNotes();
 
             if (Points.All(p => p.Type != PointType.Gap))
             {
@@ -140,6 +139,81 @@ namespace PointZilla
             }
         }
 
+        private void AdjustNotes()
+        {
+            if (Context.IgnoreNotes)
+            {
+                Notes.Clear();
+                return;
+            }
+
+            var noteCombiner = new NoteCombiner();
+
+            foreach (var note in Notes
+                .Select(AdjustNoteTextAndTimeRange)
+                .OrderBy(note => note.TimeRange?.Start)
+                .ThenByDescending(note => note.TimeRange?.End))
+            {
+                noteCombiner.AddOverlappingIntervalMetadata(note, (note1, note2) => note1.NoteText != note2.NoteText);
+            }
+
+            Notes = noteCombiner.Items;
+        }
+
+        private TimeSeriesNote AdjustNoteTextAndTimeRange(TimeSeriesNote note)
+        {
+            if (note.TimeRange.HasValue && note.TimeRange.Value.End == note.TimeRange.Value.Start)
+            {
+                note.TimeRange = new Interval(note.TimeRange.Value.Start, note.TimeRange.Value.End.PlusTicks(1));
+            }
+
+            const int maxNoteLength = 500;
+
+            if (note.NoteText.Length > maxNoteLength)
+            {
+                note.NoteText = note.NoteText.Substring(0, maxNoteLength - 20) + " ... note truncated.";
+            }
+
+            return note;
+        }
+
+        private class NoteCombiner
+        {
+            public List<TimeSeriesNote> Items { get; } = new List<TimeSeriesNote>();
+
+            private TimeSeriesNote CurrentItem { get; set; }
+
+            public void AddOverlappingIntervalMetadata(
+                TimeSeriesNote newItem,
+                Func<TimeSeriesNote, TimeSeriesNote, bool> isDifferent)
+            {
+                var overlappingItem = Items
+                    .LastOrDefault(item => item.TimeRange.Intersects(newItem.TimeRange) && !isDifferent(item, newItem));
+
+                if (overlappingItem == null)
+                {
+                    CurrentItem = newItem;
+                    Items.Add(CurrentItem);
+
+                    return;
+                }
+
+                CurrentItem = overlappingItem;
+
+                ExtendCurrentItem(newItem.TimeRange);
+            }
+
+            private void ExtendCurrentItem(Interval? timeRange)
+            {
+                if (!timeRange.HasValue || !CurrentItem.TimeRange.HasValue)
+                    return;
+
+                CurrentItem.TimeRange = new Interval(
+                    Instant.Min(CurrentItem.TimeRange.Value.Start, timeRange.Value.Start),
+                    Instant.Max(CurrentItem.TimeRange.Value.End, timeRange.Value.End));
+            }
+        }
+
         private IAquariusClient CreateConnectedClient()
         {
             return string.IsNullOrWhiteSpace(Context.SessionToken)
@@ -184,56 +258,14 @@ namespace PointZilla
             if (client.ServerVersion.IsLessThan(MinimumNotesVersion))
                 throw new ExpectedException($"You can't append time-series notes before AQTS v{MinimumNotesVersion}");
 
-            var notes = CoalesceAdjacentNotes(Notes)
-                    .Select(note =>
-                    {
-                        const int maxNoteLength = 500;
-
-                        if (note.NoteText.Length > maxNoteLength)
-                        {
-                            note.NoteText = note.NoteText.Substring(0, maxNoteLength - 20) + " ... note truncated.";
-                        }
-
-                        return note;
-                    })
-                .ToList();
-
             return client.Acquisition.Post(new PostTimeSeriesMetadata
             {
                 UniqueId = timeSeries.UniqueId,
-                Notes = notes
+                Notes = Notes
             }).NotesCreated;
         }
 
         private static readonly AquariusServerVersion MinimumNotesVersion = AquariusServerVersion.Create("19.2.185");
-
-        private IEnumerable<TimeSeriesNote> CoalesceAdjacentNotes(IEnumerable<TimeSeriesNote> notes)
-        {
-            TimeSeriesNote previousNote = null;
-
-            foreach (var note in notes
-                .OrderBy(note => note.TimeRange?.Start)
-                .ThenBy(note => note.TimeRange?.End))
-            {
-                if (previousNote != null)
-                {
-                    if (previousNote.TimeRange?.End == note.TimeRange?.Start && previousNote.NoteText == note.NoteText)
-                    {
-                        previousNote.TimeRange = new Interval(
-                            previousNote.TimeRange?.Start ?? throw new ExpectedException("Invalid TimeRange Start value"),
-                            note.TimeRange?.End ?? throw new ExpectedException("Invalid TimeRange End value"));
-                        continue;
-                    }
-
-                    yield return previousNote;
-                }
-
-                previousNote = note;
-            }
-
-            if (previousNote != null)
-                yield return previousNote;
-        }
 
         private TimeSeriesAppendStatus AppendPointBatch(IAquariusClient client, TimeSeries timeSeries, List<TimeSeriesPoint> points, Interval timeRange, bool isReflected, bool hasTimeRange)
         {
