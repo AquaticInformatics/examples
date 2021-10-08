@@ -125,7 +125,7 @@ namespace PointZilla
                     numberOfPointsDeleted += result.NumberOfPointsDeleted;
                     ++batchIndex;
 
-                    if (result.AppendStatus != AppendStatusCode.Completed)
+                    if (!ValidStatusCodesByWaitMode[Context.Wait].Contains(result.AppendStatus))
                         throw new ExpectedException($"Unexpected append status={result.AppendStatus}");
                 }
 
@@ -135,9 +135,18 @@ namespace PointZilla
                     numberOfNotesAppended += AppendNotes(client, timeSeries);
  
                 var batchText = isBatched ? $" using {"append".ToQuantity(pointBatches.Count)}" : "";
-                Log.Info($"Appended {"point".ToQuantity(numberOfPointsAppended)} and {"note".ToQuantity(numberOfNotesAppended)} (deleting {"point".ToQuantity(numberOfPointsDeleted)} and {"note".ToQuantity(numberOfNotesDeleted)}) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds{batchText}.");
+                var waitText = Context.Wait ? string.Empty : " (without waiting for appends to complete)";
+
+                Log.Info($"Appended {"point".ToQuantity(numberOfPointsAppended)} and {"note".ToQuantity(numberOfNotesAppended)} (deleting {"point".ToQuantity(numberOfPointsDeleted)} and {"note".ToQuantity(numberOfNotesDeleted)}) in {stopwatch.ElapsedMilliseconds / 1000.0:F1} seconds{batchText}{waitText}.");
             }
         }
+
+        private static readonly Dictionary<bool, HashSet<AppendStatusCode>> ValidStatusCodesByWaitMode =
+            new Dictionary<bool, HashSet<AppendStatusCode>>
+            {
+                { true, new HashSet<AppendStatusCode> { AppendStatusCode.Completed } },
+                { false, new HashSet<AppendStatusCode> { AppendStatusCode.Completed, AppendStatusCode.Pending } },
+            };
 
         private void AdjustNotes()
         {
@@ -304,7 +313,7 @@ namespace PointZilla
             return client.Acquisition.RequestAndPollUntilComplete(
                 acquisition => appendResponse,
                 (acquisition, response) => acquisition.Get(new GetTimeSeriesAppendStatus { AppendRequestIdentifier = response.AppendRequestIdentifier }),
-                polledStatus => polledStatus.AppendStatus != AppendStatusCode.Pending,
+                polledStatus => !Context.Wait || polledStatus.AppendStatus != AppendStatusCode.Pending,
                 null,
                 Context.AppendTimeout);
         }
