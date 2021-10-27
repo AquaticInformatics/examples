@@ -37,43 +37,10 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Aquarius.Client, Version=20.2.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Aquarius.SDK.20.2.0\lib\net45\Aquarius.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="Costura, Version=1.6.2.0, Culture=neutral, PublicKeyToken=9919ef960d84173d, processorArchitecture=MSIL">
-      <HintPath>..\packages\Costura.Fody.1.6.2\lib\dotnet\Costura.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Humanizer, Version=2.4.0.0, Culture=neutral, PublicKeyToken=979442b78dfc278e, processorArchitecture=MSIL">
-      <HintPath>..\packages\Humanizer.Core.2.4.2\lib\netstandard2.0\Humanizer.dll</HintPath>
-    </Reference>
-    <Reference Include="log4net, Version=2.0.12.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
-      <HintPath>..\packages\log4net.2.0.12\lib\net45\log4net.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="NodaTime, Version=1.3.0.0, Culture=neutral, PublicKeyToken=4226afe0d9b296d1, processorArchitecture=MSIL">
-      <HintPath>..\packages\NodaTime.1.3.0\lib\net35-Client\NodaTime.dll</HintPath>
-    </Reference>
-    <Reference Include="ServiceStack.Client, Version=5.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
-      <HintPath>..\packages\ServiceStack.Client.5.9.0\lib\net45\ServiceStack.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="ServiceStack.HttpClient, Version=5.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
-      <HintPath>..\packages\ServiceStack.HttpClient.5.9.0\lib\net45\ServiceStack.HttpClient.dll</HintPath>
-    </Reference>
-    <Reference Include="ServiceStack.Interfaces, Version=5.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
-      <HintPath>..\packages\ServiceStack.Interfaces.5.9.0\lib\net45\ServiceStack.Interfaces.dll</HintPath>
-    </Reference>
-    <Reference Include="ServiceStack.Logging.Log4Net, Version=5.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
-      <HintPath>..\packages\ServiceStack.Logging.Log4Net.5.9.0\lib\net45\ServiceStack.Logging.Log4Net.dll</HintPath>
-    </Reference>
-    <Reference Include="ServiceStack.Text, Version=5.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
-      <HintPath>..\packages\ServiceStack.Text.5.9.0\lib\net45\ServiceStack.Text.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
     </Reference>
-    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
@@ -84,98 +51,48 @@
     <Reference Include="System.Net.Http.Primitives, Version=4.2.29.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Net.Http.2.2.29\lib\net45\System.Net.Http.Primitives.dll</HintPath>
     </Reference>
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Numerics" />
     <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
     </Reference>
     <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.5.3\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
-    <Reference Include="System.Runtime.Serialization" />
-    <Reference Include="System.ServiceModel" />
     <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
     </Reference>
-    <Reference Include="System.Web" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ChangeEventType.cs" />
-    <Compile Include="DoubleHelper.cs" />
-    <Compile Include="Dtos\GetObservationRequest.cs" />
-    <Compile Include="Dtos\RequestBase.cs" />
-    <Compile Include="ExeHelper.cs" />
-    <Compile Include="Filter.cs" />
-    <Compile Include="SingleInstanceGuard.cs" />
-    <Compile Include="SyncStatus.cs" />
-    <Compile Include="Context.cs" />
-    <Compile Include="Dtos\ClearDatasourceRequest.cs" />
-    <Compile Include="Dtos\ConfigureOperationRequest.cs" />
-    <Compile Include="Dtos\DeleteDeletedObservationsRequest.cs" />
-    <Compile Include="Dtos\GetCapabilitiesRequest.cs" />
-    <Compile Include="Dtos\InsertSensorResponse.cs" />
-    <Compile Include="EmbeddedResource.cs" />
-    <Compile Include="ExpectedException.cs" />
-    <Compile Include="Exporter.cs" />
-    <Compile Include="ISosClient.cs" />
-    <Compile Include="Ogc\owsExceptionReport.cs">
-      <DependentUpon>owsExceptionReport.xsd</DependentUpon>
-    </Compile>
-    <Compile Include="Option.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SosClient.cs" />
-    <Compile Include="TimeSeriesPointFilter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <EmbeddedResource Include="log4net.config" />
     <None Include="docker-proxy\docker-compose\docker-compose.yml" />
     <None Include="docker-proxy\docker-compose\nginx-proxy.conf" />
     <None Include="docker-proxy\Readme.md" />
     <None Include="docker\docker-compose\docker-compose.yml" />
     <None Include="docker\docker-compose\nginx-proxy.conf" />
     <None Include="docker\DockerSetup.md" />
-    <None Include="Ogc\owsExceptionReport.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="packages.config" />
     <None Include="Readme.md" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="XmlTemplates\InsertSensor.xml">
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="XmlTemplates\DeleteSensor.xml" />
-    <EmbeddedResource Include="XmlTemplates\InsertObservation.xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="XmlTemplates\InsertObservationWithNoGeoSpatial.xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="FodyWeavers.xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="docker-proxy\ActivateHydrologyProfile.png" />
-    <Content Include="docker-proxy\AddTheAdminCredentials.png" />
-    <Content Include="docker-proxy\AdminLoginScreen.png" />
-    <Content Include="docker-proxy\AdminProfilesSubMenu.png" />
-    <Content Include="docker-proxy\AdvanceToFinalSetupWizardScreen.png" />
-    <Content Include="docker-proxy\AqtsQualifierExample.png" />
-    <Content Include="docker-proxy\ClickHereToBeginSetup.png" />
-    <Content Include="docker-proxy\ClickStartInLowerRightCorner.png" />
-    <Content Include="docker-proxy\CompleteButNotComplete.png" />
-    <Content Include="docker-proxy\ConfigureCorrectedOrRawPoints.png" />
-    <Content Include="docker-proxy\ConfigureExtendedAttributeFilters.png" />
-    <Content Include="docker-proxy\ConfigureLimitQualifiers.png" />
-    <Content Include="docker-proxy\ConfigureProxyPollingIntervals.png" />
-    <Content Include="docker-proxy\EnterAqtsUrlAndCredentials.png" />
-    <Content Include="docker-proxy\FilterByPublishFlag.png" />
-    <Content Include="docker-proxy\OldSosExporterExtendedAttributeSetup.png" />
-    <Content Include="docker-proxy\SelectProxyInMemory.png" />
+    <Content Include="docker-proxy\images\ActivateHydrologyProfile.png" />
+    <Content Include="docker-proxy\images\AddTheAdminCredentials.png" />
+    <Content Include="docker-proxy\images\AdminLoginScreen.png" />
+    <Content Include="docker-proxy\images\AdminProfilesSubMenu.png" />
+    <Content Include="docker-proxy\images\AdvanceToFinalSetupWizardScreen.png" />
+    <Content Include="docker-proxy\images\AqtsQualifierExample.png" />
+    <Content Include="docker-proxy\images\ClickHereToBeginSetup.png" />
+    <Content Include="docker-proxy\images\ClickStartInLowerRightCorner.png" />
+    <Content Include="docker-proxy\images\CompleteButNotComplete.png" />
+    <Content Include="docker-proxy\images\ConfigureCorrectedOrRawPoints.png" />
+    <Content Include="docker-proxy\images\ConfigureExtendedAttributeFilters.png" />
+    <Content Include="docker-proxy\images\ConfigureLimitQualifiers.png" />
+    <Content Include="docker-proxy\images\ConfigureProxyPollingIntervals.png" />
+    <Content Include="docker-proxy\images\EnterAqtsUrlAndCredentials.png" />
+    <Content Include="docker-proxy\images\FilterByPublishFlag.png" />
+    <Content Include="docker-proxy\images\OldSosExporterExtendedAttributeSetup.png" />
+    <Content Include="docker-proxy\images\SelectProxyInMemory.png" />
     <Content Include="docker\AdminProfilesMenu.png" />
     <Content Include="docker\ClickHereToStartInstallation.png" />
     <Content Include="docker\ConfirmDataSourceStep.png" />
@@ -196,13 +113,9 @@
     <Error Condition="!Exists('..\packages\Microsoft.Bcl.Build.1.0.14\tools\Microsoft.Bcl.Build.targets')" Text="This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=317567." HelpKeyword="BCLBUILD2001" />
     <Error Condition="Exists('..\packages\Microsoft.Bcl.Build.1.0.14\tools\Microsoft.Bcl.Build.targets')" Text="The build restored NuGet packages. Build the project again to include these packages in the build. For more information, see http://go.microsoft.com/fwlink/?LinkID=317568." HelpKeyword="BCLBUILD2002" />
   </Target>
-  <Import Project="..\packages\Fody.2.0.0\build\netstandard1.4\Fody.targets" Condition="Exists('..\packages\Fody.2.0.0\build\netstandard1.4\Fody.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Fody.2.0.0\build\netstandard1.4\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Fody.2.0.0\build\netstandard1.4\Fody.targets'))" />
-    <Error Condition="!Exists('..\packages\Costura.Fody.1.6.2\build\dotnet\Costura.Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Costura.Fody.1.6.2\build\dotnet\Costura.Fody.targets'))" />
   </Target>
-  <Import Project="..\packages\Costura.Fody.1.6.2\build\dotnet\Costura.Fody.targets" Condition="Exists('..\packages\Costura.Fody.1.6.2\build\dotnet\Costura.Fody.targets')" />
 </Project>
