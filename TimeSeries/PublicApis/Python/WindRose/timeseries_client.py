@@ -358,16 +358,40 @@ class SingleMetadataResolver:
     def __init__(self, items):
         self.items = items
         self.index = 0
-        self.current = self.items[self.index]
+        self.active = self.items[self.index]
         self.index += 1
 
     def resolve(self, timestamp):
         while True:
-            if timestamp < self.current['EndTime']:
-                return self.current
+            if timestamp < self.active['EndTime']:
+                return self.active
             else:
                 self.index += 1
-                self.current = self.items[self.index]
+                self.active = self.items[self.index]
+
+
+class OverlappingMetadataResolver:
+    """
+    Resolves all the applicable items from a sorted list of time-ranged metadata items.
+
+    Each item in the list must have a 'StartTime' (inclusive) and 'EndTime' (exclusive) property.
+    """
+
+    def __init__(self, items):
+        self.items = items
+        self.index = 0
+        self.actives = []
+
+    def resolve(self, timestamp):
+        # Remove all items from the active list which are now stale
+        self.actives = [item for item in self.actives if item['EndTime'] > timestamp]
+
+        # Add any new items that have just started
+        while self.index < len(self.items) and self.items[self.index]['StartTime'] <= timestamp:
+            self.actives.append(self.items[self.index])
+            self.index += 1
+
+        return [item for item in self.actives if item['StartTime'] <= timestamp < item['EndTime']]
 
 
 class timeseries_client:
@@ -628,6 +652,8 @@ class timeseries_client:
         approvals = SingleMetadataResolver(response['Approvals'])
         methods = SingleMetadataResolver(response['Methods'])
         gapTolerances = SingleMetadataResolver(response['GapTolerances'])
+        qualifiers = OverlappingMetadataResolver(response['Qualifiers'])
+        notes = OverlappingMetadataResolver(response['Notes'])
 
         for point in response['Points']:
             timestamp = point['Timestamp']
@@ -635,6 +661,8 @@ class timeseries_client:
             point['Approval'] = approvals.resolve(timestamp)
             point['Method'] = methods.resolve(timestamp)
             point['GapTolerance'] = gapTolerances.resolve(timestamp)
+            point['Qualifiers'] = qualifiers.resolve(timestamp)
+            point['Notes'] = notes.resolve(timestamp)
 
     def getReportList(self):
         """Gets all the generated reports on the system"""
