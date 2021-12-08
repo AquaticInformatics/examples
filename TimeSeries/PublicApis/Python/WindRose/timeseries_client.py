@@ -348,6 +348,28 @@ class TimeSeriesSession(ServiceStackSession):
         self.headers.update({"X-Authentication-Token": token})
 
 
+class SingleMetadataResolver:
+    """
+    Resolves the one metadata item from a sorted list of time-ranged metadata items.
+
+    Each item in the list must have a 'StartTime' (inclusive) and 'EndTime' (exclusive) property.
+    """
+
+    def __init__(self, items):
+        self.items = items
+        self.index = 0
+        self.current = self.items[self.index]
+        self.index += 1
+
+    def resolve(self, timestamp):
+        while True:
+            if timestamp < self.current['EndTime']:
+                return self.current
+            else:
+                self.index += 1
+                self.current = self.items[self.index]
+
+
 class timeseries_client:
     """
     A client wrapper for AQUARIUS Time-Series REST API consumption.
@@ -599,6 +621,20 @@ class timeseries_client:
                 'GetParts': getParts,
                 'IncludeGapMarkers': includeGapMarkers
             })
+
+    def flattenResponse(self, response):
+        """Flattens the metadata in the response, adding point-wise metadata to the 'Points' list"""
+        grades = SingleMetadataResolver(response['Grades'])
+        approvals = SingleMetadataResolver(response['Approvals'])
+        methods = SingleMetadataResolver(response['Methods'])
+        gapTolerances = SingleMetadataResolver(response['GapTolerances'])
+
+        for point in response['Points']:
+            timestamp = point['Timestamp']
+            point['GradeCode'] = grades.resolve(timestamp)
+            point['Approval'] = approvals.resolve(timestamp)
+            point['Method'] = methods.resolve(timestamp)
+            point['GapTolerance'] = gapTolerances.resolve(timestamp)
 
     def getReportList(self):
         """Gets all the generated reports on the system"""
