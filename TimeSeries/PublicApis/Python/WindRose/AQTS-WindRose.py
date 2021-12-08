@@ -6,10 +6,10 @@ from timeseries_client import timeseries_client
 
 # Configure your data here
 config = dict(
-    server='doug-vm2012r2', username='admin', password='admin',         # AQTS credentials for your server
-    windSpeedSeriesName="Wind Vel.Work@01372058",                       # The wind-speed time-series name
-    windDirectionSeriesName="Wind Dir.Work@01372058",                   # The wind-direction time-series name
-    eventPeriodStartDay="2011-01-01", eventPeriodEndDay="2011-12-31",   # The event period to analyze
+    server='doug-vm2012r2', username='admin', password='admin',  # AQTS credentials for your server
+    windSpeedSeriesName="Wind Vel.Work@01372058",  # The wind-speed time-series name
+    windDirectionSeriesName="Wind Dir.Work@01372058",  # The wind-direction time-series name
+    eventPeriodStartDay="2011-01-01", eventPeriodEndDay="2011-12-31",  # The event period to analyze
     uploadedReportTitle="Wind Rose",                                    # The title of the uploaded report
     removeDuplicateReports=True)                                        # Set to True to avoid duplicate reports in WebPortal
 
@@ -38,7 +38,7 @@ with timeseries_client(config['server'], config['username'], config['password'])
     ax.bar(windDir, windSpeed, normed=True, opening=0.8, edgecolor='white')
     ax.set_legend()
 
-    if config.has_key('uploadedReportTitle') and len(config['uploadedReportTitle']) > 0:
+    if 'uploadedReportTitle' in config and len(config['uploadedReportTitle']) > 0:
         # Save the file locally
         localPdfPath = "windrose.pdf"
         plt.gcf().savefig(localPdfPath, bbox_inches='tight')
