@@ -14,6 +14,8 @@ $ pip install requests pytz pyrfc3339
 ```
 
 ## Revision History
+- 2021-Dec-14 - Improved parsing of location identifiers.
+- 2020-Dec-07 - Added `flattenResponse()` method to project grades, approvals, qualifiers, and notes to points
 - 2021-Sep-04 - Improved format of web service error messages for AQTS and AQSamples
 - 2021-Sep-03 - `timeseries_client.datetime()` now handles with "24:00" timestamps correctly
 - 2021-Sep-01 - Fairly big internal refactoring, with minimal breaking external changes.
@@ -105,6 +107,15 @@ requests.exceptions.HTTPError: 404 Client Error: Not Found for url: http://myser
 
 Your code can use standard python error handling techniques (like  `try ... except ...` blocks) to handle these exceptions as you'd like.
 
+```python
+from requests.exceptions import HTTPError
+
+try:
+    data = timeseries.publish.get('/GetSomeInvalidOperation')
+    print('Yay it worked!')
+except HTTPError as error:
+    print(f'Something went wrong: {error}')
+```
 ## Formatting requests and parsing responses
 
 The `publish`, `acquisition`, and `provisioning` Session objects expose `get()`, `post()`, `put()`, and `delete()` methods for making authenticated HTTP requests and returning response objects.
