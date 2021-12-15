@@ -13,7 +13,11 @@ and create a CSV report of the approval status by location.
 ## Format of the CSV output
 
 ```csv
-LocationIdentifier, Type, Identifier, Approval Level, StartTime, EndTime, Description
+LocationIdentifier, Approval Level, StartTime, EndTime, Type, Identifier, Description
+LOC55, Working, 2019-10-01, 2021-04-01, TimeSeries, Stage.Working@LOC55, 28756 points
+LOC55, Working, 2020-05-15, 2020-07-18, TimeSeries, Air Temp.Telemetry@LOC55, 3120 points
+LOC55, Working, 2017-01-01, 2019-01-01, RatingModel, Stage-Discharge.Rating@LOC55, "Curves 001, 002"
+LOC55, Working, 1995-09-27, 2000-01-01, FieldVisit, 16 visits,  "24 discharge measurements, 85 readings"
 ``` 
 
 ## Running the report for an entire system can take many hours
