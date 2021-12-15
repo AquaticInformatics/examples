@@ -423,6 +423,8 @@ class timeseries_client:
         self.acquisition = TimeSeriesSession(hostname, "/AQUARIUS/Acquisition/v2", verify=verify)
         self.provisioning = TimeSeriesSession(hostname, "/AQUARIUS/Provisioning/v1", verify=verify)
 
+        self._configure_reauthentication(username, password)
+
         # Authenticate once
         self.connect(username, password)
 
@@ -447,9 +449,33 @@ class timeseries_client:
         self.acquisition.set_session_token(token)
         self.provisioning.set_session_token(token)
 
+        return token
+
     def disconnect(self):
         """Destroys the authenticated session"""
         self.publish.delete('/session')
+
+    def _configure_reauthentication(self, username, password):
+        self._username = username
+        self._password = password
+        self._reauthenticating = False
+        self._reauthenticate_session = requests.Session()
+
+        self.publish.hooks['response'].append(self._reauthenticate)
+        self.acquisition.hooks['response'].append(self._reauthenticate)
+        self.provisioning.hooks['response'].append(self._reauthenticate)
+
+    def _reauthenticate(self, response, *args, **kwargs):
+        if response.status_code == 401 and not self._reauthenticating:
+            self._reauthenticating = True
+            token = self.connect(self._username, self._password)
+
+            response.request.headers.update({"X-Authentication-Token": token})
+
+            new_response = self._reauthenticate_session.send(response.request, **kwargs)
+            self._reauthenticating = False
+
+            return new_response
 
     def isVersionLessThan(self, source_version, target_version=None):
         """

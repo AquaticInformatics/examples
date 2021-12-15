@@ -14,7 +14,7 @@ $ pip install requests pytz pyrfc3339
 ```
 
 ## Revision History
-- 2021-Dec-14 - Improved parsing of location identifiers.
+- 2021-Dec-14 - Improved parsing of location identifiers, and automatically re-authenticate if a session times out. 
 - 2020-Dec-07 - Added `flattenResponse()` method to project grades, approvals, qualifiers, and notes to points
 - 2021-Sep-04 - Improved format of web service error messages for AQTS and AQSamples
 - 2021-Sep-03 - `timeseries_client.datetime()` now handles with "24:00" timestamps correctly
