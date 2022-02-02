@@ -77,6 +77,9 @@ artifacts:
   - path: Samples\DotNetSdk\SamplesObservationExporter\bin\Release\SamplesObservationExporter.exe
     name: SamplesObservationExporter
 
+  - path: Samples\DotNetSdk\ObservationReportExporter\bin\Release\ObservationReportExporter.exe
+    name: ObservationReportExporter
+
   - path: Samples\DotNetSdk\LabFileImporter\bin\Release\LabFileImporter.exe
     name: LabFileImporter
 
@@ -88,7 +91,7 @@ deploy:
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: Example utilities $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor, SondeFileImporter, SamplesPlannedSpecimenInstantiator, SamplesObservationExporter, LabFileImporter, NWFWMD-LabFileImporter, NEM12PreProcessor
+    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor, SondeFileImporter, SamplesPlannedSpecimenInstantiator, SamplesObservationExporter, LabFileImporter, NWFWMD-LabFileImporter, NEM12PreProcessor, ObservationReportExporter
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true
