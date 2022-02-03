@@ -61,7 +61,7 @@ Supported -option=value settings (/option=value works too):
 
   =========================== Export options:
   -ExportTemplateName         The Observation Export Spreadsheet Template to use for all exports.
-  -AttachmentFilename         Name of the generated report. Existing attachments with the same name will be deleted. [default: Report.xlsx]
+  -AttachmentFilename         Filename of the exported attachment [default: {Template}-{Location}.xlsx]
   -AttachmentTags             Uploaded attachments will have these tag values applies, in key:value format.
   -DeleteExistingAttachments  Delete any existing location attachments with the same name. [default: True]
   -DryRun                     When true, don't export and upload reports, just validate what would be done. [default: False]
@@ -70,7 +70,7 @@ Supported -option=value settings (/option=value works too):
   -StartTime                  Include observations after this time.
   -EndTime                    Include observations before this time.
   -LocationId                 Observations matching these sampling locations.
-  -LocationGroupId            Observations matching these sample location groups.
+  -LocationGroupId            Observations matching these sampling location groups.
   -AnalyticalGroupId          Observations matching these analytical groups.
   -ObservedPropertyId         Observations matching these observed properties.
 

@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using Aquarius.Samples.Client;
 using Aquarius.Samples.Client.ServiceModel;
 using Aquarius.TimeSeries.Client;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
+using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using Humanizer;
 using log4net;
-using NodaTime;
 using ServiceStack;
 using GetTags = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.GetTags;
 
@@ -44,6 +45,7 @@ namespace ObservationReportExporter
             ThrowIfMissing(nameof(Context.TimeSeriesUsername), Context.TimeSeriesUsername);
             ThrowIfMissing(nameof(Context.TimeSeriesPassword), Context.TimeSeriesPassword);
             ThrowIfMissing(nameof(Context.ExportTemplateName), Context.ExportTemplateName);
+            ThrowIfMissing(nameof(Context.AttachmentFilename), Context.AttachmentFilename);
 
             if (Context.EndTime < Context.StartTime)
                 throw new ExpectedException($"/{nameof(Context.StartTime)} must be less than /{nameof(Context.EndTime)}");
@@ -89,12 +91,21 @@ namespace ObservationReportExporter
         {
             ValidateSamplesConfiguration();
             ValidateTimeSeriesConfiguration();
+
+            ExportAllLocations();
         }
+
+        private DateTimeOffset ExportTime { get; } = DateTimeOffset.Now;
 
         private SpreadsheetTemplate ExportTemplate { get; set; }
 
-        private Dictionary<string, string> TimeSeriesLocationAliases { get; set; } =
+        private Dictionary<string, string> TimeSeriesLocationAliases { get; } =
             new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+
+        private List<string> AnalyticalGroupIds { get; } = new List<string>();
+        private List<string> ObservedPropertyIds { get; } = new List<string>();
+        private List<string> SamplingLocationIds { get; } = new List<string>();
+        private List<string> SamplingLocationGroupIds { get; } = new List<string>();
 
         private void ValidateSamplesConfiguration()
         {
@@ -127,19 +138,14 @@ namespace ObservationReportExporter
             var clauses = new List<string>();
             var builder = new StringBuilder();
 
-            var startObservedTime = (Instant?)null;
-            var endObservedTime = (Instant?)null;
-
             if (Context.StartTime.HasValue)
             {
                 clauses.Add($"after {Context.StartTime:O}");
-                startObservedTime = Instant.FromDateTimeOffset(Context.StartTime.Value);
             }
 
             if (Context.EndTime.HasValue)
             {
                 clauses.Add($"before {Context.EndTime:O}");
-                endObservedTime = Instant.FromDateTimeOffset(Context.EndTime.Value);
             }
 
             if (clauses.Any())
@@ -147,11 +153,6 @@ namespace ObservationReportExporter
                 builder.Append(string.Join(" and ", clauses));
                 clauses.Clear();
             }
-
-            var analyticalGroupIds = new List<string>();
-            var observedPropertyIds = new List<string>();
-            var samplingLocationIds = new List<string>();
-            var samplingLocationGroupIds = new List<string>();
 
             var locationClauses = new List<string>();
             var locationGroupClauses = new List<string>();
@@ -162,53 +163,53 @@ namespace ObservationReportExporter
             {
                 Log.Info($"Resolving {"sampling location ID".ToQuantity(Context.LocationIds.Count)} ...");
 
-                samplingLocationIds =
+                SamplingLocationIds.AddRange(
                     GetSpecificPaginatedItemIds<SamplingLocation, GetSamplingLocations, SearchResultSamplingLocation>(
                         "location",
                         locationClauses,
                         Context.LocationIds,
                         item => item.CustomId,
                         item => item.Id,
-                        name => new GetSamplingLocations { CustomId = name });
+                        name => new GetSamplingLocations { CustomId = name }));
             }
 
             if (Context.LocationGroupIds.Any())
             {
                 Log.Info($"Resolving {"sampling location group ID".ToQuantity(Context.LocationGroupIds.Count)} ...");
 
-                samplingLocationGroupIds =
+                SamplingLocationGroupIds.AddRange(
                     GetItemIds<SamplingLocationGroup, GetSamplingLocationGroups, SearchResultSamplingLocationGroup>(
                         "location group",
                         locationGroupClauses,
                         Context.LocationGroupIds,
                         item => item.Name,
-                        item => item.Id);
+                        item => item.Id));
             }
 
             if (Context.AnalyticalGroupIds.Any())
             {
                 Log.Info($"Resolving {"analytical group ID".ToQuantity(Context.AnalyticalGroupIds.Count)} ...");
 
-                analyticalGroupIds =
+                AnalyticalGroupIds.AddRange(
                     GetItemIds<AnalyticalGroup, GetAnalyticalGroups, SearchResultAnalyticalGroup>(
                         "analytical group",
                         analyticalGroupClauses,
                         Context.AnalyticalGroupIds,
                         item => item.Name,
-                        item => item.Id);
+                        item => item.Id));
             }
 
             if (Context.ObservedPropertyIds.Any())
             {
                 Log.Info($"Resolving {"observed property ID".ToQuantity(Context.ObservedPropertyIds.Count)} ...");
 
-                observedPropertyIds =
+                ObservedPropertyIds.AddRange(
                     GetItemIds<ObservedProperty, GetObservedProperties, SearchResultObservedProperty>(
                         "observed property",
                         observedPropertyClauses,
                         Context.ObservedPropertyIds,
                         item => item.CustomId,
-                        item => item.Id);
+                        item => item.Id));
             }
 
             clauses.AddRange(locationClauses);
@@ -236,18 +237,6 @@ namespace ObservationReportExporter
             var items = names
                 .SelectMany(name => Samples.LazyGet<TDomainObject, TRequest, TResponse>(requestFunc(name)).DomainObjects)
                 .ToList();
-
-            return MapNamesToIds(type, clauses, names, items, nameSelector, idSelector);
-        }
-
-
-        private List<string> GetPaginatedItemIds<TDomainObject, TRequest, TResponse>(string type, List<string> clauses, List<string> names, Func<TDomainObject, string> nameSelector, Func<TDomainObject, string> idSelector)
-            where TRequest : IPaginatedRequest, IReturn<TResponse>, new()
-            where TResponse : IPaginatedResponse<TDomainObject>
-        {
-            var response = Samples.LazyGet<TDomainObject, TRequest, TResponse>(new TRequest());
-
-            var items = response.DomainObjects.ToList();
 
             return MapNamesToIds(type, clauses, names, items, nameSelector, idSelector);
         }
@@ -291,6 +280,8 @@ namespace ObservationReportExporter
 
         private void ValidateTimeSeriesConfiguration()
         {
+            GetAttachmentFilename("DummyLocation");
+
             if (!Context.AttachmentTags.Any())
                 return;
 
@@ -308,5 +299,101 @@ namespace ObservationReportExporter
             }
         }
 
+        private void ExportAllLocations()
+        {
+            foreach (var exportedLocation in GetExportedLocations().OrderBy(l => l.CustomId))
+            {
+                ExportLocation(exportedLocation);
+            }
+        }
+
+        private IEnumerable<SamplingLocation> GetExportedLocations()
+        {
+            if (SamplingLocationIds.Any())
+                return SamplingLocationIds
+                    .Select(id => Samples.Get(new GetSamplingLocation { Id = id }));
+
+            return Samples
+                .LazyGet<SamplingLocation, GetSamplingLocations, SearchResultSamplingLocation>(new GetSamplingLocations
+                {
+                    SamplingLocationGroupIds = SamplingLocationGroupIds
+                })
+                .DomainObjects;
+        }
+
+        private void ExportLocation(SamplingLocation location)
+        {
+            if (!TimeSeriesLocationAliases.TryGetValue(location.CustomId, out var aqtsLocationIdentifier))
+                aqtsLocationIdentifier = location.CustomId;
+
+            var locationDescriptions = TimeSeries.Publish.Get(new LocationDescriptionListServiceRequest
+                {
+                    LocationIdentifier = aqtsLocationIdentifier
+                })
+                .LocationDescriptions;
+
+            if (!locationDescriptions.Any())
+            {
+                Log.Warn($"AQTS Location '{aqtsLocationIdentifier}' does not exist. Skipping this location's export.");
+                return;
+            }
+
+            if (locationDescriptions.Count != 1)
+                throw new ExpectedException(
+                    $"'{aqtsLocationIdentifier}' is an ambiguous AQTS location identifier for {locationDescriptions.Count} locations: '{string.Join("', '", locationDescriptions.Select(l => l.Identifier))}'");
+
+            var locationDescription = locationDescriptions.Single();
+
+            var locationData = TimeSeries.Publish.Get(new LocationDataServiceRequest
+            {
+                LocationIdentifier = locationDescription.Identifier,
+                IncludeLocationAttachments = true
+            });
+
+            var attachmentFilename = GetAttachmentFilename(locationDescription.Identifier);
+
+            var existingAttachments = locationData
+                .Attachments
+                .Where(a => a.FileName.Equals(attachmentFilename, StringComparison.InvariantCultureIgnoreCase))
+                .ToList();
+
+            foreach (var existingAttachment in existingAttachments)
+            {
+                if (!Context.DeleteExistingAttachments)
+                    continue;
+
+                Log.Info($"Need to delete {existingAttachment.FileName} (uploaded {existingAttachment.DateUploaded:O}");
+            }
+        }
+
+        private const string TemplatePattern = "Template";
+        private const string LocationPattern = "Location";
+        private const string TimePattern = "Time";
+
+        public const string DefaultAttachmentFilename = "{" + TemplatePattern + "}-{" + LocationPattern + "}.xlsx";
+
+        private string GetAttachmentFilename(string locationIdentifier)
+        {
+            var patterns = new Dictionary<string, Func<string, string>>(StringComparer.InvariantCultureIgnoreCase)
+            {
+                { TemplatePattern, _ => ExportTemplate.CustomId },
+                { LocationPattern, _ => locationIdentifier },
+                { TimePattern, format => ExportTime.ToString(string.IsNullOrWhiteSpace(format) ? "yyyy-MM-dd" : format) }
+            };
+
+            return PatternRegex.Replace(Context.AttachmentFilename, match =>
+            {
+                var patternKey = match.Groups["name"].Value.Trim();
+                var format = match.Groups["format"].Value.Trim();
+
+                if (!patterns.TryGetValue(patternKey, out var replacement))
+                    throw new ExpectedException(
+                        $"'{patternKey}' is not a known attachment filename substitution pattern. Try one of {{{string.Join("}, {", patterns.Keys)}}}.");
+
+                return replacement(format);
+            });
+        }
+
+        private static readonly Regex PatternRegex = new Regex(@"\{(?<name>[^:}]+)(:(?<format>[^}]+))?\}");
     }
 }

@@ -11,7 +11,7 @@ namespace ObservationReportExporter
         public string TimeSeriesUsername { get; set; }
         public string TimeSeriesPassword { get; set; }
         public string ExportTemplateName { get; set; }
-        public string AttachmentFilename { get; set; } = "Report.xlsx";
+        public string AttachmentFilename { get; set; } = Exporter.DefaultAttachmentFilename;
         public bool DryRun { get; set; }
         public bool DeleteExistingAttachments { get; set; } = true;
 

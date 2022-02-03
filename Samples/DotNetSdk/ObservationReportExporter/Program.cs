@@ -147,7 +147,7 @@ namespace ObservationReportExporter
                     Key = nameof(context.AttachmentFilename),
                     Setter = value => context.AttachmentFilename = value,
                     Getter = () => context.AttachmentFilename,
-                    Description = "Name of the generated report. Existing attachments with the same name will be deleted."
+                    Description = "Filename of the exported attachment"
                 },
                 new Option
                 {
