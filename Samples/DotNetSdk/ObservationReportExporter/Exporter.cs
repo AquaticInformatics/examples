@@ -3,16 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using Aquarius.Samples.Client;
 using Aquarius.Samples.Client.ServiceModel;
 using Aquarius.TimeSeries.Client;
+using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using Humanizer;
 using log4net;
 using ServiceStack;
+using ApplyTagRequest = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.ApplyTagRequest;
 using GetTags = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.GetTags;
+using TagValueType = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.TagValueType;
 
 namespace ObservationReportExporter
 {
@@ -25,9 +27,15 @@ namespace ObservationReportExporter
 
         private ISamplesClient Samples { get; set; }
         private IAquariusClient TimeSeries { get; set; }
+        private DateTimeOffset ExportTime { get; set; }
+        private List<ApplyTagRequest> AppliedTags { get; } = new List<ApplyTagRequest>();
+
+
 
         public void Run()
         {
+            ExportTime = Context.ExportTime ?? DateTimeOffset.Now;
+
             ValidateBeforeConnection();
 
             using (Samples = CreateConnectedSamplesClient())
@@ -95,8 +103,6 @@ namespace ObservationReportExporter
             ExportAllLocations();
         }
 
-        private DateTimeOffset ExportTime { get; } = DateTimeOffset.Now;
-
         private SpreadsheetTemplate ExportTemplate { get; set; }
 
         private Dictionary<string, string> TimeSeriesLocationAliases { get; } =
@@ -109,31 +115,9 @@ namespace ObservationReportExporter
 
         private void ValidateSamplesConfiguration()
         {
-            ExportTemplate = Samples
-                    .Get(new GetSpreadsheetTemplates())
-                    .DomainObjects
-                    .FirstOrDefault(t => t.CustomId.Equals(Context.ExportTemplateName, StringComparison.InvariantCultureIgnoreCase) && t.Type == SpreadsheetTemplateType.OBSERVATION_EXPORT);
+            LoadExportTemplate();
 
-            if (ExportTemplate == null)
-                throw new ExpectedException($"'{Context.ExportTemplateName}' is not a known Observation Export spreadsheet template");
-
-            var exchangeConfiguration = Samples
-                .Get(new GetExchangeConfigurations())
-                .DomainObjects
-                .FirstOrDefault(e => e.Type == "AQUARIUS_TIMESERIES");
-
-            if (exchangeConfiguration != null)
-            {
-                TimeSeriesLocationAliases.Clear();
-
-                foreach (var mapping in exchangeConfiguration.SamplingLocationMappings)
-                {
-                    if (mapping.SamplingLocation.CustomId.Equals(mapping.ExternalLocation, StringComparison.InvariantCultureIgnoreCase))
-                        break;
-
-                    TimeSeriesLocationAliases.Add(mapping.SamplingLocation.CustomId, mapping.ExternalLocation);
-                }
-            }
+            LoadExchangeConfiguration();
 
             var clauses = new List<string>();
             var builder = new StringBuilder();
@@ -230,6 +214,40 @@ namespace ObservationReportExporter
             Log.Info($"Exporting observations for {summary}.");
         }
 
+        private void LoadExportTemplate()
+        {
+            ExportTemplate = Samples
+                .Get(new GetSpreadsheetTemplates())
+                .DomainObjects
+                .FirstOrDefault(t =>
+                    t.CustomId.Equals(Context.ExportTemplateName, StringComparison.InvariantCultureIgnoreCase) &&
+                    t.Type == SpreadsheetTemplateType.OBSERVATION_EXPORT);
+
+            if (ExportTemplate == null)
+                throw new ExpectedException($"'{Context.ExportTemplateName}' is not a known Observation Export spreadsheet template");
+        }
+
+        private void LoadExchangeConfiguration()
+        {
+            var exchangeConfiguration = Samples
+                .Get(new GetExchangeConfigurations())
+                .DomainObjects
+                .FirstOrDefault(e => e.Type == "AQUARIUS_TIMESERIES");
+
+            if (exchangeConfiguration == null)
+                return;
+
+            TimeSeriesLocationAliases.Clear();
+
+            foreach (var mapping in exchangeConfiguration.SamplingLocationMappings)
+            {
+                if (mapping.SamplingLocation.CustomId.Equals(mapping.ExternalLocation, StringComparison.InvariantCultureIgnoreCase))
+                    break;
+
+                TimeSeriesLocationAliases.Add(mapping.SamplingLocation.CustomId, mapping.ExternalLocation);
+            }
+        }
+
         private List<string> GetSpecificPaginatedItemIds<TDomainObject, TRequest, TResponse>(string type, List<string> clauses, List<string> names, Func<TDomainObject, string> nameSelector, Func<TDomainObject, string> idSelector, Func<string, TRequest> requestFunc)
             where TRequest : IPaginatedRequest, IReturn<TResponse>, new()
             where TResponse : IPaginatedResponse<TDomainObject>
@@ -276,8 +294,6 @@ namespace ObservationReportExporter
         }
 
 
-        private Dictionary<string, Tag> LocationTags { get; set; } = new Dictionary<string, Tag>();
-
         private void ValidateTimeSeriesConfiguration()
         {
             GetAttachmentFilename("DummyLocation");
@@ -285,23 +301,37 @@ namespace ObservationReportExporter
             if (!Context.AttachmentTags.Any())
                 return;
 
-            LocationTags = TimeSeries
+            var locationTags = TimeSeries
                 .Provisioning
                 .Get(new GetTags())
                 .Results
                 .Where(t => t.AppliesToLocations)
                 .ToDictionary(t => t.Key, t => t, StringComparer.InvariantCultureIgnoreCase);
 
-            foreach (var key in Context.AttachmentTags.Keys)
+            AppliedTags.Clear();
+
+            foreach (var kvp in Context.AttachmentTags)
             {
-                if (!LocationTags.TryGetValue(key, out _))
-                    throw new ExpectedException($"'{key}' is not an existing tag with {nameof(Tag.AppliesToLocations)}=true");
+                if (!locationTags.TryGetValue(kvp.Key, out var locationTag))
+                    throw new ExpectedException($"'{kvp.Key}' is not an existing tag with {nameof(Tag.AppliesToLocations)}=true");
+
+                AppliedTags.Add(new ApplyTagRequest
+                {
+                    UniqueId = locationTag.UniqueId,
+                    Value = kvp.Value
+                });
             }
         }
 
         private void ExportAllLocations()
         {
-            foreach (var exportedLocation in GetExportedLocations().OrderBy(l => l.CustomId))
+            var exportedLocations = GetExportedLocations()
+                .OrderBy(l => l.CustomId)
+                .ToList();
+
+            Log.Info($"Exporting observations using the {ExportTemplate.CustomId} template for {"location".ToQuantity(exportedLocations.Count)} ...");
+
+            foreach (var exportedLocation in exportedLocations)
             {
                 ExportLocation(exportedLocation);
             }
@@ -366,34 +396,9 @@ namespace ObservationReportExporter
             }
         }
 
-        private const string TemplatePattern = "Template";
-        private const string LocationPattern = "Location";
-        private const string TimePattern = "Time";
-
-        public const string DefaultAttachmentFilename = "{" + TemplatePattern + "}-{" + LocationPattern + "}.xlsx";
-
         private string GetAttachmentFilename(string locationIdentifier)
         {
-            var patterns = new Dictionary<string, Func<string, string>>(StringComparer.InvariantCultureIgnoreCase)
-            {
-                { TemplatePattern, _ => ExportTemplate.CustomId },
-                { LocationPattern, _ => locationIdentifier },
-                { TimePattern, format => ExportTime.ToString(string.IsNullOrWhiteSpace(format) ? "yyyy-MM-dd" : format) }
-            };
-
-            return PatternRegex.Replace(Context.AttachmentFilename, match =>
-            {
-                var patternKey = match.Groups["name"].Value.Trim();
-                var format = match.Groups["format"].Value.Trim();
-
-                if (!patterns.TryGetValue(patternKey, out var replacement))
-                    throw new ExpectedException(
-                        $"'{patternKey}' is not a known attachment filename substitution pattern. Try one of {{{string.Join("}, {", patterns.Keys)}}}.");
-
-                return replacement(format);
-            });
+            return FilenameGenerator.GenerateAttachmentFilename(Context.AttachmentFilename, ExportTemplate.CustomId, locationIdentifier, ExportTime);
         }
-
-        private static readonly Regex PatternRegex = new Regex(@"\{(?<name>[^:}]+)(:(?<format>[^}]+))?\}");
     }
 }

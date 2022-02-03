@@ -238,6 +238,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FilenameGenerator.cs" />
     <Compile Include="Context.cs" />
     <Compile Include="ExeHelper.cs" />
     <Compile Include="ExpectedException.cs" />
