@@ -242,6 +242,7 @@
     <Compile Include="ExeHelper.cs" />
     <Compile Include="ExpectedException.cs" />
     <Compile Include="Exporter.cs" />
+    <Compile Include="GetExchangeConfigurations.cs" />
     <Compile Include="Option.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
