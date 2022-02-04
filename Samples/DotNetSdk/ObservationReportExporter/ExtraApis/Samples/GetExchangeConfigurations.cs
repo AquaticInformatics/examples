@@ -2,7 +2,7 @@
 using Aquarius.Samples.Client.ServiceModel;
 using ServiceStack;
 
-namespace ObservationReportExporter
+namespace ObservationReportExporter.ExtraApis.Samples
 {
     [Route("/v1/exchangeconfigurations", HttpMethods.Get)]
     public class GetExchangeConfigurations : IReturn<SearchResultsExchangeConfigurations>

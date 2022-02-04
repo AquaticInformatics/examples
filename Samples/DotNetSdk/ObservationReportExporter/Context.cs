@@ -11,7 +11,7 @@ namespace ObservationReportExporter
         public string TimeSeriesUsername { get; set; }
         public string TimeSeriesPassword { get; set; }
         public string ExportTemplateName { get; set; }
-        public string AttachmentFilename { get; set; } = "Report.xlsx";
+        public string AttachmentFilename { get; set; } = FilenameGenerator.DefaultAttachmentFilename;
         public bool DryRun { get; set; }
         public bool DeleteExistingAttachments { get; set; } = true;
 
@@ -21,6 +21,7 @@ namespace ObservationReportExporter
         public List<string> LocationGroupIds { get; } = new List<string>();
         public List<string> AnalyticalGroupIds { get; } = new List<string>();
         public List<string> ObservedPropertyIds { get; } = new List<string>();
+        public DateTimeOffset? ExportTime { get; set; }
         public DateTimeOffset? StartTime { get; set; }
         public DateTimeOffset? EndTime { get; set; }
     }

@@ -238,11 +238,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExtraApis\TimeSeries\DeleteAttachmentById.cs" />
+    <Compile Include="FilenameGenerator.cs" />
     <Compile Include="Context.cs" />
     <Compile Include="ExeHelper.cs" />
     <Compile Include="ExpectedException.cs" />
     <Compile Include="Exporter.cs" />
-    <Compile Include="GetExchangeConfigurations.cs" />
+    <Compile Include="ExtraApis\Samples\GetExchangeConfigurations.cs" />
     <Compile Include="Option.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -256,6 +258,7 @@
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Fody.6.5.5\build\Fody.targets" Condition="Exists('..\packages\Fody.6.5.5\build\Fody.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

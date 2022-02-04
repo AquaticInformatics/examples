@@ -137,6 +137,13 @@ namespace ObservationReportExporter
                 new Option(), new Option { Description = "Export options:" },
                 new Option
                 {
+                    Key = nameof(context.DryRun),
+                    Setter = value => context.DryRun = ParseBoolean(value),
+                    Getter = () => $"{context.DryRun}",
+                    Description = "When true, don't export and upload reports, just validate what would be done."
+                },
+                new Option
+                {
                     Key = nameof(context.ExportTemplateName),
                     Setter = value => context.ExportTemplateName = value,
                     Getter = () => context.ExportTemplateName,
@@ -147,7 +154,7 @@ namespace ObservationReportExporter
                     Key = nameof(context.AttachmentFilename),
                     Setter = value => context.AttachmentFilename = value,
                     Getter = () => context.AttachmentFilename,
-                    Description = "Name of the generated report. Existing attachments with the same name will be deleted."
+                    Description = $"Filename of the exported attachment."
                 },
                 new Option
                 {
@@ -165,11 +172,12 @@ namespace ObservationReportExporter
                 },
                 new Option
                 {
-                    Key = nameof(context.DryRun),
-                    Setter = value => context.DryRun = ParseBoolean(value),
-                    Getter = () => $"{context.DryRun}",
-                    Description = "When true, don't export and upload reports, just validate what would be done."
+                    Key = nameof(context.ExportTime),
+                    Setter = value => context.ExportTime = ParseDateTimeOffset(value),
+                    Getter = () => string.Empty,
+                    Description = $"The timestamp used for all {{{FilenameGenerator.TimePattern}}} pattern substitutions. [default: The current time]"
                 },
+
 
                 new Option(),
                 new Option
@@ -181,14 +189,14 @@ namespace ObservationReportExporter
                     Key = nameof(context.StartTime),
                     Setter = value => context.StartTime = ParseDateTimeOffset(value),
                     Getter = () => string.Empty,
-                    Description = "Include observations after this time."
+                    Description = "Include observations after this time. [default: Start of record]"
                 },
                 new Option
                 {
                     Key = nameof(context.EndTime),
                     Setter = value => context.EndTime = ParseDateTimeOffset(value),
                     Getter = () => string.Empty,
-                    Description = "Include observations before this time."
+                    Description = "Include observations before this time. [default: End of record]"
                 },
                 new Option
                 {
@@ -221,7 +229,7 @@ namespace ObservationReportExporter
             };
 
             var usageMessage
-                    = $"Export observations from AQUARIUS Samples using a spreadsheet template and into AQUARIUS Time-Series."
+                    = $"Export observations from AQUARIUS Samples using a spreadsheet template into AQUARIUS Time-Series locations as attachments."
                       + $"\n"
                       + $"\nusage: {ExeHelper.ExeName} [-option=value] [@optionsFile] ..."
                       + $"\n"
