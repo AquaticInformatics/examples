@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using Aquarius.Samples.Client;
 using Aquarius.Samples.Client.ServiceModel;
 using Aquarius.TimeSeries.Client;
@@ -11,10 +15,13 @@ using Aquarius.TimeSeries.Client.ServiceModels.Provisioning;
 using Aquarius.TimeSeries.Client.ServiceModels.Publish;
 using Humanizer;
 using log4net;
+using NodaTime;
+using ObservationReportExporter.ExtraApis.Samples;
+using ObservationReportExporter.ExtraApis.TimeSeries;
 using ServiceStack;
 using ApplyTagRequest = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.ApplyTagRequest;
+using Attachment = Aquarius.TimeSeries.Client.ServiceModels.Publish.Attachment;
 using GetTags = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.GetTags;
-using TagValueType = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.TagValueType;
 
 namespace ObservationReportExporter
 {
@@ -27,14 +34,20 @@ namespace ObservationReportExporter
 
         private ISamplesClient Samples { get; set; }
         private IAquariusClient TimeSeries { get; set; }
+        private IServiceClient SiteVisit { get; set; }
         private DateTimeOffset ExportTime { get; set; }
         private List<ApplyTagRequest> AppliedTags { get; } = new List<ApplyTagRequest>();
 
-
+        private int ExportedLocations { get; set; }
+        private int SkippedLocations { get; set; }
+        private int Errors { get; set; }
+        private int DeletedAttachments { get; set; }
 
         public void Run()
         {
             ExportTime = Context.ExportTime ?? DateTimeOffset.Now;
+
+            var stopwatch = Stopwatch.StartNew();
 
             ValidateBeforeConnection();
 
@@ -42,7 +55,18 @@ namespace ObservationReportExporter
             using (TimeSeries = CreateConnectedTimeSeriesClient())
             {
                 ValidateOnceConnected();
+
+                ExportAllLocations();
             }
+
+            LogAction($"Exported observations to {"location".ToQuantity(ExportedLocations)}, skipping {"unknown location".ToQuantity(SkippedLocations)}, deleting {"existing attachment".ToQuantity(DeletedAttachments)}, with {"detected error".ToQuantity(Errors)} in {stopwatch.Elapsed.Humanize()}.");
+        }
+
+        private void LogAction(string message)
+        {
+            var prefix = Context.DryRun ? "DRY-RUN: " : string.Empty;
+
+            Log.Info($"{prefix}{message}");
         }
 
         private void ValidateBeforeConnection()
@@ -90,6 +114,8 @@ namespace ObservationReportExporter
 
             var client = AquariusClient.CreateConnectedClient(Context.TimeSeriesServer, Context.TimeSeriesUsername, Context.TimeSeriesPassword);
 
+            SiteVisit = client.RegisterCustomClient(Aquarius.TimeSeries.Client.EndPoints.Root.EndPoint + "/apps/v1");
+
             Log.Info($"Connected to {Context.TimeSeriesServer} ({client.ServerVersion}) as {Context.TimeSeriesUsername}");
 
             return client;
@@ -99,8 +125,6 @@ namespace ObservationReportExporter
         {
             ValidateSamplesConfiguration();
             ValidateTimeSeriesConfiguration();
-
-            ExportAllLocations();
         }
 
         private SpreadsheetTemplate ExportTemplate { get; set; }
@@ -108,10 +132,10 @@ namespace ObservationReportExporter
         private Dictionary<string, string> TimeSeriesLocationAliases { get; } =
             new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
 
-        private List<string> AnalyticalGroupIds { get; } = new List<string>();
-        private List<string> ObservedPropertyIds { get; } = new List<string>();
-        private List<string> SamplingLocationIds { get; } = new List<string>();
-        private List<string> SamplingLocationGroupIds { get; } = new List<string>();
+        private List<string> AnalyticalGroupIds { get; set; }
+        private List<string> ObservedPropertyIds { get; set; }
+        private List<string> SamplingLocationIds { get; set; }
+        private List<string> SamplingLocationGroupIds { get; set; }
 
         private void ValidateSamplesConfiguration()
         {
@@ -147,53 +171,53 @@ namespace ObservationReportExporter
             {
                 Log.Info($"Resolving {"sampling location ID".ToQuantity(Context.LocationIds.Count)} ...");
 
-                SamplingLocationIds.AddRange(
+                SamplingLocationIds =
                     GetSpecificPaginatedItemIds<SamplingLocation, GetSamplingLocations, SearchResultSamplingLocation>(
                         "location",
                         locationClauses,
                         Context.LocationIds,
                         item => item.CustomId,
                         item => item.Id,
-                        name => new GetSamplingLocations { CustomId = name }));
+                        name => new GetSamplingLocations { CustomId = name });
             }
 
             if (Context.LocationGroupIds.Any())
             {
                 Log.Info($"Resolving {"sampling location group ID".ToQuantity(Context.LocationGroupIds.Count)} ...");
 
-                SamplingLocationGroupIds.AddRange(
+                SamplingLocationGroupIds =
                     GetItemIds<SamplingLocationGroup, GetSamplingLocationGroups, SearchResultSamplingLocationGroup>(
                         "location group",
                         locationGroupClauses,
                         Context.LocationGroupIds,
                         item => item.Name,
-                        item => item.Id));
+                        item => item.Id);
             }
 
             if (Context.AnalyticalGroupIds.Any())
             {
                 Log.Info($"Resolving {"analytical group ID".ToQuantity(Context.AnalyticalGroupIds.Count)} ...");
 
-                AnalyticalGroupIds.AddRange(
+                AnalyticalGroupIds =
                     GetItemIds<AnalyticalGroup, GetAnalyticalGroups, SearchResultAnalyticalGroup>(
                         "analytical group",
                         analyticalGroupClauses,
                         Context.AnalyticalGroupIds,
                         item => item.Name,
-                        item => item.Id));
+                        item => item.Id);
             }
 
             if (Context.ObservedPropertyIds.Any())
             {
                 Log.Info($"Resolving {"observed property ID".ToQuantity(Context.ObservedPropertyIds.Count)} ...");
 
-                ObservedPropertyIds.AddRange(
+                ObservedPropertyIds =
                     GetItemIds<ObservedProperty, GetObservedProperties, SearchResultObservedProperty>(
                         "observed property",
                         observedPropertyClauses,
                         Context.ObservedPropertyIds,
                         item => item.CustomId,
-                        item => item.Id));
+                        item => item.Id);
             }
 
             clauses.AddRange(locationClauses);
@@ -206,12 +230,12 @@ namespace ObservationReportExporter
                 if (builder.Length > 0)
                     builder.Append(' ');
 
-                builder.Append($"with {string.Join(" and ", clauses)}");
+                builder.Append($"from {string.Join(" and ", clauses)}");
             }
 
             var summary = builder.ToString();
 
-            Log.Info($"Exporting observations for {summary}.");
+            Log.Info($"Exporting observations {summary}.");
         }
 
         private void LoadExportTemplate()
@@ -225,6 +249,9 @@ namespace ObservationReportExporter
 
             if (ExportTemplate == null)
                 throw new ExpectedException($"'{Context.ExportTemplateName}' is not a known Observation Export spreadsheet template");
+
+            if (ExportTemplate.Attachments.Count != 1)
+                throw new ExpectedException($"Export template '{ExportTemplate.CustomId}' should have a single attachment, but {ExportTemplate.Attachments.Count} were found.");
         }
 
         private void LoadExchangeConfiguration()
@@ -305,7 +332,7 @@ namespace ObservationReportExporter
                 .Provisioning
                 .Get(new GetTags())
                 .Results
-                .Where(t => t.AppliesToLocations)
+                .Where(t => t.AppliesToAttachments)
                 .ToDictionary(t => t.Key, t => t, StringComparer.InvariantCultureIgnoreCase);
 
             AppliedTags.Clear();
@@ -313,7 +340,7 @@ namespace ObservationReportExporter
             foreach (var kvp in Context.AttachmentTags)
             {
                 if (!locationTags.TryGetValue(kvp.Key, out var locationTag))
-                    throw new ExpectedException($"'{kvp.Key}' is not an existing tag with {nameof(Tag.AppliesToLocations)}=true");
+                    throw new ExpectedException($"'{kvp.Key}' is not an existing tag with {nameof(Tag.AppliesToAttachments)}=true");
 
                 AppliedTags.Add(new ApplyTagRequest
                 {
@@ -333,13 +360,21 @@ namespace ObservationReportExporter
 
             foreach (var exportedLocation in exportedLocations)
             {
-                ExportLocation(exportedLocation);
+                try
+                {
+                    ExportLocation(exportedLocation);
+                }
+                catch (Exception e)
+                {
+                    ++Errors;
+                    Log.Warn($"Skipping export of '{exportedLocation.CustomId}': {e.Message}");
+                }
             }
         }
 
         private IEnumerable<SamplingLocation> GetExportedLocations()
         {
-            if (SamplingLocationIds.Any())
+            if (SamplingLocationIds?.Any() ?? false)
                 return SamplingLocationIds
                     .Select(id => Samples.Get(new GetSamplingLocation { Id = id }));
 
@@ -365,6 +400,7 @@ namespace ObservationReportExporter
             if (!locationDescriptions.Any())
             {
                 Log.Warn($"AQTS Location '{aqtsLocationIdentifier}' does not exist. Skipping this location's export.");
+                ++SkippedLocations;
                 return;
             }
 
@@ -389,12 +425,85 @@ namespace ObservationReportExporter
 
             foreach (var existingAttachment in existingAttachments)
             {
-                if (!Context.DeleteExistingAttachments)
-                    continue;
+                DeleteExistingAttachment(locationData, existingAttachment);
+            }
 
-                Log.Info($"Need to delete {existingAttachment.FileName} (uploaded {existingAttachment.DateUploaded:O}");
+            LogAction($"Exporting observations from '{location.CustomId}' ...");
+
+            ++ExportedLocations;
+
+            var exportRequest = new GetExportObservations
+            {
+                EndObservedTime = FromDateTimeOffset(Context.EndTime),
+                StartObservedTime = FromDateTimeOffset(Context.StartTime),
+                SamplingLocationIds = new List<string> { location.Id },
+                ObservedPropertyIds = ObservedPropertyIds,
+                AnalyticalGroupIds = AnalyticalGroupIds,
+            };
+
+            var url = $"{(Samples.Client as JsonServiceClient)?.BaseUri}{exportRequest.ToGetUrl()}&observationTemplateAttachmentId={ExportTemplate.Attachments.Single().Id}&format=xlsx";
+
+            if (Context.DryRun)
+                return;
+
+            var contentBytes = ExportObservationsFromTemplate(url);
+
+            Log.Info($"Uploading '{attachmentFilename}' ({contentBytes.Length.Bytes().Humanize("#.#")}) to '{locationData.Identifier}' ...");
+
+            UploadLocationAttachment(locationData.UniqueId, contentBytes, attachmentFilename);
+        }
+
+        private static Instant? FromDateTimeOffset(DateTimeOffset? dateTimeOffset)
+        {
+            return dateTimeOffset.HasValue
+                ? (Instant?)Instant.FromDateTimeOffset(dateTimeOffset.Value)
+                : null;
+        }
+
+        private byte[] ExportObservationsFromTemplate(string url)
+        {
+            using (var httpResponse = Samples.Client.Get<HttpWebResponse>(url))
+            {
+                return httpResponse.GetResponseStream().ReadFully();
             }
         }
+
+        private void UploadLocationAttachment(Guid locationUniqueId, byte[] contentBytes, string filename)
+        {
+            using (var stream = new MemoryStream(contentBytes))
+            {
+                TimeSeries.Acquisition.PostFileWithRequest(stream, filename, new PostLocationAttachment
+                {
+                    LocationUniqueId = locationUniqueId,
+                    Comments = $"Generated by {ExeHelper.ExeNameAndVersion}",
+                    Tags = AppliedTags
+                });
+            }
+        }
+
+        private void DeleteExistingAttachment(LocationDataServiceResponse locationData, Attachment existingAttachment)
+        {
+            if (!Context.DeleteExistingAttachments)
+                return;
+
+            var match = AttachmentUrlRegex.Match(existingAttachment.Url);
+
+            if (!match.Success)
+                throw new ExpectedException($"Can't decode attachment ID from '{existingAttachment.Url}'");
+
+            var attachmentId = match.Groups["attachmentId"].Value;
+
+            ++DeletedAttachments;
+
+            LogAction($"Deleting existing attachment '{existingAttachment.FileName}' (uploaded {existingAttachment.DateUploaded:O} from '{locationData.Identifier}' ...");
+
+            if (Context.DryRun)
+                return;
+
+            SiteVisit.Delete(new DeleteAttachmentById { Id = attachmentId });
+        }
+
+        private static readonly Regex AttachmentUrlRegex = new Regex(@"apps/v1/attachments/(?<attachmentId>[^/]+)/download");
 
         private string GetAttachmentFilename(string locationIdentifier)
         {

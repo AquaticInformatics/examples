@@ -71,7 +71,7 @@ By default, any existing attachments at the location with the same filename will
 The `/AttachmentTags=` option can be set multiple times to apply as many tags as needed to all the uploaded attachments.
 
 - Tags are specified in key:value format, with a colon separating the two parts.
-- The tag must be configured with AppliedToLocations = true.
+- The tag must be configured with AppliedToAttachments = true.
 - If a tag has its ValueType of None, then no value portion is required.
 
 AQUARIUS WebPortal can be configured to display attachments with specific tag patterns to specific view groups.
