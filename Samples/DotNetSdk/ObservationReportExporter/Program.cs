@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Aquarius.Samples.Client;
@@ -64,8 +66,7 @@ namespace ObservationReportExporter
 
                 log4net.Config.XmlConfigurator.Configure(xml.DocumentElement);
 
-                // ReSharper disable once PossibleNullReferenceException
-                _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+                _log = LogManager.GetLogger(GetProgramType());
 
                 ServiceStack.Logging.LogManager.LogFactory = new Log4NetFactory();
             }
@@ -73,8 +74,7 @@ namespace ObservationReportExporter
 
         private static byte[] LoadEmbeddedResource(string path)
         {
-            // ReSharper disable once PossibleNullReferenceException
-            var resourceName = $"{MethodBase.GetCurrentMethod().DeclaringType.Namespace}.{path}";
+            var resourceName = $"{GetProgramType().Namespace}.{path}";
 
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
             {
@@ -83,6 +83,11 @@ namespace ObservationReportExporter
 
                 return stream.ReadFully();
             }
+        }
+
+        private static Type GetProgramType()
+        {
+            return MethodBase.GetCurrentMethod()?.DeclaringType;
         }
 
         private static Context ParseArgs(string[] args)
@@ -349,11 +354,33 @@ namespace ObservationReportExporter
 
         private void Run()
         {
+            using (var guard = new SingleInstanceGuard(GetContextName()))
+            {
+                if (!guard.IsAnotherInstanceRunning())
+                {
+                    new Exporter { Context = _context }
+                        .Run();
+                }
+                else
+                {
+                    _log.Warn($"Exiting while another instance of {guard.Name} is running.");
+                }
+            }
             new Exporter
                 {
                     Context = _context
                 }
                 .Run();
+        }
+
+        private string GetContextName()
+        {
+            var jsonText = _context.ToJson();
+
+            using (var sha256 = new SHA256Managed())
+            {
+                return BitConverter.ToString(sha256.ComputeHash(Encoding.UTF8.GetBytes(jsonText)));
+            }
         }
     }
 }
