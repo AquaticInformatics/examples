@@ -39,6 +39,7 @@ namespace ObservationReportExporter
         private List<ApplyTagRequest> AppliedTags { get; } = new List<ApplyTagRequest>();
 
         private int ExportedLocations { get; set; }
+        private int ExportedObservations { get; set; }
         private int SkippedLocations { get; set; }
         private int Errors { get; set; }
         private int DeletedAttachments { get; set; }
@@ -59,7 +60,7 @@ namespace ObservationReportExporter
                 ExportAllLocations();
             }
 
-            LogAction($"Exported observations to {"location".ToQuantity(ExportedLocations)}, skipping {"unknown location".ToQuantity(SkippedLocations)}, deleting {"existing attachment".ToQuantity(DeletedAttachments)}, with {"detected error".ToQuantity(Errors)} in {stopwatch.Elapsed.Humanize()}.");
+            LogAction($"Exported {"observation".ToQuantity(ExportedObservations)} using '{ExportTemplate.CustomId}' template into {"location".ToQuantity(ExportedLocations)}, skipping {"unknown location".ToQuantity(SkippedLocations)}, deleting {"existing attachment".ToQuantity(DeletedAttachments)}, with {"detected error".ToQuantity(Errors)} in {stopwatch.Elapsed.Humanize()}.");
         }
 
         private void LogAction(string message)
@@ -428,10 +429,6 @@ namespace ObservationReportExporter
                 DeleteExistingAttachment(locationData, existingAttachment);
             }
 
-            LogAction($"Exporting observations from '{location.CustomId}' ...");
-
-            ++ExportedLocations;
-
             var exportRequest = new GetExportObservations
             {
                 EndObservedTime = FromDateTimeOffset(Context.EndTime),
@@ -441,6 +438,21 @@ namespace ObservationReportExporter
                 AnalyticalGroupIds = AnalyticalGroupIds,
             };
 
+            var exportedObservationCount = Samples.Get(new GetObservationsV2
+            {
+                EndObservedTime = exportRequest.EndObservedTime,
+                StartObservedTime = exportRequest.StartObservedTime,
+                SamplingLocationIds = exportRequest.SamplingLocationIds,
+                ObservedPropertyIds = exportRequest.ObservedPropertyIds,
+                AnalyticalGroupIds = exportRequest.AnalyticalGroupIds
+            }).TotalCount;
+
+            LogAction($"Exporting {"observation".ToQuantity(exportedObservationCount)} from '{location.CustomId}' ...");
+
+            ++ExportedLocations;
+            ExportedObservations += exportedObservationCount;
+
+            // Need to hack the URL until WI-4928 is fixed
             var url = $"{(Samples.Client as JsonServiceClient)?.BaseUri}{exportRequest.ToGetUrl()}&observationTemplateAttachmentId={ExportTemplate.Attachments.Single().Id}&format=xlsx";
 
             if (Context.DryRun)

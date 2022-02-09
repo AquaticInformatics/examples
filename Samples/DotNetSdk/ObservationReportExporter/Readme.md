@@ -12,11 +12,27 @@ The intent is to run this tool on a schedule so that the uploaded location attac
 - Results can be filtered by optional date range, location, location group, property, or analytical group.
 - All filters are cumulative (ie. they are AND-ed together). The more filters you add, the fewer results will be exported.
 - An exit code of 0 indicates the export was successful. An exit code greater than 0 indicates an error. This allows for easy error checking when invoked from scripts.
+- A log file named `ObservationReportExporter.log` will be created in the same folder as the EXE.
 
 ## Requirements
 
 - The .NET 4.7 runtime is required, which is pre-installed on all Windows 10 and Windows Server 2016 systems, and on nearly all up-to-date Windows 7 and Windows Server 2008 systems.
 - No installer is needed. It is just a single .EXE which can be run from any folder.
+
+## Basic workflow
+
+Each run of the tool will:
+- Validate all the provided options and stop right away if any errors are detected.
+- Determine the AQUARIUS Samples locations from which observations will be exported. This is either the list of `-LocationId=` options locations or locations belonging to the `-LocationGroupId=` options.
+- For each exported location:
+    - Find the matching AQUARIUS Time Series location.
+    - If the Time Series location is not found:
+        - Log a warning and move on to the next export.
+    - Otherwise:
+        - Determine the exported attachment filename (see [controlling the attachment filename](#controlling-the-aqts-attachment-filename) for details).
+        - Delete any existing location attachments with the same filename.
+        - Export all the filtered observations from the AQUARIUS Samples location using the named template.
+        - Upload the exported spreadsheet of location-specific observations to the AQUARIUS Time-Series location.
 
 ### Command line option syntax
 
@@ -25,6 +41,22 @@ All command line options are case-insensitive, and support both common shell syn
 In addition, the [`@options.txt` syntax](https://github.com/AquaticInformatics/examples/wiki/Common-command-line-options) is supported, to read options from a text file. You can mix and match individual `/name=value` and `@somefile.txt` on the same command line.
 
 Try the `/help` option for a detailed list of options and their default values.
+
+## Running the tool on a periodic schedule
+
+The `ObservationReportExporter.exe` too can be run from Windows Task Scheduler, or other scheduling software.
+
+Typical configuration involves:
+- Storing all required command-line options in a single text file, in the same folder as the EXE.
+- Specifying the executable as full path to the `ObservationReportExporter.exe` tool.
+- Setting the working directory to the folder containing the EXE.
+- Setting the arguments to the `@Options.txt` file containing all the required options.
+
+No special Windows account is required to run the tool. All the required credentials are supplied as command-line options, so it is fine to run the tool using a built-in Windows account like LocalSystem (NT_AUTHORITY/SYSTEM).
+
+The tool can be scheduled to run at whatever frequency you would like. The tool will quickly exit if it detects an identical export request already in progress. This allows for simple scheduling for normal loads.
+
+If a complete export cycle normally takes 2 hours, but can sometimes take 4 hours to complete, you can still safely schedule the tool to run every 3 hours, and tool will detect when a previous cycle hasn't completed and won't go crazy.
 
 ## Authentication with AQUARIUS Samples
 
