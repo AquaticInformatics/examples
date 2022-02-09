@@ -326,13 +326,18 @@ namespace LabFileImporter
             match = NonDetectRegex.Match(text);
 
             if (match.Success)
-                return (null, Context.ResultGrade, match.Groups["number"].Value.Replace(",", string.Empty));
+            {
+                text = match.Groups["number"].Value.Replace(",", string.Empty);
+
+                if (match.Groups["flag"].Value == "<")
+                    return (null, Context.ResultGrade, text);
+            }
 
             return (text, Context.ResultGrade, null);
         }
 
         private static readonly Regex EstimatedRegex = new Regex(@"^\s*(?<number>[0-9.+\-]+)\s+est\s*$", RegexOptions.IgnoreCase);
-        private static readonly Regex NonDetectRegex = new Regex(@"^\s*[<>]\s*(?<number>[0-9,.+\-]+)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex NonDetectRegex = new Regex(@"^\s*(?<flag>[<>])\s*(?<number>[0-9,.+\-]+)\s*$", RegexOptions.IgnoreCase);
 
         private string GetNullableString(IExcelDataReader reader, int columnIndex)
         {
