@@ -366,11 +366,6 @@ namespace ObservationReportExporter
                     _log.Warn($"Exiting while another instance of {guard.Name} is running.");
                 }
             }
-            new Exporter
-                {
-                    Context = _context
-                }
-                .Run();
         }
 
         private string GetContextName()
