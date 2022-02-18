@@ -5,6 +5,7 @@
 from datetime import datetime
 from datetime import timedelta
 from functools import total_ordering
+from urllib.parse import urlparse
 import os
 import platform
 import pyrfc3339
@@ -476,6 +477,19 @@ class timeseries_client:
             self._reauthenticating = False
 
             return new_response
+
+    def _create_authenticated_endpoint(self, root_path: str, verify=True) -> TimeSeriesSession:
+        """
+        Creates an authenticated endpoint to something other than the public API surface.
+
+        :param root_path: The path to the endpoint on the AQTS app server
+        :param verify: The standard requests library certificate check
+        :return: An authenticated session for making requests to the end point
+        """
+        url = urlparse(self.publish.base_url)
+        session = TimeSeriesSession(f'{url.scheme}://{url.hostname}', root_path, verify=verify)
+        session.set_session_token(self.publish.headers['X-Authentication-Token'])
+        return session
 
     def isVersionLessThan(self, source_version, target_version=None):
         """
