@@ -14,6 +14,7 @@ $ pip install requests pytz pyrfc3339
 ```
 
 ## Revision History
+- 2022-Feb-28 - Added `_create_authenticated_endpoint()` method to access extended API endpoints
 - 2021-Dec-14 - Improved parsing of location identifiers, and automatically re-authenticate if a session times out. 
 - 2020-Dec-07 - Added `flattenResponse()` method to project grades, approvals, qualifiers, and notes to points
 - 2021-Sep-04 - Improved format of web service error messages for AQTS and AQSamples

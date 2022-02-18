@@ -5,6 +5,7 @@
 from datetime import datetime
 from datetime import timedelta
 from functools import total_ordering
+from urllib.parse import urlparse
 import os
 import platform
 import pyrfc3339
@@ -423,6 +424,8 @@ class timeseries_client:
         self.acquisition = TimeSeriesSession(hostname, "/AQUARIUS/Acquisition/v2", verify=verify)
         self.provisioning = TimeSeriesSession(hostname, "/AQUARIUS/Provisioning/v1", verify=verify)
 
+        self._configure_reauthentication(username, password)
+
         # Authenticate once
         self.connect(username, password)
 
@@ -447,9 +450,46 @@ class timeseries_client:
         self.acquisition.set_session_token(token)
         self.provisioning.set_session_token(token)
 
+        return token
+
     def disconnect(self):
         """Destroys the authenticated session"""
         self.publish.delete('/session')
+
+    def _configure_reauthentication(self, username, password):
+        self._username = username
+        self._password = password
+        self._reauthenticating = False
+        self._reauthenticate_session = requests.Session()
+
+        self.publish.hooks['response'].append(self._reauthenticate)
+        self.acquisition.hooks['response'].append(self._reauthenticate)
+        self.provisioning.hooks['response'].append(self._reauthenticate)
+
+    def _reauthenticate(self, response, *args, **kwargs):
+        if response.status_code == 401 and not self._reauthenticating:
+            self._reauthenticating = True
+            token = self.connect(self._username, self._password)
+
+            response.request.headers.update({"X-Authentication-Token": token})
+
+            new_response = self._reauthenticate_session.send(response.request, **kwargs)
+            self._reauthenticating = False
+
+            return new_response
+
+    def _create_authenticated_endpoint(self, root_path: str, verify=True) -> TimeSeriesSession:
+        """
+        Creates an authenticated endpoint to something other than the public API surface.
+
+        :param root_path: The path to the endpoint on the AQTS app server
+        :param verify: The standard requests library certificate check
+        :return: An authenticated session for making requests to the end point
+        """
+        url = urlparse(self.publish.base_url)
+        session = TimeSeriesSession(f'{url.scheme}://{url.hostname}', root_path, verify=verify)
+        session.set_session_token(self.publish.headers['X-Authentication-Token'])
+        return session
 
     def isVersionLessThan(self, source_version, target_version=None):
         """
@@ -517,12 +557,11 @@ class timeseries_client:
         :param timeSeriesIdentifier: The identifier to lookup
         :return: The unique ID of the series
         """
-        parts = timeSeriesIdentifier.split('@')
-
-        if len(parts) < 2:
+        match = re.search('[^\\\\]@(?P<location>.+)$', timeSeriesIdentifier)
+        if not match:
             return timeSeriesIdentifier
 
-        location = parts[1]
+        location = match.group('location')
 
         # Get the descriptions from the location
         try:
@@ -541,12 +580,11 @@ class timeseries_client:
 
     def getLocationIdentifier(self, timeSeriesOrRatingModelIdentifier):
         """Extracts the location identifier from a 'Parameter.Label@Location' time-series or rating model identifier"""
-        parts = timeSeriesOrRatingModelIdentifier.split('@')
-
-        if len(parts) < 2:
+        match = re.search('[^\\\\]@(?P<location>.+)$', timeSeriesOrRatingModelIdentifier)
+        if not match:
             raise LocationNotFoundException(timeSeriesOrRatingModelIdentifier)
 
-        return parts[1]
+        return match.group('location')
 
     def getLocationData(self, identifier):
         """Gets the location data"""
