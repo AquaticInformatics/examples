@@ -868,6 +868,7 @@ namespace LocationDeleter
 
             return locations
                 .OrderBy(l => l.Identifier)
+                .Distinct()
                 .ToList();
         }
 
