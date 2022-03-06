@@ -366,9 +366,11 @@ class SingleMetadataResolver:
         while True:
             if timestamp < self.active['EndTime']:
                 return self.active
-            else:
+            elif self.index < len(self.items) - 1:
                 self.index += 1
                 self.active = self.items[self.index]
+            else:
+                return None
 
 
 class OverlappingMetadataResolver:
