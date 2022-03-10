@@ -106,7 +106,7 @@ namespace PointZilla.PointReaders
                 gapTolerance,
                 interpolationType);
 
-            Log.Info($"Loaded {"point".ToQuantity(points.Count)} and {"note".ToQuantity(Notes.Count)} from {timeSeriesInfo.Identifier}");
+            Log.Info($"Loaded {PointSummarizer.Summarize(points)} and {"note".ToQuantity(Notes.Count)} from {timeSeriesInfo.Identifier}");
 
             return points;
         }
@@ -346,7 +346,7 @@ namespace PointZilla.PointReaders
                 Notes.AddRange(corrections.Select(c => Convert3XCorrection(utcTimespan, c)));
             }
 
-            Log.Info($"Loaded {"point".ToQuantity(points.Count)} and {"note".ToQuantity(Notes.Count)} from {Context.SourceTimeSeries.Identifier}");
+            Log.Info($"Loaded {PointSummarizer.Summarize(points)} and {"note".ToQuantity(Notes.Count)} from {Context.SourceTimeSeries.Identifier}");
 
             return points;
         }

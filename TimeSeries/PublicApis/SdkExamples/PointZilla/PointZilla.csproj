@@ -182,6 +182,7 @@
     <Compile Include="PointReaders\IPointReader.cs" />
     <Compile Include="PointReaders\MetadataLookup.cs" />
     <Compile Include="PointReaders\PointReaderBase.cs" />
+    <Compile Include="PointReaders\PointSummarizer.cs" />
     <Compile Include="SaveNotesMode.cs" />
     <Compile Include="TextGenerator.cs" />
     <Compile Include="TimeSeriesCreator.cs" />
