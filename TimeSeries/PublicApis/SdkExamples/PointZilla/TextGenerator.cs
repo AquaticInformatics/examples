@@ -5,6 +5,7 @@ using System.Reflection;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using Humanizer;
 using NodaTime;
+using PointZilla.PointReaders;
 using ServiceStack.Logging;
 
 namespace PointZilla
@@ -66,7 +67,7 @@ namespace PointZilla
                 x += symbol.Width * Context.WaveformScalar;
             }
 
-            Log.Info($"Generated {"vector-text point".ToQuantity(points.Count)}. Scatter-plot X vs Y to read the message.");
+            Log.Info($"Generated {PointSummarizer.Summarize(points, "vector-text point")}. Scatter-plot X vs Y to read the message.");
 
             return points;
         }

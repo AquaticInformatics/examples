@@ -98,7 +98,7 @@ namespace PointZilla.PointReaders
                 }
             }
 
-            Log.Info($"Loaded {"point".ToQuantity(points.Count)} from '{path}'.");
+            Log.Info($"Loaded {PointSummarizer.Summarize(points, "point")} from '{path}'.");
 
             return points;
         }

@@ -32,7 +32,7 @@ namespace PointZilla
                 ? Path.Combine(Context.SaveCsvPath, SanitizeFilename($"{timeSeriesIdentifier.Identifier}.{CreatePeriod(Context.SourceQueryFrom, Context.SourceQueryTo)}.csv"))
                 : Context.SaveCsvPath;
 
-            Log.Info($"Saving {"extracted point".ToQuantity(points.Count)} to '{csvPath}' ...");
+            Log.Info($"Saving {PointSummarizer.Summarize(points, "extracted point")} to '{csvPath}' ...");
 
             var dir = Path.GetDirectoryName(csvPath);
 

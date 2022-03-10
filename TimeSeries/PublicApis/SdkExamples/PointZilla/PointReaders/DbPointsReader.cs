@@ -46,7 +46,7 @@ namespace PointZilla.PointReaders
 
                 var notes = LoadNotes(dbClient);
 
-                Log.Info($"Loaded {"point".ToQuantity(points.Count)} and {"note".ToQuantity(notes.Count)} from the database source.");
+                Log.Info($"Loaded {PointSummarizer.Summarize(points)} and {"note".ToQuantity(notes.Count)} from the database source.");
 
                 return (points, notes);
             }

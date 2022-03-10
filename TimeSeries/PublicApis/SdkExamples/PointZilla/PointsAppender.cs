@@ -88,15 +88,11 @@ namespace PointZilla
                     }
                 }
 
-                var pointExtents = Points.Any()
-                    ? $" [{Points.First().Time} to {Points.Last().Time}]"
-                    : "";
-
                 Log.Info(Context.Command == CommandType.DeleteAllPoints
                     ? $"Deleting all existing points from {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
                     : hasTimeRange
-                        ? $"Appending {"point".ToQuantity(Points.Count)} {pointExtents} within TimeRange={GetTimeRange()} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
-                        : $"Appending {"point".ToQuantity(Points.Count)} {pointExtents} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ...");
+                        ? $"Appending {PointSummarizer.Summarize(Points)} within TimeRange={GetTimeRange()} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
+                        : $"Appending {PointSummarizer.Summarize(Points)} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ...");
 
                 var numberOfPointsAppended = 0;
                 var numberOfPointsDeleted = 0;
@@ -113,7 +109,7 @@ namespace PointZilla
                     if (isBatched)
                     {
                         var batchSummary =
-                            $"Appending batch #{batchIndex}: {"point".ToQuantity(batch.Points.Count)} [{batch.Points.First().Time} to {batch.Points.Last().Time}]";
+                            $"Appending batch #{batchIndex}: {PointSummarizer.Summarize(batch.Points)}";
 
                         Log.Info( hasTimeRange
                             ? $"{batchSummary} within TimeRange={batch.TimeRange} ..."
