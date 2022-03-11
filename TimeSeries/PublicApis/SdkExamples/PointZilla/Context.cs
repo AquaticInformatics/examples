@@ -91,6 +91,7 @@ namespace PointZilla
         public int CsvSkipRows { get; set; }
         public bool CsvHasHeaderRow { get; set; }
         public bool CsvIgnoreInvalidRows { get; set; }
+        public string CsvHeaderStartsWith { get; set; }
         public bool CsvRealign { get; set; }
         public bool CsvRemoveDuplicatePoints { get; set; } = true;
         public string CsvDelimiter { get; set; } = ",";
