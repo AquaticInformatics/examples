@@ -9,6 +9,7 @@ Points can be specified from:
 - Signal generators: linear, saw-tooth, square-wave, or sine-wave signals. Useful for just getting *something* into a time-series
 - CSV files (including CSV exports from AQTS Springboard)
 - Points retrieved live from other AQTS systems, including from legacy 3.X systems.
+- The results of a database query (via direct support fo SqlServer, Postgres, and MySql. ODBC connections are supported too, but require configuration)
 - `CMD.EXE`, `PowerShell` or `bash`: `PointZilla` works well from within any shell.
 
 Basic time-series will append time/value pairs. Reflected time-series also support setting grade codes and/or qualifiers to each point.
@@ -166,9 +167,44 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation Downloads/ExportedFro
 
 ### Use column names or 1-based column indexes to reference a column from your CSV
 
-You can reference a column either by a name (eg. `-CsvDateTimeField="ISO 8601 UTC"`) or by a 1-based column index (eg. `-CsvDateTimeField=1`). When at least one field has a column name, the `-CsvHasHeaderRow=true` option is assumed.
+You can reference a column either by a header name (eg. `-CsvDateTimeField="ISO 8601 UTC"`) or by a 1-based column index (eg. `-CsvDateTimeField=1`). When at least one field has a column name, the `-CsvHasHeaderRow=true` option is assumed.
+
+Referencing columns by name has some nice benefits:
+- Columns can appear in any order in the header line.
+- Column name matching is case-insensitive.
 
 Referencing columns by name is usually more robust, but you may not have control over the format of the CSV file being consumed.
+
+### When your data isn't at the start of your CSV
+
+Some data files have extra rows at the start. PointZilla has a few options to help locate the start of the data to extract:
+
+The `/CsvComment={prefix}` option tells the CSV parser to skip over any lines that begin with the given prefix.
+
+The `/CsvSkipRows={integer}` option tells the CSV parser to skip over the specified number of lines before parsing the data. Skipped rows are not counted for lines matching the `/CsvComment=` test.
+
+The `/CsvHeaderStartsWith={hint1, hint2, ..., hintN}` option provides the CSV parser with a header-row detection hint, a comma-separated list of expected column names:
+
+- Each hint is trimmed of leading/trailing whitespace.
+- Column name matching is case-insensitive.
+- If none of the expected column hints are empty, then the match is performed against non-empty fields from the header row. This is usually what you want.
+- If any of the expected column hints are empty, then the match is performed column-by-column and blank hints must match blank columns in the header row.
+
+So `/CsvHeaderStartsWith="Date, Time, Value, Grade"` and `/CsvHeaderStartsWith=Date,Time,Value,Grade` will both match:
+
+```csv
+Date, Time, Value, Grade, Status, Note
+2021-Oct-12, 12:56, 4.5, Good, Normal, Things are fine
+```
+
+And will also this CSV with 3 blank columns between the `Date` and `Time` columns:
+
+```csv
+Date,,,,Time,Value,Grade,Status,Note
+2021-Oct-12,,,,12:56,4.5,Good,Normal,Things are fine
+```
+
+Adding empty hint colums like `/CsvHeaderStartsWith="Date, , , , Time, Value, Grade"` or `/CsvHeaderStartsWith=Date,,,,Time,Value,Grade` will only match the second CSV.
 
 ### Reading timestamps from CSV files
 
@@ -597,6 +633,7 @@ Supported -option=value settings (/option=value works too):
   -CsvComment               CSV comment lines begin with this prefix
   -CsvSkipRows              Number of CSV rows to skip before parsing [default: 0]
   -CsvHasHeaderRow          Does the CSV have a header row naming the columns. [default: true if any columns are referenced by name]
+  -CsvHeaderStartsWith      A comma separated list of of the first expected header column names
   -CsvIgnoreInvalidRows     Ignore CSV rows that can't be parsed [default: False]
   -CsvRealign               Realign imported CSV points to the /StartTime value [default: False]
   -CsvRemoveDuplicatePoints Remove duplicate points in the CSV before appending. [default: True]

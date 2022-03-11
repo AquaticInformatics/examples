@@ -17,6 +17,7 @@ namespace PointZilla.PointReaders
 {
     public class CsvReader : CsvReaderBase, IPointReader
     {
+        // ReSharper disable once PossibleNullReferenceException
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         public CsvReader(Context context)
@@ -98,7 +99,7 @@ namespace PointZilla.PointReaders
                 }
             }
 
-            Log.Info($"Loaded {PointSummarizer.Summarize(points, "point")} from '{path}'.");
+            Log.Info($"Loaded {PointSummarizer.Summarize(points)} from '{path}'.");
 
             return points;
         }
@@ -144,14 +145,7 @@ namespace PointZilla.PointReaders
                 ConfigureDataTable = tableReader => new ExcelDataTableConfiguration
                 {
                     UseHeaderRow = Context.CsvHasHeaderRow,
-
-                    ReadHeaderRow = rowReader =>
-                    {
-                        for (; skipRows > 0; --skipRows)
-                        {
-                            rowReader.Read();
-                        }
-                    }
+                    ReadHeaderRow = rowReader => ReadHeaderRow(rowReader, ref skipRows)
                 }
             });
 
@@ -168,7 +162,7 @@ namespace PointZilla.PointReaders
             ValidateHeaderFields(table
                 .Columns
                 .Cast<DataColumn>()
-                .Select(c => c.ColumnName)
+                .Select(c => c.ColumnName.Trim())
                 .ToArray());
 
             return table
@@ -178,6 +172,80 @@ namespace PointZilla.PointReaders
                 .Select(ParseExcelRow)
                 .Where(p => p != null)
                 .ToList();
+        }
+
+        private void ReadHeaderRow(IExcelDataReader rowReader, ref int skipRows)
+        {
+            var startingHeaderColumns = GetStartingHeaderColumns();
+
+            for (; skipRows > 0; --skipRows)
+            {
+                if (!rowReader.Read())
+                    return;
+            }
+
+            if (!startingHeaderColumns.Any())
+                return;
+
+            while (true)
+            {
+                if (IsHeaderRowMatched(GetFields(rowReader), startingHeaderColumns))
+                    break;
+
+                if (!rowReader.Read())
+                    return;
+            }
+        }
+
+        private List<string> GetFields(IExcelDataReader rowReader)
+        {
+            var fieldCount = rowReader.FieldCount;
+
+            var fields = new List<string>();
+
+            for (var i = 0; i < fieldCount; ++i)
+            {
+                var field = rowReader.IsDBNull(i)
+                    ? string.Empty
+                    : Convert.ToString(rowReader.GetValue(i)).Trim();
+
+                fields.Add(field);
+            }
+
+            return fields;
+        }
+
+        private List<string> GetStartingHeaderColumns()
+        {
+            return (Context.CsvHeaderStartsWith ?? string.Empty)
+                .Split(',')
+                .Select(s => s.Trim())
+                .ToList();
+        }
+
+        private bool IsHeaderRowMatched(IReadOnlyList<string> fields, IReadOnlyList<string> startingHeaderColumns)
+        {
+            if (!startingHeaderColumns.Any())
+                return false;
+
+            if (!startingHeaderColumns.Any(string.IsNullOrEmpty))
+            {
+                // When the expected columns don't contain a blank column, we only match against non-empty fields
+                fields = fields
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .ToList();
+            }
+
+            for (var i = 0; i < startingHeaderColumns.Count; ++i)
+            {
+                if (i >= fields.Count)
+                    return false;
+
+                if (!startingHeaderColumns[i].Equals(fields[i], StringComparison.InvariantCultureIgnoreCase))
+                    return false;
+            }
+
+            return true;
         }
 
         private TimeSeriesPoint ParseExcelRow(DataRow row)
@@ -306,7 +374,7 @@ namespace PointZilla.PointReaders
             }
 
             var skipCount = Context.CsvSkipRows;
-
+            var startingHeaderColumns = GetStartingHeaderColumns();
             var parseHeaderRow = Context.CsvHasHeaderRow;
 
             while (!parser.EndOfData)
@@ -321,6 +389,9 @@ namespace PointZilla.PointReaders
                     --skipCount;
                     continue;
                 }
+
+                if (parseHeaderRow && startingHeaderColumns.Any() && !IsHeaderRowMatched(fields, startingHeaderColumns))
+                    continue;
 
                 if (parseHeaderRow)
                 {
@@ -425,6 +496,7 @@ namespace PointZilla.PointReaders
                 ParseField(fields, Context.CsvNotesField?.ColumnIndex, text =>
                 {
                     if (time.HasValue)
+                        // ReSharper disable once PossibleInvalidOperationException
                         AddRowNote(time.Value, text);
                 });
             }
