@@ -7,7 +7,7 @@ Download the [latest PointZilla.exe release here](../../../../../../releases/lat
 Points can be specified from:
 - Command line parameters (useful for appending a single point)
 - Signal generators: linear, saw-tooth, square-wave, or sine-wave signals. Useful for just getting *something* into a time-series
-- CSV files (including CSV exports from AQTS Springboard)
+- CSV files (including CSV exports from AQTS Springboard) from file, FTP, or HTTP sources.
 - Points retrieved live from other AQTS systems, including from legacy 3.X systems.
 - The results of a database query (via direct support fo SqlServer, Postgres, and MySql. ODBC connections are supported too, but require configuration)
 - `CMD.EXE`, `PowerShell` or `bash`: `PointZilla` works well from within any shell.
@@ -34,9 +34,10 @@ These examples will get you through most of the heavy lifting to get some points
 A few interesting operations include:
 - [Appending a few random points](#append-something-to-a-time-series)
 - [Appending a single point](#append-a-single-point-to-a-time-series)
-- [Appending points from a CSV](#append-values-from-a-csv-file)
-- [Appending points from Excel](#appending-values-from-an-excel-spreadsheet)
-- [Appending points from a database](#appending-values-from-a-database-query)
+- [Appending points from a CSV](#append-points-from-a-csv-file)
+- [Appending points from Excel](#append-points-from-an-excel-spreadsheet)
+- [Appending points from an HTTP request](#append-points-from-an-http-request)
+- [Appending points from a database](#append-points-from-a-database-query)
 - [Appending points with grades or qualifiers](#appending-grades-and-qualifiers)
 - [Appending points with notes](#appending-points-with-notes)
 - [Copy points from another time-series](#copying-points-from-another-time-series)
@@ -129,7 +130,7 @@ $ ./PointZilla.exe -server=myserver Stage.Label@MyLocation 12.5 Gap 15.3
 
 When reading data from a CSV file, use the case-insensitive keyword `Gap` in a timestamp or value column to represent an explicit gap.
 
-## Append values from a CSV file
+## Append points from a CSV file
 
 `PointZilla` can also read times, values, grade codes, and qualifiers from a CSV file.
 
@@ -240,7 +241,7 @@ The following options are all equivalent ways of specifying Australian Central S
 
 When the `/UtcOffset` value is explicitly set, the value will also be used when creating any time-series or locations.
 
-## Appending values from an Excel spreadsheet
+## Append points from an Excel spreadsheet
 
 All the CSV parsing options also apply to parsing Excel workbooks.
 
@@ -248,7 +249,52 @@ By default, the first sheet in the workbook will be parsed according to the CSV 
 
 You can use the `/ExcelSheetNumber=integer` or `/ExcelSheetName=name` options to parse a different sheet in the workbook.
 
-## Appending values from a database query
+## Append points from an HTTP request
+
+All the CSV parsing options also apply to text downloaded via FTP or HTTP requests.
+
+This approach works when the web request returns a text stream for its response payload.
+
+Here is a an example HTTP request which uses the [USGS NWIS service](https://help.waterdata.usgs.gov/faq/automated-retrievals#Examples) to fetch the last 24 hours of Stage points (HG in AQTS, code 00065 in NWIS) points from a location.
+
+https://nwis.waterdata.usgs.gov/hi/nwis/uv/?format=rdb&site_no=16010000&period=PT1D
+
+The NWIS data response includes some commented lines at the start, followed by a 2-line header row, and then the tab-delimited (not comma delimited) data rows follow.
+
+```
+# Data provided for site 16010000
+#            TS   parameter     Description
+#         42061       00060     Discharge, cubic feet per second
+#         42062       00065     Gage height, feet
+#
+# Data-value qualification codes included in this output:
+#     P  Provisional data subject to revision.
+# 
+agency_cd	site_no	datetime	tz_cd	42061_00060	42061_00060_cd	42062_00065	42062_00065_cd
+5s	15s	20d	6s	14n	10s	14n	10s
+USGS	16010000	2022-03-10 00:00	HST	5.34	P	2.08	P
+USGS	16010000	2022-03-10 00:05	HST	5.34	P	2.08	P
+USGS	16010000	2022-03-10 00:10	HST	5.34	P	2.08	P
+USGS	16010000	2022-03-10 00:15	HST	5.34	P	2.08	P
+```
+
+This command line will fetch the data, extract the points from the "datetime" and "42062_00060" columns, and append them to an AQTS series.
+
+```sh
+$ ./PointZilla.exe -server=doug-vm2019 "Stage.Working@Location" "https://nwis.waterdata.usgs.gov/hi/nwis/uv/?format=rdb&site_no=16010000&period=PT1D" -CsvDelimiter=%09 -CsvComment="#" -CsvDateTimeField=datetime -CsvValueField=42061_00060 -CsvDateTimeFormat="yyyy-MM-dd HH:mm" -CsvIgnoreInvalidRows=true
+16:38:30.539 INFO  - PointZilla v1.0.0.0
+16:38:30.592 INFO  - Fetching data from https://nwis.waterdata.usgs.gov/hi/nwis/uv/?format=rdb&site_no=16010000&period=PT1D ...
+16:38:31.653 INFO  - Fetched 23.5 KB in 1 second, 40 milliseconds.
+16:38:31.810 INFO  - Loaded 461 points [2022-03-10T08:00:00Z to 2022-03-11T22:20:00Z] from 'https://nwis.waterdata.usgs.gov/hi/nwis/uv/?format=rdb&site_no=16010000&period=PT1D'.
+16:38:31.813 INFO  - Connecting to doug-vm2019 ...
+16:38:31.984 INFO  - Connected to doug-vm2019 (2021.4.77.0)
+16:38:32.627 INFO  - Appending 461 points [2022-03-10T08:00:00Z to 2022-03-11T22:20:00Z] to Stage.Working@Location (ProcessorBasic) ...
+16:38:33.202 INFO  - Appended 461 points and 0 notes (deleting 0 points and 0 notes) in 0.6 seconds.
+```
+
+Note: Support for other common web formats like XML, JSON, or Parquet files is not yet supported.
+
+## Append points from a database query
 
 PointZilla can also execute a database query and import the results from the query as a time-series.
 
