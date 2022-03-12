@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using ExcelDataReader;
@@ -43,10 +45,14 @@ namespace PointZilla.PointReaders
 
         private List<TimeSeriesPoint> LoadPoints(string path)
         {
-            if (!File.Exists(path))
+            var isUri = Uri.TryCreate(path, UriKind.Absolute, out var uri);
+
+            if (!isUri && !File.Exists(path))
                 throw new ExpectedException($"File '{path}' does not exist.");
 
-            var points = LoadExcelPoints(path) ?? LoadCsvPoints(path);
+            var points = isUri
+                ? LoadUrlPoints(uri)
+                : LoadExcelPoints(path) ?? LoadCsvPoints(path);
 
             var anyGapPoints = points.Any(p => p.Type == PointType.Gap);
 
@@ -217,7 +223,10 @@ namespace PointZilla.PointReaders
 
         private List<string> GetStartingHeaderColumns()
         {
-            return (Context.CsvHeaderStartsWith ?? string.Empty)
+            if (string.IsNullOrEmpty(Context.CsvHeaderStartsWith))
+                return new List<string>();
+
+            return Context.CsvHeaderStartsWith
                 .Split(',')
                 .Select(s => s.Trim())
                 .ToList();
@@ -354,19 +363,37 @@ namespace PointZilla.PointReaders
 
         private List<TimeSeriesPoint> LoadCsvPoints(string path)
         {
-            var points = new List<TimeSeriesPoint>();
+            return LoadCsvPoints(path, new TextFieldParser(path));
+        }
 
+        private List<TimeSeriesPoint> LoadUrlPoints(Uri uri)
+        {
+            Log.Info($"Fetching data from {uri} ...");
+
+            var stopwatch = Stopwatch.StartNew();
+
+            var text = new WebClient().DownloadString(uri);
+
+            Log.Info($"Fetched {text.Length.Bytes().Humanize("#.#")} in {stopwatch.Elapsed.Humanize(2)}.");
+
+            using (var reader = new StringReader(text))
+            {
+                return LoadCsvPoints(uri.ToString(), new TextFieldParser(reader));
+            }
+        }
+
+        private List<TimeSeriesPoint> LoadCsvPoints(string source, TextFieldParser parser)
+        {
             var csvDelimiter = string.IsNullOrEmpty(Context.CsvDelimiter)
                 ? ","
                 : Context.CsvDelimiter;
 
-            var parser = new TextFieldParser(path)
-            {
-                TextFieldType = FieldType.Delimited,
-                Delimiters = new[] { csvDelimiter },
-                TrimWhiteSpace = true,
-                HasFieldsEnclosedInQuotes = true
-            };
+            parser.TextFieldType = FieldType.Delimited;
+            parser.Delimiters = new[] { csvDelimiter };
+            parser.TrimWhiteSpace = true;
+            parser.HasFieldsEnclosedInQuotes = true;
+
+            var points = new List<TimeSeriesPoint>();
 
             if (!string.IsNullOrWhiteSpace(Context.CsvComment))
             {
@@ -408,7 +435,7 @@ namespace PointZilla.PointReaders
                 {
                     if (Context.CsvIgnoreInvalidRows) continue;
 
-                    throw new ExpectedException($"Can't parse '{path}' ({lineNumber}): {string.Join(", ", fields)}");
+                    throw new ExpectedException($"Can't parse '{source}' ({lineNumber}): {string.Join(", ", fields)}");
                 }
 
                 points.Add(point);

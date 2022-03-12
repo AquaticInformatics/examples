@@ -284,7 +284,7 @@ namespace PointZilla
                         continue;
                     }
 
-                    if (File.Exists(arg))
+                    if (File.Exists(arg) || IsValidUrl(arg))
                     {
                         context.CsvFiles.Add(arg);
                         continue;
@@ -471,6 +471,18 @@ namespace PointZilla
 
             context.StartTime = context.StartTime.Plus(Duration.FromTimeSpan(context.PointInterval));
         }
+
+        private static bool IsValidUrl(string text)
+        {
+            return Uri.TryCreate(text, UriKind.Absolute, out var uri) && SupportedUriSchemes.Contains(uri.Scheme);
+        }
+
+        private static readonly HashSet<string> SupportedUriSchemes = new HashSet<string>
+        {
+            Uri.UriSchemeHttp,
+            Uri.UriSchemeHttps,
+            Uri.UriSchemeFtp,
+        };
 
         private static void ParseManualGap(Context context)
         {
