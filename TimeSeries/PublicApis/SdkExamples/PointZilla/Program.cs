@@ -186,6 +186,7 @@ namespace PointZilla
                 new Option {Key = nameof(context.CsvGradeField), Setter = value => context.CsvGradeField = Field.Parse(value, nameof(context.CsvGradeField)), Getter = () => string.Empty, Description = "CSV column index or name for grade codes"},
                 new Option {Key = nameof(context.CsvQualifiersField), Setter = value => context.CsvQualifiersField = Field.Parse(value, nameof(context.CsvQualifiersField)), Getter = () => string.Empty, Description = "CSV column index or name for qualifiers"},
                 new Option {Key = nameof(context.CsvNotesField), Setter = value => context.CsvNotesField = Field.Parse(value, nameof(context.CsvNotesField)), Getter = () => string.Empty, Description = "CSV column index or name for notes"},
+                new Option {Key = nameof(context.CsvTimezoneField), Setter = value => context.CsvTimezoneField = Field.Parse(value, nameof(context.CsvTimezoneField)), Getter = () => string.Empty, Description = "CSV column index or name for timezone"},
                 new Option {Key = nameof(context.CsvComment), Setter = value => context.CsvComment = value, Getter = () => context.CsvComment, Description = "CSV comment lines begin with this prefix"},
                 new Option {Key = nameof(context.CsvSkipRows), Setter = value => context.CsvSkipRows = int.Parse(value), Getter = () => context.CsvSkipRows.ToString(), Description = "Number of CSV rows to skip before parsing"},
                 new Option {Key = nameof(context.CsvHasHeaderRow), Setter = value => context.CsvHasHeaderRow = bool.Parse(value), Getter = () => string.Empty, Description = "Does the CSV have a header row naming the columns. [default: true if any columns are referenced by name]"},
@@ -217,6 +218,11 @@ namespace PointZilla
                     }},
                 new Option {Key = nameof(context.ExcelSheetNumber), Setter = value => context.ExcelSheetNumber = int.Parse(value), Getter = () => context.ExcelSheetNumber.ToString(), Description = $"Excel worksheet number to parse [default to first sheet]"},
                 new Option {Key = nameof(context.ExcelSheetName), Setter = value => context.ExcelSheetName = value, Getter = () => context.ExcelSheetName, Description = $"Excel worksheet name to parse [default to first sheet]"},
+
+                new Option(), new Option {Description = "Timezone options:"},
+                new Option {Key = nameof(context.Timezone), Setter = value => context.Timezone = TimezoneHelper.ParseDateTimeZone(value), Getter = () => $"{context.Timezone}", Description = "The IANA timezone name. See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for details."},
+                new Option {Key = nameof(context.FindTimezones), Setter = value => context.FindTimezones = value, Getter = () => context.FindTimezones, Description = "Show all the known timezones matching the pattern"},
+                new Option {Key = nameof(context.TimezoneAliases), Setter = value => ParseTimezoneAlias(context, value), Getter = () => string.Empty, Description = "Timezone aliases in sourceValue:mappedValue syntax. Can be set multiple times."},
 
                 new Option(), new Option {Description = "DB parsing options:"},
                 new Option {Key = nameof(context.DbType), Setter = value => context.DbType = ParseEnum<DbType>(value), Getter = () => $"{context.DbType}", Description = $"Database type. Should be one of: {string.Join(", ", Enum.GetNames(typeof(DbType)))}"},
@@ -336,7 +342,7 @@ namespace PointZilla
             if (context.SourceTimeSeries != null && string.IsNullOrEmpty(context.SourceTimeSeries.Server) && string.IsNullOrEmpty(context.Server))
                 throw new ExpectedException($"A /{nameof(context.Server)} option is required to load the source time-series.\n\n{helpGuidance}");
 
-            if (!context.StopAfterSavingCsv)
+            if (!context.StopAfterSavingCsv && string.IsNullOrWhiteSpace(context.FindTimezones))
             {
                 if (string.IsNullOrWhiteSpace(context.Server))
                     throw new ExpectedException($"A /{nameof(context.Server)} option is required.\n\n{helpGuidance}");
@@ -649,6 +655,22 @@ namespace PointZilla
             }
         }
 
+        private static void ParseTimezoneAlias(Context context, string text)
+        {
+            var mapping = SplitOnFirstSeparator(text, ':');
+
+            if (mapping.Length < 2)
+                throw new ExpectedException($"'{text}' is not in sourceValue:mappedValue syntax.");
+
+            var sourceValue = mapping[0].Trim();
+            var mappedValue = mapping[1].Trim();
+
+            if (string.IsNullOrEmpty(sourceValue) || string.IsNullOrEmpty(mappedValue))
+                throw new ExpectedException($"'{text}' is not in sourceValue:mappedValue syntax.");
+
+            context.TimezoneAliases[sourceValue] = mappedValue;
+        }
+
         private static Offset ParseOffset(string text)
         {
             try
@@ -679,8 +701,15 @@ namespace PointZilla
 
         private void Run()
         {
+            if (!string.IsNullOrWhiteSpace(_context.FindTimezones))
+            {
+                TimezoneHelper.ShowMatchingTimezones(_context.FindTimezones);
+                return;
+            }
+
             new PointsAppender(_context)
                 .AppendPoints();
         }
+
     }
 }

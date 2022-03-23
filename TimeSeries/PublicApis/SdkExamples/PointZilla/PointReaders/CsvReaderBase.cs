@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using NodaTime;
 using NodaTime.Text;
 using ServiceStack.Logging;
@@ -12,35 +9,72 @@ namespace PointZilla.PointReaders
 {
     public abstract class CsvReaderBase : PointReaderBase
     {
+        // ReSharper disable once PossibleNullReferenceException
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private InstantPattern TimePattern { get; }
+        private InstantPattern InstantPattern { get; }
+        private LocalDateTimePattern LocalDateTimePattern { get; }
 
         protected CsvReaderBase(Context context)
             : base(context)
         {
-            TimePattern = string.IsNullOrWhiteSpace(Context.CsvDateTimeFormat)
-                ? InstantPattern.ExtendedIsoPattern
-                : InstantPattern.CreateWithInvariantCulture(Context.CsvDateTimeFormat);
+            InstantPattern = Context.Timezone != null
+                ? null
+                : string.IsNullOrWhiteSpace(Context.CsvDateTimeFormat)
+                    ? InstantPattern.ExtendedIsoPattern
+                    : InstantPattern.CreateWithInvariantCulture(Context.CsvDateTimeFormat);
 
-            var isTimeFormatUtc = TimePattern.PatternText.Contains("'Z'");
+            LocalDateTimePattern = Context.Timezone != null
+                ? string.IsNullOrWhiteSpace(Context.CsvDateTimeFormat)
+                    ? LocalDateTimePattern.ExtendedIsoPattern
+                    : LocalDateTimePattern.CreateWithInvariantCulture(Context.CsvDateTimeFormat)
+                : null;
+
+            var isTimeFormatUtc = (InstantPattern?.PatternText.Contains("'Z'") ?? false) || (LocalDateTimePattern?.PatternText.Contains("'Z'") ?? false);
 
             if (Context.CsvDateOnlyField != null)
             {
-                isTimeFormatUtc = Context.CsvDateOnlyFormat.Contains("Z");
+                isTimeFormatUtc |= Context.CsvDateOnlyFormat.Contains("Z");
             }
 
-            DefaultBias = isTimeFormatUtc
-                ? Duration.Zero
-                : Duration.FromTimeSpan((Context.UtcOffset ?? Offset.FromTicks(DateTimeOffset.Now.Offset.Ticks)).ToTimeSpan());
+            if (!isTimeFormatUtc)
+                return;
+
+            DefaultBias = Duration.Zero;
+
+            if (Context.Timezone == null)
+                return;
+
+            var patterns = new[]
+                {
+                    InstantPattern?.PatternText,
+                    LocalDateTimePattern?.PatternText,
+                    Context.CsvDateOnlyFormat
+                }
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList();
+
+            Log.Warn($"Ignoring the /{nameof(context.Timezone)}='{context.Timezone}' value since the time-format patterns \"{string.Join("\" and \"", patterns)}\" contain zone-info.");
+            Context.Timezone = null;
         }
 
         protected Instant? ParseInstant(string text)
         {
-            var result = TimePattern.Parse(text);
+            if (LocalDateTimePattern != null)
+            {
+                var result = LocalDateTimePattern.Parse(text);
 
-            if (result.Success)
-                return result.Value.Minus(DefaultBias);
+                if (result.Success)
+                    return InstantFromLocalDateTime(result.Value);
+            }
+
+            if (InstantPattern != null)
+            {
+                var result = InstantPattern.Parse(text);
+
+                if (result.Success)
+                    return result.Value.Minus(DefaultBias);
+            }
 
             return null;
         }
