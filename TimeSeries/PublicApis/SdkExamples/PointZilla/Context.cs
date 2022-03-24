@@ -94,6 +94,7 @@ namespace PointZilla
         public Field CsvTimezoneField { get; set; }
         public string CsvComment { get; set; }
         public int CsvSkipRows { get; set; }
+        public int CsvSkipRowsAfterHeader { get; set; }
         public bool CsvHasHeaderRow { get; set; }
         public bool CsvIgnoreInvalidRows { get; set; }
         public string CsvHeaderStartsWith { get; set; }

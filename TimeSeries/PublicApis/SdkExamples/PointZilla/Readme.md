@@ -137,13 +137,14 @@ When reading data from a CSV file, use the case-insensitive keyword `Gap` in a t
 
 All the CSV parsing options are configurable, but will default to values which match the CSV files exported from AQTS Springboard from 201x systems.
 
-The `-csvFormat=` option supports three pre-configured formats:
+The `-csvFormat=` option supports four pre-configured formats:
 
 | **Format** | Equivalent options |
 |---|---|
 | `-csvFormat=NG` | `-csvSkipRows=0` <br/> `-csvComment="#"` <br/> `-csvDateTimeField="ISO 8601 UTC"` <br/> `-csvValueField=Value` <br/> `-csvGradeField=Grade` <br/> `-csvQualifiersField=Qualifiers` <br/> |
 | `-csvFormat=3X` | `-csvSkipRows=2` <br/> `-csvDateTimeField=Date-Time` <br/> `-csvValueField=Value` <br/> `-csvGradeField=Grade` <br/> `-csvDateTimeFormat="MM/dd/yyyy HH:mm:ss"` |
 | `-csvFormat=PointZilla` | `-csvSkipRows=0` <br/> `-csvComment="#"` <br/> `-csvDateTimeField="ISO 8601 UTC"` <br/> `-csvValueField=Value` <br/> `-csvGradeField=Grade` <br/> `-csvQualifiersField=Qualifiers` <br/> |
+| `-csvFormat=NWIS` | `-csvSkipRows=0` <br/> `-csvSkipRowsAfterHeader=1` <br/> `-csvComment="#"` <br/> `-csvDelimiter="%09"` <br/> `-csvDateTimeField=datetime` <br/> `-csvDateTimeFormat="yyyy-MM-dd HH:mm"` <br/> `-csvTimezoneField=tz_cd` <br/> `-csvValueField=/_00060/` to match the first QR series. <br/>  <br/> And the `/TimezoneAliases=` are pre-configured to match the USGS timezone names. |
 
 Uploading points exported from an AQTS 20xx system:
 
@@ -267,8 +268,6 @@ Some CSV data uses "wall-clock" timestamps, which can shift around during "sprin
 One way this might show up is when you see PointZilla complaining about duplicate timestamps for a 1-hour period during the fall, as the same timestamps occur twice when the clocks turn back an hour in late October/early November (for the Northern hemisphere, or late April/early May in the Southern hemisphere).
 
 ```
-14:45:48.484 INFO  - Fetching data from https://nwis.waterservices.usgs.gov/nwis/iv/?sites=01536000&period=P3750D&format=rdb ...
-14:46:30.395 INFO  - Fetched 16.5 MB in 41 seconds, 889 milliseconds.
 14:46:34.068 WARN  - Discarding duplicate CSV point at 2012-11-04T06:00:00Z with value 3.46
 14:46:34.068 WARN  - Discarding duplicate CSV point at 2012-11-04T06:15:00Z with value 3.46
 14:46:34.070 WARN  - Discarding duplicate CSV point at 2012-11-04T06:30:00Z with value 3.46
@@ -330,10 +329,25 @@ USGS	16010000	2022-03-10 00:10	HST	5.34	P	2.08	P
 USGS	16010000	2022-03-10 00:15	HST	5.34	P	2.08	P
 ```
 
-This command line will fetch the data, extract the points from the "datetime" and "42062_00060" columns, and append them to an AQTS series.
+This command line will fetch the data, extract the points from the "datetime" and "42062_00065" columns, and append them to an AQTS series.
 
 ```sh
-$ ./PointZilla.exe -server=doug-vm2019 "Stage.Working@Location" "https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D" -CsvDelimiter=%09 -CsvComment="#" -CsvDateTimeField=datetime -CsvValueField=42061_00060 -CsvDateTimeFormat="yyyy-MM-dd HH:mm" -CsvIgnoreInvalidRows=true -CsvTimezoneField=tz_cd -TimezoneAliases=HST:US/Hawaii
+$ ./PointZilla.exe -server=doug-vm2019 "Stage.Working@Location" "https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D" -CsvDelimiter=%09 -CsvComment="#" -CsvDateTimeField=datetime -CsvValueField=42062_00065 -CsvDateTimeFormat="yyyy-MM-dd HH:mm" -CsvIgnoreInvalidRows=true -CsvTimezoneField=tz_cd -TimezoneAliases=HST:US/Hawaii
+16:38:30.539 INFO  - PointZilla v1.0.0.0
+16:38:30.592 INFO  - Fetching data from https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D ...
+16:38:31.653 INFO  - Fetched 23.5 KB in 1 second, 40 milliseconds.
+16:38:31.810 INFO  - Loaded 461 points [2022-03-10T08:00:00Z to 2022-03-11T22:20:00Z] from 'https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D'.
+16:38:31.813 INFO  - Connecting to doug-vm2019 ...
+16:38:31.984 INFO  - Connected to doug-vm2019 (2021.4.77.0)
+16:38:32.627 INFO  - Appending 461 points [2022-03-10T08:00:00Z to 2022-03-11T22:20:00Z] to Stage.Working@Location (ProcessorBasic) ...
+16:38:33.202 INFO  - Appended 461 points and 0 notes (deleting 0 points and 0 notes) in 0.6 seconds.
+```
+
+The `-CsvFormat=NWIS` option will preconfigure PointZilla to consume the RDB format of NWIS output.
+You can also use the `-CsvValueField=/{regex}/` syntax to more easily match a known NWIS parameter code without caring about the NWIS series ID.
+
+```cmd
+PointZilla.exe -server=doug-vm2019 "Stage.Working@Location" -csvFormat=NWIS -CsvValueField=/_00065/ "https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D"
 16:38:30.539 INFO  - PointZilla v1.0.0.0
 16:38:30.592 INFO  - Fetching data from https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D ...
 16:38:31.653 INFO  - Fetched 23.5 KB in 1 second, 40 milliseconds.
@@ -763,9 +777,9 @@ Supported -option=value settings (/option=value works too):
   -MappedQualifiers         Qualifier mapping in sourceValue:mappedValue syntax. Can be set multiple times.
   -ManualNotes              Set a time-series note, in StartTime/EndTime/NoteText format. Can be set multiple times.
   -CsvNotesFile             Load time-series notes from a file with StartTime, EndTime, and NoteText columns.
-  -NoteStartField           CSV column index or name for note start times [default: StartTime]
-  -NoteEndField             CSV column index or name for note end times [default: EndTime]
-  -NoteTextField            CSV column index or name for note text [default: NoteText]
+  -NoteStartField           CSV column index or name for note start times [default: NoteStartField:'StartTime']
+  -NoteEndField             CSV column index or name for note end times [default: NoteEndField:'EndTime']
+  -NoteTextField            CSV column index or name for note text [default: NoteTextField:'NoteText']
 
   ========================= Time-series creation options:
   -CreateMode               Mode for creating missing time-series. One of Never, Basic, Reflected. [default: Never]
@@ -817,6 +831,7 @@ Supported -option=value settings (/option=value works too):
   -CsvTimezoneField         CSV column index or name for timezone
   -CsvComment               CSV comment lines begin with this prefix
   -CsvSkipRows              Number of CSV rows to skip before parsing [default: 0]
+  -CsvSkipRowsAfterHeader   Number of CSV rows to skip after the header row, but before parsing [default: 0]
   -CsvHasHeaderRow          Does the CSV have a header row naming the columns. [default: true if any columns are referenced by name]
   -CsvHeaderStartsWith      A comma separated list of of the first expected header column names
   -CsvIgnoreInvalidRows     Ignore CSV rows that can't be parsed [default: False]
@@ -824,7 +839,7 @@ Supported -option=value settings (/option=value works too):
   -CsvRemoveDuplicatePoints Remove duplicate points in the CSV before appending. [default: True]
   -CsvDelimiter             Delimiter between CSV fields. (use %20 for space or %09 for tab) [default: ,]
   -CsvNanValue              Special value text used to represent NaN values
-  -CsvFormat                Shortcut for known CSV formats. One of 'NG', '3X', or 'PointZilla'. [default: NG]
+  -CsvFormat                Shortcut for known CSV formats. One of NG, 3X, PointZilla, NWIS. [default: NG]
   -ExcelSheetNumber         Excel worksheet number to parse [default to first sheet]
   -ExcelSheetName           Excel worksheet name to parse [default to first sheet]
 
