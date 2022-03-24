@@ -412,6 +412,7 @@ namespace PointZilla.PointReaders
             var skipCount = Context.CsvSkipRows;
             var startingHeaderColumns = GetStartingHeaderColumns();
             var parseHeaderRow = Context.CsvHasHeaderRow;
+            var afterHeaderSkipCount = Context.CsvSkipRowsAfterHeader;
 
             while (!parser.EndOfData)
             {
@@ -436,6 +437,12 @@ namespace PointZilla.PointReaders
 
                     if (Context.CsvHasHeaderRow)
                         continue;
+                }
+
+                if (afterHeaderSkipCount > 0)
+                {
+                    --afterHeaderSkipCount;
+                    continue;
                 }
 
                 var point = ParsePoint(fields);

@@ -30,7 +30,7 @@ namespace PointZilla.PointReaders
 
             SetImplicitOffset();
 
-            if (GetFields().Any(f => f.HasColumnName))
+            if (GetFields().Any(f => f.HasColumnName || f.HasColumnRegex))
             {
                 Context.CsvHasHeaderRow = true;
             }
@@ -93,6 +93,10 @@ namespace PointZilla.PointReaders
                 .Where(f => f.HasColumnName)
                 .ToList();
 
+            var regexFields = fields
+                .Where(f => f.HasColumnRegex)
+                .ToList();
+
             if (Context.CsvHasHeaderRow)
             {
                 for (var i = 0; i < columnNames.Length; ++i)
@@ -113,12 +117,20 @@ namespace PointZilla.PointReaders
 
                         namedField.ColumnIndex = index;
                     }
+
+                    foreach (var regexField in regexFields.Where(f => !f.HasColumnIndex))
+                    {
+                        var patternMatchCount = columnNames.Take(index).Count(c => regexField.ColumnRegex.IsMatch(c));
+
+                        if (patternMatchCount == regexField.PatternCount)
+                            regexField.ColumnIndex = index;
+                    }
                 }
             }
 
-            foreach (var unknownField in namedFields.Where(f => !f.HasColumnIndex))
+            foreach (var unknownField in namedFields.Concat(regexFields).Where(f => !f.HasColumnIndex))
             {
-                errors.Add($"{unknownField.FieldName}='{unknownField.ColumnName}' is an unknown column name.");
+                errors.Add($"{unknownField} does not match any column name.");
             }
 
             if (errors.Any())

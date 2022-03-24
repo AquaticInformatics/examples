@@ -139,9 +139,9 @@ namespace PointZilla
                 new Option {Key = nameof(context.MappedQualifiers), Setter = value => ParseMappedQualifier(context, value), Getter = () => string.Empty, Description = "Qualifier mapping in sourceValue:mappedValue syntax. Can be set multiple times."},
                 new Option {Key = nameof(context.ManualNotes), Setter = value => context.ManualNotes.Add(ParseNote(value)), Description = "Set a time-series note, in StartTime/EndTime/NoteText format. Can be set multiple times."},
                 new Option {Key = nameof(context.CsvNotesFile), Setter = value => context.CsvNotesFile = value, Description = "Load time-series notes from a file with StartTime, EndTime, and NoteText columns."},
-                new Option {Key = nameof(context.NoteStartField), Setter = value => context.NoteStartField = Field.Parse(value, nameof(context.NoteStartField)), Getter = () => FormatField(context.NoteStartField), Description = "CSV column index or name for note start times"},
-                new Option {Key = nameof(context.NoteEndField), Setter = value => context.NoteEndField = Field.Parse(value, nameof(context.NoteEndField)), Getter = () => FormatField(context.NoteEndField), Description = "CSV column index or name for note end times"},
-                new Option {Key = nameof(context.NoteTextField), Setter = value => context.NoteTextField = Field.Parse(value, nameof(context.NoteTextField)), Getter = () => FormatField(context.NoteTextField), Description = "CSV column index or name for note text"},
+                new Option {Key = nameof(context.NoteStartField), Setter = value => context.NoteStartField = Field.Parse(value, nameof(context.NoteStartField)), Getter = () => context.NoteStartField.ToString(), Description = "CSV column index or name for note start times"},
+                new Option {Key = nameof(context.NoteEndField), Setter = value => context.NoteEndField = Field.Parse(value, nameof(context.NoteEndField)), Getter = () => context.NoteEndField.ToString(), Description = "CSV column index or name for note end times"},
+                new Option {Key = nameof(context.NoteTextField), Setter = value => context.NoteTextField = Field.Parse(value, nameof(context.NoteTextField)), Getter = () => context.NoteTextField.ToString(), Description = "CSV column index or name for note text"},
 
                 new Option(), new Option {Description = "Time-series creation options:"},
                 new Option {Key = nameof(context.CreateMode), Setter = value => context.CreateMode = ParseEnum<CreateMode>(value), Getter = () => context.CreateMode.ToString(), Description = $"Mode for creating missing time-series. {EnumOptions<CreateMode>()}"},
@@ -193,6 +193,7 @@ namespace PointZilla
                 new Option {Key = nameof(context.CsvTimezoneField), Setter = value => context.CsvTimezoneField = Field.Parse(value, nameof(context.CsvTimezoneField)), Getter = () => string.Empty, Description = "CSV column index or name for timezone"},
                 new Option {Key = nameof(context.CsvComment), Setter = value => context.CsvComment = value, Getter = () => context.CsvComment, Description = "CSV comment lines begin with this prefix"},
                 new Option {Key = nameof(context.CsvSkipRows), Setter = value => context.CsvSkipRows = int.Parse(value), Getter = () => context.CsvSkipRows.ToString(), Description = "Number of CSV rows to skip before parsing"},
+                new Option {Key = nameof(context.CsvSkipRowsAfterHeader), Setter = value => context.CsvSkipRowsAfterHeader = int.Parse(value), Getter = () => context.CsvSkipRowsAfterHeader.ToString(), Description = "Number of CSV rows to skip after the header row, but before parsing"},
                 new Option {Key = nameof(context.CsvHasHeaderRow), Setter = value => context.CsvHasHeaderRow = bool.Parse(value), Getter = () => string.Empty, Description = "Does the CSV have a header row naming the columns. [default: true if any columns are referenced by name]"},
                 new Option {Key = nameof(context.CsvHeaderStartsWith), Setter = value => context.CsvHeaderStartsWith = value, Getter = () => context.CsvHeaderStartsWith, Description = "A comma separated list of of the first expected header column names"},
                 new Option {Key = nameof(context.CsvIgnoreInvalidRows), Setter = value => context.CsvIgnoreInvalidRows = bool.Parse(value), Getter = () => context.CsvIgnoreInvalidRows.ToString(), Description = "Ignore CSV rows that can't be parsed"},
@@ -494,13 +495,6 @@ namespace PointZilla
             };
 
             return true;
-        }
-
-        private static string FormatField(Field field)
-        {
-            return field.HasColumnName
-                ? field.ColumnName
-                : $"{field.ColumnIndex}";
         }
 
         private static string[] SplitOnFirstSeparator(string text, params char[] separators)
