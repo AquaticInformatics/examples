@@ -164,6 +164,7 @@
     <Compile Include="CommandType.cs" />
     <Compile Include="Context.cs" />
     <Compile Include="CreateMode.cs" />
+    <Compile Include="Formats.cs" />
     <Compile Include="IntervalExtensions.cs" />
     <Compile Include="PointReaders\CsvNotesReader.cs" />
     <Compile Include="PointReaders\CsvReader.cs" />

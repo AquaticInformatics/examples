@@ -197,7 +197,7 @@ namespace PointZilla
         {
             var recentZoneIntervals = zone.GetZoneIntervals(
                     Instant.FromUtc(2010, 1, 1, 0, 0, 0),
-                    SystemClock.Instance.Now)
+                    SystemClock.Instance.GetCurrentInstant())
                 .ToList();
 
             if (!recentZoneIntervals.Any())

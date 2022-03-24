@@ -78,7 +78,7 @@ namespace PointZilla
                 {
                     var time = point.Time ?? Instant.MinValue;
 
-                    var line = $"{InstantPattern.ExtendedIsoPattern.Format(time)}, {point.Value:G12}, {point.GradeCode}, {FormatQualifiers(point.Qualifiers)}";
+                    var line = $"{InstantPattern.ExtendedIso.Format(time)}, {point.Value:G12}, {point.GradeCode}, {FormatQualifiers(point.Qualifiers)}";
 
                     if (Context.SaveNotesMode == SaveNotesMode.WithPoints)
                     {
@@ -116,7 +116,7 @@ namespace PointZilla
                             if (!note.TimeRange.HasValue)
                                 continue;
 
-                            notesWriter.WriteLine($"{InstantPattern.ExtendedIsoPattern.Format(note.TimeRange.Value.Start)}, {InstantPattern.ExtendedIsoPattern.Format(note.TimeRange.Value.End)}, {CsvEscapedColumn(note.NoteText)}");
+                            notesWriter.WriteLine($"{InstantPattern.ExtendedIso.Format(note.TimeRange.Value.Start)}, {InstantPattern.ExtendedIso.Format(note.TimeRange.Value.End)}, {CsvEscapedColumn(note.NoteText)}");
                         }
                     }
                 }
@@ -131,30 +131,6 @@ namespace PointZilla
                 EndTime = note.TimeRange?.End.ToDateTimeOffset() ?? DateTimeOffset.MaxValue,
                 NoteText = note.NoteText
             };
-        }
-
-        public static void SetPointZillaCsvFormat(Context context)
-        {
-            // Match PointZilla Export format below
-
-            // # CSV data starts at line 15.
-            // # 
-            // ISO 8601 UTC, Value, Grade, Qualifiers, Notes
-            // 2015-12-04T00:01:00Z, 3.523200823975, 500, ,
-            // 2015-12-04T00:02:00Z, 3.525279357147, 500, ,
-
-            context.CsvSkipRows = 0;
-            context.CsvComment = "#";
-            context.CsvDateTimeField = Field.Parse("ISO 8601 UTC", nameof(context.CsvDateTimeField));
-            context.CsvDateTimeFormat = null;
-            context.CsvDateOnlyField = null;
-            context.CsvTimeOnlyField = null;
-            context.CsvValueField = Field.Parse("Value", nameof(context.CsvValueField));
-            context.CsvGradeField = Field.Parse("Grade", nameof(context.CsvGradeField));
-            context.CsvQualifiersField = Field.Parse("Qualifiers", nameof(context.CsvQualifiersField));
-            context.CsvNotesField = Field.Parse("Notes", nameof(context.CsvNotesField));
-            context.CsvIgnoreInvalidRows = true;
-            context.CsvRealign = false;
         }
 
         private TimeSeriesIdentifier CreateTimeSeriesIdentifier()
@@ -210,8 +186,8 @@ namespace PointZilla
         private static (string StartText, string EndText) CreatePeriod(Instant start, Instant end)
         {
             return (
-                start == Instant.MinValue ? "StartOfRecord" : InstantPattern.ExtendedIsoPattern.Format(start),
-                end == Instant.MaxValue ? "EndOfRecord" : InstantPattern.ExtendedIsoPattern.Format(end)
+                start == Instant.MinValue ? "StartOfRecord" : InstantPattern.ExtendedIso.Format(start),
+                end == Instant.MaxValue ? "EndOfRecord" : InstantPattern.ExtendedIso.Format(end)
             );
         }
 

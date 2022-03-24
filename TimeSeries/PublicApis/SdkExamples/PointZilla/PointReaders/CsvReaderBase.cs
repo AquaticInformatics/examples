@@ -18,15 +18,15 @@ namespace PointZilla.PointReaders
         protected CsvReaderBase(Context context)
             : base(context)
         {
-            InstantPattern = Context.Timezone != null
+            InstantPattern = HasZoneInfo
                 ? null
                 : string.IsNullOrWhiteSpace(Context.CsvDateTimeFormat)
-                    ? InstantPattern.ExtendedIsoPattern
+                    ? InstantPattern.ExtendedIso
                     : InstantPattern.CreateWithInvariantCulture(Context.CsvDateTimeFormat);
 
-            LocalDateTimePattern = Context.Timezone != null
+            LocalDateTimePattern = HasZoneInfo
                 ? string.IsNullOrWhiteSpace(Context.CsvDateTimeFormat)
-                    ? LocalDateTimePattern.ExtendedIsoPattern
+                    ? LocalDateTimePattern.ExtendedIso
                     : LocalDateTimePattern.CreateWithInvariantCulture(Context.CsvDateTimeFormat)
                 : null;
 
@@ -42,7 +42,7 @@ namespace PointZilla.PointReaders
 
             DefaultBias = Duration.Zero;
 
-            if (Context.Timezone == null)
+            if (!HasZoneInfo)
                 return;
 
             var patterns = new[]
@@ -54,18 +54,23 @@ namespace PointZilla.PointReaders
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .ToList();
 
-            Log.Warn($"Ignoring the /{nameof(context.Timezone)}='{context.Timezone}' value since the time-format patterns \"{string.Join("\" and \"", patterns)}\" contain zone-info.");
+            var settingMessage = Context.Timezone != null
+                ? $"/{nameof(context.Timezone)}='{context.Timezone}'"
+                : $"/{nameof(context.CsvTimezoneField)}={context.CsvTimezoneField}";
+
+            Log.Warn($"Ignoring the {settingMessage} value since the time-format patterns \"{string.Join("\" and \"", patterns)}\" contain zone-info.");
             Context.Timezone = null;
+            Context.CsvTimezoneField = null;
         }
 
-        protected Instant? ParseInstant(string text)
+        protected Instant? ParseInstant(string text, Func<DateTimeZone> zoneResolver = null)
         {
             if (LocalDateTimePattern != null)
             {
                 var result = LocalDateTimePattern.Parse(text);
 
                 if (result.Success)
-                    return InstantFromLocalDateTime(result.Value);
+                    return InstantFromLocalDateTime(result.Value, zoneResolver);
             }
 
             if (InstantPattern != null)

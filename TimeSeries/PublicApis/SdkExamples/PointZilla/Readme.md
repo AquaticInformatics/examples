@@ -233,6 +233,12 @@ If your CSV file contains a UTC offset, the `/CsvDateTimeFormat=` or `CsvDateOnl
 
 The default `/CsvDateTimeFormat=` value is `yyyy'-'MM'-'dd'T'HH':'mm':'ss;FFFFFFF'Z'`, which is the ISO 8601 standard pattern. See the [NodaTime docs](https://nodatime.org/1.3.x/userguide/instant-patterns) for details on custom format patterns.
 
+If your CSV file contains a timezone column, use the `/CsvTimezoneField=` option to extract the name from the column.
+
+You may also want to set multiple timezone aliases if the built-in names don't match your data. If your CSV has `PST` and `PDT` in its data, but those three-letter abbrievations aren't found in the timezone list, you could use `/TimezoneAliases=PST:UTC-08` and `/TimezoneAliases=PDT:UTC-07` to map the offsets correctly.
+
+See [Handling historical timezone transitions](#handling-historical-timezone-transitions) for more details.
+
 #### Method 2 - Use the `/UtcOffset=` option to set an explicit offset
 
 The `/UtcOffset=` option can be used to set an explicit offset from UTC.
@@ -281,13 +287,11 @@ In that 15-minute signal, there are 4 duplicate points every November as the wal
 
 Ugh ... just ... ugh ...
 
-PointZilla does have access to a recent copy of the [IANA timezone database](https://www.iana.org/time-zones) with historical rules about when the spring-forward and fall-back rules have been effect for each time zone.
-
-If you can uniquely identify the timezone name
+Using `/Timezone=America/New_York` resolves the issue.
 
 #### Method 4 - Assume the current UTC offset of the computer running PointZilla
 
-When no `/UtcOffset=` or `/Timezone=` options are set, and the timestamps are still ambiguous, PointZilla will use its current UTC offset as the offset for all the points it will append.
+When no `/UtcOffset=` or `/Timezone=` or `/CsvTimezoneField=` options are set, and the timestamps are still ambiguous, PointZilla will use its current UTC offset as the offset for all the points it will append.
 
 ## Append points from an Excel spreadsheet
 
@@ -329,7 +333,7 @@ USGS	16010000	2022-03-10 00:15	HST	5.34	P	2.08	P
 This command line will fetch the data, extract the points from the "datetime" and "42062_00060" columns, and append them to an AQTS series.
 
 ```sh
-$ ./PointZilla.exe -server=doug-vm2019 "Stage.Working@Location" "https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D" -CsvDelimiter=%09 -CsvComment="#" -CsvDateTimeField=datetime -CsvValueField=42061_00060 -CsvDateTimeFormat="yyyy-MM-dd HH:mm" -CsvIgnoreInvalidRows=true
+$ ./PointZilla.exe -server=doug-vm2019 "Stage.Working@Location" "https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D" -CsvDelimiter=%09 -CsvComment="#" -CsvDateTimeField=datetime -CsvValueField=42061_00060 -CsvDateTimeFormat="yyyy-MM-dd HH:mm" -CsvIgnoreInvalidRows=true -CsvTimezoneField=tz_cd -TimezoneAliases=HST:US/Hawaii
 16:38:30.539 INFO  - PointZilla v1.0.0.0
 16:38:30.592 INFO  - Fetching data from https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D ...
 16:38:31.653 INFO  - Fetched 23.5 KB in 1 second, 40 milliseconds.
@@ -480,7 +484,7 @@ You will often encounter extreme time adjustments during the World War Two era, 
 
 - The `/Timezone=` option can be set to specify a zone to use when converting points from external sources, like CSV or Excel files.
 - The `/CsvTimezoneField=` option can be set to pull the timezone name from a column of your data.
-- The `/TimezoneAliases=` option can be use to supply some aliases to known offsets. If your CSV has `PST` and `PDT` in its data, but those three-letter abbrievations aren't the off, you could use `/TimezoneAliases=PST:UTC-08` and `/TimezoneAliases=PDT:UTC-07` to map the offsets correctly.
+- The `/TimezoneAliases=` option can be use to supply some aliases to known offsets. If your CSV has `PST` and `PDT` in its data, but those three-letter abbrievations aren't found in the timezone lists, you could use `/TimezoneAliases=PST:UTC-08` and `/TimezoneAliases=PDT:UTC-07` to map the offsets correctly.
 
 ### Discovering the available timezone names with the `/FindTimezones=` option
 

@@ -63,16 +63,21 @@ namespace PointZilla
 
                 log4net.Config.XmlConfigurator.Configure(xml.DocumentElement);
 
-                _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+                _log = LogManager.GetLogger(GetCoreType());
 
                 ServiceStack.Logging.LogManager.LogFactory = new Log4NetFactory();
             }
         }
 
-        private static byte[] LoadEmbeddedResource(string path)
+        private static Type GetCoreType()
         {
             // ReSharper disable once PossibleNullReferenceException
-            var resourceName = $"{MethodBase.GetCurrentMethod().DeclaringType.Namespace}.{path}";
+            return MethodBase.GetCurrentMethod().DeclaringType;
+        }
+
+        private static byte[] LoadEmbeddedResource(string path)
+        {
+            var resourceName = $"{GetCoreType().Namespace}.{path}";
 
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
             {
@@ -94,8 +99,7 @@ namespace PointZilla
             var assembly = Assembly.GetExecutingAssembly();
             var fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
 
-            // ReSharper disable once PossibleNullReferenceException
-            return $"{MethodBase.GetCurrentMethod().DeclaringType.Namespace} v{fileVersionInfo.FileVersion}";
+            return $"{GetCoreType().Namespace} v{fileVersionInfo.FileVersion}";
         }
 
         private static Context ParseArgs(string[] args)
@@ -196,26 +200,7 @@ namespace PointZilla
                 new Option {Key = nameof(context.CsvRemoveDuplicatePoints), Setter = value => context.CsvRemoveDuplicatePoints = bool.Parse(value), Getter = () => context.CsvRemoveDuplicatePoints.ToString(), Description = "Remove duplicate points in the CSV before appending."},
                 new Option {Key = nameof(context.CsvDelimiter), Setter = value => context.CsvDelimiter = HttpUtility.UrlDecode(value), Getter = () => context.CsvDelimiter, Description = "Delimiter between CSV fields. (use %20 for space or %09 for tab)"},
                 new Option {Key = nameof(context.CsvNanValue), Setter = value => context.CsvNanValue = value, Getter = () => context.CsvNanValue, Description = "Special value text used to represent NaN values"},
-                new Option {Key = "CsvFormat", Description = "Shortcut for known CSV formats. One of 'NG', '3X', or 'PointZilla'. [default: NG]", Setter =
-                    value =>
-                    {
-                        if (value.Equals("Ng", StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            SetNgCsvFormat(context);
-                        }
-                        else if (value.Equals("3x", StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            Set3XCsvFormat(context);
-                        }
-                        else if (value.Equals("PointZilla", StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            CsvWriter.SetPointZillaCsvFormat(context);
-                        }
-                        else
-                        {
-                            throw new ExpectedException($"'{value}' is an unknown CSV format.");
-                        }
-                    }},
+                new Option {Key = "CsvFormat", Setter = value => Formats.SetFormat(context, value), Description = Formats.Description },
                 new Option {Key = nameof(context.ExcelSheetNumber), Setter = value => context.ExcelSheetNumber = int.Parse(value), Getter = () => context.ExcelSheetNumber.ToString(), Description = $"Excel worksheet number to parse [default to first sheet]"},
                 new Option {Key = nameof(context.ExcelSheetName), Setter = value => context.ExcelSheetName = value, Getter = () => context.ExcelSheetName, Description = $"Excel worksheet name to parse [default to first sheet]"},
 
@@ -333,7 +318,7 @@ namespace PointZilla
 
             if (!AreAnyCsvFormatOptionsSet(context))
             {
-                SetNgCsvFormat(context);
+                Formats.SetNgCsvFormat(context);
             }
 
             if (string.IsNullOrEmpty(context.Server) && string.IsNullOrEmpty(context.TimeSeries) && !string.IsNullOrEmpty(context.SaveCsvPath))
@@ -391,65 +376,6 @@ namespace PointZilla
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .Select(s => s.Trim())
                 .Where(s => !s.StartsWith("#") && !s.StartsWith("//"));
-        }
-
-        private static void SetNgCsvFormat(Context context)
-        {
-            // Match AQTS 201x Export-from-Springboard CSV format
-
-            // # Take Volume.CS1004@IM974363.EntireRecord.csv generated at 2018-09-14 05:03:15 (UTC-07:00) by AQUARIUS 18.3.79.0
-            // # 
-            // # Time series identifier: Take Volume.CS1004@IM974363
-            // # Location: 20017_CS1004
-            // # UTC offset: (UTC+12:00)
-            // # Value units: m^3
-            // # Value parameter: Take Volume
-            // # Interpolation type: Instantaneous Totals
-            // # Time series type: Basic
-            // # 
-            // # Export options: Corrected signal from Beginning of Record to End of Record
-            // # 
-            // # CSV data starts at line 15.
-            // # 
-            // ISO 8601 UTC, Timestamp (UTC+12:00), Value, Approval Level, Grade, Qualifiers
-            // 2013-07-01T11:59:59Z,2013-07-01 23:59:59,966.15,Raw - yet to be review,200,
-            // 2013-07-02T11:59:59Z,2013-07-02 23:59:59,966.15,Raw - yet to be review,200,
-            // 2013-07-03T11:59:59Z,2013-07-03 23:59:59,966.15,Raw - yet to be review,200,
-
-            context.CsvSkipRows = 0;
-            context.CsvComment = "#";
-            context.CsvDateTimeField = Field.Parse("ISO 8601 UTC", nameof(context.CsvDateTimeField));
-            context.CsvDateTimeFormat = null;
-            context.CsvDateOnlyField = null;
-            context.CsvTimeOnlyField = null;
-            context.CsvValueField = Field.Parse("Value", nameof(context.CsvValueField));
-            context.CsvGradeField = Field.Parse("Grade", nameof(context.CsvGradeField));
-            context.CsvQualifiersField = Field.Parse("Qualifiers", nameof(context.CsvQualifiersField));
-            context.CsvIgnoreInvalidRows = true;
-            context.CsvRealign = false;
-        }
-
-        private static void Set3XCsvFormat(Context context)
-        {
-            // Match AQTS 3.x Export format
-
-            // ,Take Volume.CS1004@IM974363,Take Volume.CS1004@IM974363,Take Volume.CS1004@IM974363,Take Volume.CS1004@IM974363
-            // mm/dd/yyyy HH:MM:SS,m^3,,,
-            // Date-Time,Value,Grade,Approval,Interpolation Code
-            // 07/01/2013 23:59:59,966.15,200,1,6
-            // 07/02/2013 23:59:59,966.15,200,1,6
-
-            context.CsvComment = null;
-            context.CsvSkipRows = 2;
-            context.CsvDateTimeField = Field.Parse("Date-Time", nameof(context.CsvDateTimeField));
-            context.CsvDateTimeFormat = "MM/dd/yyyy HH:mm:ss";
-            context.CsvDateOnlyField = null;
-            context.CsvTimeOnlyField = null;
-            context.CsvValueField = Field.Parse("Value", nameof(context.CsvValueField));
-            context.CsvGradeField = Field.Parse("Grade", nameof(context.CsvGradeField));
-            context.CsvQualifiersField = null;
-            context.CsvIgnoreInvalidRows = true;
-            context.CsvRealign = false;
         }
 
         private static TEnum ParseEnum<TEnum>(string value) where TEnum : struct
@@ -684,7 +610,7 @@ namespace PointZilla
             {
             }
 
-            var result = OffsetPattern.GeneralInvariantPattern.Parse(text);
+            var result = OffsetPattern.GeneralInvariant.Parse(text);
 
             if (result.Success)
                 return result.Value;
@@ -710,6 +636,5 @@ namespace PointZilla
             new PointsAppender(_context)
                 .AppendPoints();
         }
-
     }
 }

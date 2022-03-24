@@ -36,9 +36,11 @@ namespace PointZilla.PointReaders
             }
         }
 
+        protected bool HasZoneInfo => Context.Timezone != null || Context.CsvTimezoneField != null;
+
         private void SetImplicitOffset()
         {
-            if (Context.Timezone != null)
+            if (HasZoneInfo)
                 return;
 
             DefaultBias = Duration.FromTimeSpan((Context.UtcOffset ?? Offset.FromTicks(DateTimeOffset.Now.Offset.Ticks)).ToTimeSpan());
@@ -66,6 +68,7 @@ namespace PointZilla.PointReaders
                     Context.CsvValueField,
                     Context.CsvGradeField,
                     Context.CsvQualifiersField,
+                    Context.CsvTimezoneField,
                     string.IsNullOrWhiteSpace(Context.CsvNotesFile) ? Context.CsvNotesField : null,
                 }
                 .Where(f => f != null)
@@ -138,24 +141,29 @@ namespace PointZilla.PointReaders
             return dateTime.TimeOfDay;
         }
 
-        protected Instant InstantFromDateTime(DateTime dateTime)
+        protected Instant InstantFromDateTime(DateTime dateTime, Func<DateTimeZone> zoneResolver = null)
         {
             return dateTime.Kind == DateTimeKind.Utc
                 ? Instant.FromDateTimeUtc(dateTime)
-                : Context.Timezone != null
-                    ? InstantFromLocalDateTime(LocalDateTime.FromDateTime(dateTime))
+                : HasZoneInfo
+                    ? InstantFromLocalDateTime(LocalDateTime.FromDateTime(dateTime), zoneResolver)
                     : Instant.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), DefaultBias.ToTimeSpan()));
         }
 
-        protected Instant InstantFromLocalDateTime(LocalDateTime localDateTime)
+        protected Instant InstantFromLocalDateTime(LocalDateTime localDateTime, Func<DateTimeZone> zoneResolver)
         {
-            var mapping = Context.Timezone.MapLocal(localDateTime);
+            var zone = zoneResolver?.Invoke() ?? Context.Timezone;
+
+            if (zone == null)
+                throw new ExpectedException($"'{localDateTime}' has no other timezone info available.");
+
+            var mapping = zone.MapLocal(localDateTime);
 
             if (mapping.Count == 1)
                 return mapping.First().ToInstant();
 
             if (mapping.Count == 0)
-                throw new ExpectedException($"'{localDateTime}' cannot be mapped to a time using the '{Context.Timezone}' zone");
+                throw new ExpectedException($"'{localDateTime}' cannot be mapped to a time using the '{zone}' zone");
 
             if (mapping.Count != 2)
                 throw new ExpectedException($"'{localDateTime}' is mapped to {mapping.Count} times simultaneous, which is really weird.");
