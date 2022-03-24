@@ -40,6 +40,7 @@ A few interesting operations include:
 - [Appending points from a database](#append-points-from-a-database-query)
 - [Appending points with grades or qualifiers](#appending-grades-and-qualifiers)
 - [Appending points with notes](#appending-points-with-notes)
+- [Handling historical timezone transitions](#handling-historical-timezone-transitions)
 - [Copy points from another time-series](#copying-points-from-another-time-series)
 - [Copy points from a separate AQTS system](#copying-points-from-another-time-series-on-another-aqts-system)
 - [Delete all the points from a time-series](#deleting-all-points-in-a-time-series)
@@ -218,11 +219,29 @@ Timestamps can be extracted in a few ways:
 
 ### Setting the UTC offset for your point timestamps
 
-The AQTS Acquisition API requires unambiguous timestamps. Each timestamp must specify a UTC offset, or use 'Z' to indicate UTC time.
+The AQTS Acquisition API requires unambiguous timestamps. Each timestamp must somehow specify a UTC offset, or use 'Z' to indicate UTC time.
 
-When reading points from a CSV file, any timestamp missing a timezone will use the `/UtcOffset` setting, which defaults to the timezone of the computer running PointZilla.
+PointZilla supports a few different methods for assigning a UTC offset to each point.
+- Extract the offset from the source data.
+- Use the `/UtcOffset=` option to set an explicit offset.
+- Use the `/Timezone=` option to specify an [IANA timezone name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) which can adjust for "spring-forward" / "fall-back" daylight saving events.
+- Assume the current UTC offset of the computer running PointZilla.
 
-The `/UtcOffset=zone` option can be used to set an explicit time-zone.
+#### Method 1 - Extract the UTC offset from the source data
+
+If your CSV file contains a UTC offset, the `/CsvDateTimeFormat=` or `CsvDateOnlyFormat=` options can be configured to read the the UTC offset from the CSV column field, using the `Z` pattern.
+
+The default `/CsvDateTimeFormat=` value is `yyyy'-'MM'-'dd'T'HH':'mm':'ss;FFFFFFF'Z'`, which is the ISO 8601 standard pattern. See the [NodaTime docs](https://nodatime.org/1.3.x/userguide/instant-patterns) for details on custom format patterns.
+
+If your CSV file contains a timezone column, use the `/CsvTimezoneField=` option to extract the name from the column.
+
+You may also want to set multiple timezone aliases if the built-in names don't match your data. If your CSV has `PST` and `PDT` in its data, but those three-letter abbrievations aren't found in the timezone list, you could use `/TimezoneAliases=PST:UTC-08` and `/TimezoneAliases=PDT:UTC-07` to map the offsets correctly.
+
+See [Handling historical timezone transitions](#handling-historical-timezone-transitions) for more details.
+
+#### Method 2 - Use the `/UtcOffset=` option to set an explicit offset
+
+The `/UtcOffset=` option can be used to set an explicit offset from UTC.
 
 UTC offsets can be +HH[:mm], -HH[:mm], or the [ISO 8601 Duration](https://www.w3.org/TR/xmlschema-2/#duration) format.
 
@@ -241,6 +260,39 @@ The following options are all equivalent ways of specifying Australian Central S
 
 When the `/UtcOffset` value is explicitly set, the value will also be used when creating any time-series or locations.
 
+#### Method 3 - Use the `/Timezone=` option to use a timezone's historical adjustment rules
+
+Some CSV data uses "wall-clock" timestamps, which can shift around during "spring-forward" and "fall-back" daylight saving events.
+
+One way this might show up is when you see PointZilla complaining about duplicate timestamps for a 1-hour period during the fall, as the same timestamps occur twice when the clocks turn back an hour in late October/early November (for the Northern hemisphere, or late April/early May in the Southern hemisphere).
+
+```
+14:45:48.484 INFO  - Fetching data from https://nwis.waterservices.usgs.gov/nwis/iv/?sites=01536000&period=P3750D&format=rdb ...
+14:46:30.395 INFO  - Fetched 16.5 MB in 41 seconds, 889 milliseconds.
+14:46:34.068 WARN  - Discarding duplicate CSV point at 2012-11-04T06:00:00Z with value 3.46
+14:46:34.068 WARN  - Discarding duplicate CSV point at 2012-11-04T06:15:00Z with value 3.46
+14:46:34.070 WARN  - Discarding duplicate CSV point at 2012-11-04T06:30:00Z with value 3.46
+14:46:34.070 WARN  - Discarding duplicate CSV point at 2012-11-04T06:45:00Z with value 3.46
+14:46:34.071 WARN  - Discarding duplicate CSV point at 2013-11-03T06:00:00Z with value 2.27
+14:46:34.072 WARN  - Discarding duplicate CSV point at 2013-11-03T06:15:00Z with value 2.27
+14:46:34.072 WARN  - Discarding duplicate CSV point at 2013-11-03T06:30:00Z with value 2.27
+14:46:34.072 WARN  - Discarding duplicate CSV point at 2013-11-03T06:45:00Z with value 2.27
+14:46:34.073 WARN  - Discarding duplicate CSV point at 2014-11-02T06:00:00Z with value 2.34
+14:46:34.073 WARN  - Discarding duplicate CSV point at 2014-11-02T06:15:00Z with value 2.34
+14:46:34.074 WARN  - Discarding duplicate CSV point at 2014-11-02T06:30:00Z with value 2.34
+14:46:34.074 WARN  - Discarding duplicate CSV point at 2014-11-02T06:45:00Z with value 2.34
+```
+
+In that 15-minute signal, there are 4 duplicate points every November as the wall-clock switches from 01:xx AM Eastern Daylight Time back to 01:xx AM Eastern Standard Time.
+
+Ugh ... just ... ugh ...
+
+Using `/Timezone=America/New_York` resolves the issue.
+
+#### Method 4 - Assume the current UTC offset of the computer running PointZilla
+
+When no `/UtcOffset=` or `/Timezone=` or `/CsvTimezoneField=` options are set, and the timestamps are still ambiguous, PointZilla will use its current UTC offset as the offset for all the points it will append.
+
 ## Append points from an Excel spreadsheet
 
 All the CSV parsing options also apply to parsing Excel workbooks.
@@ -257,7 +309,7 @@ This approach works when the web request returns a text stream for its response 
 
 Here is a an example HTTP request which uses the [USGS NWIS service](https://help.waterdata.usgs.gov/faq/automated-retrievals#Examples) to fetch the last 24 hours of Stage points (HG in AQTS, code 00065 in NWIS) points from a location.
 
-https://nwis.waterdata.usgs.gov/hi/nwis/uv/?format=rdb&site_no=16010000&period=PT1D
+https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D
 
 The NWIS data response includes some commented lines at the start, followed by a 2-line header row, and then the tab-delimited (not comma delimited) data rows follow.
 
@@ -281,11 +333,11 @@ USGS	16010000	2022-03-10 00:15	HST	5.34	P	2.08	P
 This command line will fetch the data, extract the points from the "datetime" and "42062_00060" columns, and append them to an AQTS series.
 
 ```sh
-$ ./PointZilla.exe -server=doug-vm2019 "Stage.Working@Location" "https://nwis.waterdata.usgs.gov/hi/nwis/uv/?format=rdb&site_no=16010000&period=PT1D" -CsvDelimiter=%09 -CsvComment="#" -CsvDateTimeField=datetime -CsvValueField=42061_00060 -CsvDateTimeFormat="yyyy-MM-dd HH:mm" -CsvIgnoreInvalidRows=true
+$ ./PointZilla.exe -server=doug-vm2019 "Stage.Working@Location" "https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D" -CsvDelimiter=%09 -CsvComment="#" -CsvDateTimeField=datetime -CsvValueField=42061_00060 -CsvDateTimeFormat="yyyy-MM-dd HH:mm" -CsvIgnoreInvalidRows=true -CsvTimezoneField=tz_cd -TimezoneAliases=HST:US/Hawaii
 16:38:30.539 INFO  - PointZilla v1.0.0.0
-16:38:30.592 INFO  - Fetching data from https://nwis.waterdata.usgs.gov/hi/nwis/uv/?format=rdb&site_no=16010000&period=PT1D ...
+16:38:30.592 INFO  - Fetching data from https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D ...
 16:38:31.653 INFO  - Fetched 23.5 KB in 1 second, 40 milliseconds.
-16:38:31.810 INFO  - Loaded 461 points [2022-03-10T08:00:00Z to 2022-03-11T22:20:00Z] from 'https://nwis.waterdata.usgs.gov/hi/nwis/uv/?format=rdb&site_no=16010000&period=PT1D'.
+16:38:31.810 INFO  - Loaded 461 points [2022-03-10T08:00:00Z to 2022-03-11T22:20:00Z] from 'https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=16010000&period=P1D'.
 16:38:31.813 INFO  - Connecting to doug-vm2019 ...
 16:38:31.984 INFO  - Connected to doug-vm2019 (2021.4.77.0)
 16:38:32.627 INFO  - Appending 461 points [2022-03-10T08:00:00Z to 2022-03-11T22:20:00Z] to Stage.Working@Location (ProcessorBasic) ...
@@ -406,6 +458,7 @@ Ex. If your source file defines grades from 1 (best) to 5 (worst), and 6 through
 # Map all the weird grades to the stock AQTS Unusable grade of -2
 /MappedGrades=6,10:-2
 ```
+
 ## Appending points with notes
 
 PointZilla v1.0.332+ adds comprehensive support for dealing with time-series notes.
@@ -417,6 +470,91 @@ Time-series notes have a start time, and end time, and a text value. Notes can o
 - Notes can be read from a separate CSV file using the `/CsvNotesFile=path`, `/NoteStartField=`, `/NoteEndField=`, and `/NoteTextField=` options.
 - Notes can be read from a separate database query using the `/DbNotesQuery=query`, `/NoteStartField=`, `/NoteEndField=`, and `/NoteTextField=` options.
 - Note support can be disabled by setting the `/IgnoreNotes=true` option.
+
+## Handling historical timezone transitions
+
+Dealing with historical timezone transitions (daylight saving adjustments) in the spring and fall is a very tricky problem to handle correctly for all countries for all of modern history.
+
+PointZilla has a few options to help you ingest data that is following a "wall-clock" and needs to be unambiguously resolved to UTC.
+
+PointZilla contains a recent copy of the [IANA timezone database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones), which contains a history of each timezone's changes to/from daylight saving time (if it changes at all). PointZilla also has access to the historical timezones installed on your Windows computer.
+
+Each timezone is identified by a name, so your goal is to pick the most specific timezone that applies to your data. If your sensor is located in Vancouver, you will want to use the `America/Vancouver` zone instead of `Pacific Standard Time`, since the former knows about quirks about Vancouver's times.
+You will often encounter extreme time adjustments during the World War Two era, as cities were trying their best to maximize daylight hours to conserve electricity.
+
+- The `/Timezone=` option can be set to specify a zone to use when converting points from external sources, like CSV or Excel files.
+- The `/CsvTimezoneField=` option can be set to pull the timezone name from a column of your data.
+- The `/TimezoneAliases=` option can be use to supply some aliases to known offsets. If your CSV has `PST` and `PDT` in its data, but those three-letter abbrievations aren't found in the timezone lists, you could use `/TimezoneAliases=PST:UTC-08` and `/TimezoneAliases=PDT:UTC-07` to map the offsets correctly.
+
+### Discovering the available timezone names with the `/FindTimezones=` option
+
+Many of the timezone names are not what you might first expect. So you can use the `/FindTimezones=` option to see what PointZilla thinks.
+
+When the `/FindTimezones=` option is used, PointZilla will just try its best to find a matching timezone, or suggest a similar match.
+
+Both the recent min/max offset (within the last 10 years) and the historical min/max offsets are shown for each match or partial match.
+
+Try a name of a nearby big city, or a country:
+```
+$ ./PointZilla.exe -findtimezones="madrid"
+15:50:03.108 INFO  - 'madrid' did not exactly match any known timezone.
+15:50:03.145 INFO  -
+15:50:03.145 INFO  - Current local timezone:
+15:50:03.146 INFO  - =======================
+15:50:03.159 INFO  - 'America/Los_Angeles' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:50:03.160 INFO  - 'Pacific Standard Time' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:50:03.187 INFO  -
+15:50:03.187 INFO  - Partially matched timezones:
+15:50:03.188 INFO  - ============================
+15:50:03.190 INFO  - 'Europe/Madrid' Recent:[Min=+01, Max=+02] Historical:[Min=-00:14:44, Max=+02]
+```
+
+PointZilla is event a bit forgiving of typos:
+```
+$ ./PointZilla.exe -findtimezones=Portgual
+15:52:09.628 INFO  - 'Portgual' did not exactly match any known timezone.
+15:52:09.663 INFO  -
+15:52:09.663 INFO  - Current local timezone:
+15:52:09.664 INFO  - =======================
+15:52:09.676 INFO  - 'America/Los_Angeles' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:52:09.677 INFO  - 'Pacific Standard Time' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:52:09.718 INFO  -
+15:52:09.718 INFO  - Similarly named timezones:
+15:52:09.719 INFO  - ==========================
+15:52:09.720 INFO  - Did you mean 'Portugal' Recent:[Min=+00, Max=+01] Historical:[Min=-00:36:45, Max=+02]?
+```
+
+Or if you know the two offsets, try it in min/max form to see which zones match that pattern:
+```
+$ ./PointZilla.exe -findtimezones=UTC-08/UTC-07
+15:55:42.905 INFO  - 'UTC-08/UTC-07' did not exactly match any known timezone.
+15:55:42.940 INFO  -
+15:55:42.941 INFO  - Current local timezone:
+15:55:42.942 INFO  - =======================
+15:55:42.952 INFO  - 'America/Los_Angeles' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:55:42.952 INFO  - 'Pacific Standard Time' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:55:42.993 INFO  -
+15:55:42.994 INFO  - Equivalent timezones:
+15:55:42.995 INFO  - =====================
+15:55:43.136 INFO  - 'UTC-08/UTC-07' matches 17 timezones:
+15:55:43.136 INFO  - 'America/Dawson' Recent:[Min=-08, Max=-07] Historical:[Min=-09:17:40, Max=-07]
+15:55:43.137 INFO  - 'America/Ensenada' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:55:43.138 INFO  - 'America/Fort_Nelson' Recent:[Min=-08, Max=-07] Historical:[Min=-08:10:47, Max=-07]
+15:55:43.138 INFO  - 'America/Los_Angeles' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:55:43.139 INFO  - 'America/Santa_Isabel' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:55:43.139 INFO  - 'America/Tijuana' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:55:43.139 INFO  - 'America/Vancouver' Recent:[Min=-08, Max=-07] Historical:[Min=-08:12:28, Max=-07]
+15:55:43.140 INFO  - 'America/Whitehorse' Recent:[Min=-08, Max=-07] Historical:[Min=-09:00:12, Max=-07]
+15:55:43.140 INFO  - 'Canada/Pacific' Recent:[Min=-08, Max=-07] Historical:[Min=-08:12:28, Max=-07]
+15:55:43.140 INFO  - 'Canada/Yukon' Recent:[Min=-08, Max=-07] Historical:[Min=-09:00:12, Max=-07]
+15:55:43.141 INFO  - 'Mexico/BajaNorte' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:55:43.142 INFO  - 'PST8PDT' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:55:43.142 INFO  - 'US/Pacific' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:55:43.143 INFO  - 'US/Pacific-New' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:55:43.145 INFO  - 'Pacific Standard Time' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:55:43.145 INFO  - 'Pacific Standard Time (Mexico)' Recent:[Min=-08, Max=-07] Historical:[Min=-08, Max=-07]
+15:55:43.146 INFO  - 'Yukon Standard Time' Recent:[Min=-08, Max=-07] Historical:[Min=-07, Max=-07]
+```
 
 ## Copying points from another time-series
 
@@ -676,6 +814,7 @@ Supported -option=value settings (/option=value works too):
   -CsvGradeField            CSV column index or name for grade codes
   -CsvQualifiersField       CSV column index or name for qualifiers
   -CsvNotesField            CSV column index or name for notes
+  -CsvTimezoneField         CSV column index or name for timezone
   -CsvComment               CSV comment lines begin with this prefix
   -CsvSkipRows              Number of CSV rows to skip before parsing [default: 0]
   -CsvHasHeaderRow          Does the CSV have a header row naming the columns. [default: true if any columns are referenced by name]
@@ -688,6 +827,11 @@ Supported -option=value settings (/option=value works too):
   -CsvFormat                Shortcut for known CSV formats. One of 'NG', '3X', or 'PointZilla'. [default: NG]
   -ExcelSheetNumber         Excel worksheet number to parse [default to first sheet]
   -ExcelSheetName           Excel worksheet name to parse [default to first sheet]
+
+  ========================= Timezone options:
+  -Timezone                 The IANA timezone name. See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for details.
+  -FindTimezones            Show all the known timezones matching the pattern
+  -TimezoneAliases          Timezone aliases in sourceValue:mappedValue syntax. Can be set multiple times.
 
   ========================= DB parsing options:
   -DbType                   Database type. Should be one of: SqlServer, Postgres, MySql, Odbc

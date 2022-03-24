@@ -30,7 +30,7 @@ namespace PointZilla
             {
                 points.Add(new TimeSeriesPoint
                 {
-                    Time = Context.StartTime.PlusTicks(i * Duration.FromTimeSpan(Context.PointInterval).Ticks),
+                    Time = Context.StartTime.PlusTicks(i * Duration.FromTimeSpan(Context.PointInterval).BclCompatibleTicks),
                     Value = Context.WaveformOffset + Context.WaveformScalar
                             * GeneratorFunctions[Context.WaveformType](i + Context.WaveformPhase, Context.WaveformPeriod),
                     GradeCode = Context.GradeCode,

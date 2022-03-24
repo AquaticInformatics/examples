@@ -50,6 +50,10 @@ namespace PointZilla
         public List<ExtendedAttributeValue> ExtendedAttributeValues { get; set; } = new List<ExtendedAttributeValue>();
         public TimeSeriesType? TimeSeriesType { get; set; }
 
+        public DateTimeZone Timezone { get; set; }
+        public string FindTimezones { get; set; }
+        public Dictionary<string, string> TimezoneAliases { get; } = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+
         public TimeSeriesIdentifier SourceTimeSeries { get; set; }
         public Instant? SourceQueryFrom { get; set; }
         public Instant? SourceQueryTo { get; set; }
@@ -87,6 +91,7 @@ namespace PointZilla
         public Field CsvGradeField { get; set; }
         public Field CsvQualifiersField { get; set; }
         public Field CsvNotesField { get; set; }
+        public Field CsvTimezoneField { get; set; }
         public string CsvComment { get; set; }
         public int CsvSkipRows { get; set; }
         public bool CsvHasHeaderRow { get; set; }

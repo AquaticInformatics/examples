@@ -55,7 +55,7 @@ namespace PointZilla
                 {
                     points.Add(new TimeSeriesPoint
                     {
-                        Time = Context.StartTime.PlusTicks(points.Count * Duration.FromTimeSpan(Context.PointInterval).Ticks),
+                        Time = Context.StartTime.PlusTicks(points.Count * Duration.FromTimeSpan(Context.PointInterval).BclCompatibleTicks),
                         Value = isXValueSelected
                             ? startX + Context.WaveformScalar * point.X
                             : startY + Context.WaveformScalar * point.Y,

@@ -263,12 +263,21 @@ namespace PointZilla.PointReaders
             double? value = null;
             int? gradeCode = null;
             List<string> qualifiers = null;
+            DateTimeZone zone = null;
 
             if (!string.IsNullOrEmpty(Context.CsvComment) && ((row[0] as string)?.StartsWith(Context.CsvComment) ?? false))
                 return null;
 
             try
             {
+                ParseExcelStringColumn(row, Context.CsvTimezoneField?.ColumnIndex, text =>
+                {
+                    if (Context.TimezoneAliases.TryGetValue(text, out var alias))
+                        text = alias;
+
+                    TimezoneHelper.TryParseDateTimeZone(text, out zone);
+                });
+
                 if (Context.CsvDateOnlyField != null)
                 {
                     var dateOnly = DateTime.MinValue;
@@ -281,11 +290,11 @@ namespace PointZilla.PointReaders
                         ParseExcelColumn<DateTime>(row, Context.CsvTimeOnlyField.ColumnIndex, dateTime => timeOnly = dateTime.TimeOfDay);
                     }
 
-                    time = InstantFromDateTime(dateOnly.Add(timeOnly));
+                    time = InstantFromDateTime(dateOnly.Add(timeOnly), () => zone);
                 }
                 else
                 {
-                    ParseExcelColumn<DateTime>(row, Context.CsvDateTimeField.ColumnIndex, dateTime => time = InstantFromDateTime(dateTime));
+                    ParseExcelColumn<DateTime>(row, Context.CsvDateTimeField.ColumnIndex, dateTime => time = InstantFromDateTime(dateTime, () => zone));
                 }
 
                 if (string.IsNullOrEmpty(Context.CsvNanValue))
@@ -451,6 +460,18 @@ namespace PointZilla.PointReaders
             int? gradeCode = null;
             List<string> qualifiers = null;
             PointType? pointType = null;
+            DateTimeZone zone = null;
+
+            if (Context.CsvTimezoneField != null)
+            {
+                ParseField(fields, Context.CsvTimezoneField.ColumnIndex, text =>
+                {
+                    if (Context.TimezoneAliases.TryGetValue(text, out var alias))
+                        text = alias;
+
+                    TimezoneHelper.TryParseDateTimeZone(text, out zone);
+                });
+            }
 
             if (Context.CsvDateOnlyField != null)
             {
@@ -473,7 +494,7 @@ namespace PointZilla.PointReaders
                     ParseField(fields, Context.CsvTimeOnlyField.ColumnIndex, text => timeOnly = ParseTimeOnly(text, Context.CsvTimeOnlyFormat));
                 }
 
-                time = InstantFromDateTime(dateOnly.Add(timeOnly));
+                time = InstantFromDateTime(dateOnly.Add(timeOnly), () => zone);
             }
             else
             {
@@ -485,7 +506,7 @@ namespace PointZilla.PointReaders
                         return;
                     }
 
-                    time = ParseInstant(text);
+                    time = ParseInstant(text, () => zone);
                 });
             }
 

@@ -231,7 +231,6 @@ namespace PointZilla.PointReaders
         }
 
 
-
         private void SetTimeSeriesCreationProperties(
             TimeSeries timeSeries,
             string method = null,

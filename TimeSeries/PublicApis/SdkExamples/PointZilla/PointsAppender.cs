@@ -430,8 +430,8 @@ namespace PointZilla
             if (Context.Command == CommandType.DeleteAllPoints)
                 // Apply a 1-day margin, to workaround the AQ-23146 OverflowException crash
                 return new Interval(
-                    Instant.FromDateTimeOffset(DateTimeOffset.MinValue).Plus(Duration.FromStandardDays(1)),
-                    Instant.FromDateTimeOffset(DateTimeOffset.MaxValue).Minus(Duration.FromStandardDays(1)));
+                    Instant.FromDateTimeOffset(DateTimeOffset.MinValue).Plus(Duration.FromDays(1)),
+                    Instant.FromDateTimeOffset(DateTimeOffset.MaxValue).Minus(Duration.FromDays(1)));
 
             if (Context.TimeRange.HasValue)
                 return Context.TimeRange.Value;

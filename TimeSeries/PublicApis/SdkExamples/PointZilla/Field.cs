@@ -38,5 +38,12 @@ namespace PointZilla
             FieldName = fieldName;
             ColumnName = columnName;
         }
+
+        public override string ToString()
+        {
+            return HasColumnName
+                ? $"{FieldName}:'{ColumnName}'"
+                : $"{FieldName}:#{ColumnIndex}";
+        }
     }
 }

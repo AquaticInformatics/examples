@@ -96,6 +96,15 @@ namespace PointZilla.PointReaders
             double? value = null;
             int? gradeCode = null;
             List<string> qualifiers = null;
+            DateTimeZone zone = null;
+
+            ParseNullableColumn<string>(row, Context.CsvTimezoneField?.ColumnIndex, text =>
+            {
+                if (Context.TimezoneAliases.TryGetValue(text, out var alias))
+                    text = alias;
+
+                TimezoneHelper.TryParseDateTimeZone(text, out zone);
+            });
 
             if (Context.CsvDateOnlyField != null)
             {
@@ -109,7 +118,7 @@ namespace PointZilla.PointReaders
                     ParseColumn<DateTime>(row, Context.CsvDateOnlyField.ColumnIndex, dateTime => timeOnly = dateTime.TimeOfDay);
                 }
 
-                time = InstantFromDateTime(dateOnly.Add(timeOnly));
+                time = InstantFromDateTime(dateOnly.Add(timeOnly), () => zone);
             }
             else
             {

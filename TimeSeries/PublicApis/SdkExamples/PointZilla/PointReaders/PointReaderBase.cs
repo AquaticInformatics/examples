@@ -13,6 +13,7 @@ namespace PointZilla.PointReaders
 {
     public abstract class PointReaderBase
     {
+        // ReSharper disable once PossibleNullReferenceException
         private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         protected Context Context { get; }
@@ -27,12 +28,22 @@ namespace PointZilla.PointReaders
 
             DefaultTimeOfDay = ParseTimeOnly(Context.CsvDefaultTimeOfDay, Context.CsvTimeOnlyFormat);
 
-            DefaultBias = Duration.FromTimeSpan((Context.UtcOffset ?? Offset.FromTicks(DateTimeOffset.Now.Offset.Ticks)).ToTimeSpan());
+            SetImplicitOffset();
 
             if (GetFields().Any(f => f.HasColumnName))
             {
                 Context.CsvHasHeaderRow = true;
             }
+        }
+
+        protected bool HasZoneInfo => Context.Timezone != null || Context.CsvTimezoneField != null;
+
+        private void SetImplicitOffset()
+        {
+            if (HasZoneInfo)
+                return;
+
+            DefaultBias = Duration.FromTimeSpan((Context.UtcOffset ?? Offset.FromTicks(DateTimeOffset.Now.Offset.Ticks)).ToTimeSpan());
         }
 
         protected static void ValidateConfiguration(Context context)
@@ -57,6 +68,7 @@ namespace PointZilla.PointReaders
                     Context.CsvValueField,
                     Context.CsvGradeField,
                     Context.CsvQualifiersField,
+                    Context.CsvTimezoneField,
                     string.IsNullOrWhiteSpace(Context.CsvNotesFile) ? Context.CsvNotesField : null,
                 }
                 .Where(f => f != null)
@@ -129,12 +141,42 @@ namespace PointZilla.PointReaders
             return dateTime.TimeOfDay;
         }
 
-        protected Instant InstantFromDateTime(DateTime dateTime)
+        protected Instant InstantFromDateTime(DateTime dateTime, Func<DateTimeZone> zoneResolver = null)
         {
             return dateTime.Kind == DateTimeKind.Utc
                 ? Instant.FromDateTimeUtc(dateTime)
-                : Instant.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), DefaultBias.ToTimeSpan()));
+                : HasZoneInfo
+                    ? InstantFromLocalDateTime(LocalDateTime.FromDateTime(dateTime), zoneResolver)
+                    : Instant.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), DefaultBias.ToTimeSpan()));
         }
+
+        protected Instant InstantFromLocalDateTime(LocalDateTime localDateTime, Func<DateTimeZone> zoneResolver)
+        {
+            var zone = zoneResolver?.Invoke() ?? Context.Timezone;
+
+            if (zone == null)
+                throw new ExpectedException($"'{localDateTime}' has no other timezone info available.");
+
+            var mapping = zone.MapLocal(localDateTime);
+
+            if (mapping.Count == 1)
+                return mapping.First().ToInstant();
+
+            if (mapping.Count == 0)
+                throw new ExpectedException($"'{localDateTime}' cannot be mapped to a time using the '{zone}' zone");
+
+            if (mapping.Count != 2)
+                throw new ExpectedException($"'{localDateTime}' is mapped to {mapping.Count} times simultaneous, which is really weird.");
+
+            if (EncounteredDateTimes.Contains(localDateTime))
+                return mapping.Last().ToInstant();
+
+            EncounteredDateTimes.Add(localDateTime);
+
+            return mapping.First().ToInstant();
+        }
+
+        private HashSet<LocalDateTime> EncounteredDateTimes { get; } = new HashSet<LocalDateTime>();
 
         protected void AddRowNote(Instant time, string text)
         {
