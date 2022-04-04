@@ -239,6 +239,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ExtraApis\TimeSeries\DeleteAttachmentById.cs" />
+    <Compile Include="ExtraApis\TimeSeries\HackTags.cs" />
     <Compile Include="FilenameGenerator.cs" />
     <Compile Include="Context.cs" />
     <Compile Include="ExeHelper.cs" />
