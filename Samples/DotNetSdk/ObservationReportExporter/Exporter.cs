@@ -22,6 +22,7 @@ using ServiceStack;
 using ApplyTagRequest = Aquarius.TimeSeries.Client.ServiceModels.Acquisition.ApplyTagRequest;
 using Attachment = Aquarius.TimeSeries.Client.ServiceModels.Publish.Attachment;
 using GetTags = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.GetTags;
+using TagValueType = Aquarius.TimeSeries.Client.ServiceModels.Provisioning.TagValueType;
 
 namespace ObservationReportExporter
 {
@@ -329,10 +330,7 @@ namespace ObservationReportExporter
             if (!Context.AttachmentTags.Any())
                 return;
 
-            var locationTags = TimeSeries
-                .Provisioning
-                .Get(new GetTags())
-                .Results
+            var locationTags = GetConfiguredTags()
                 .Where(t => t.AppliesToAttachments)
                 .ToDictionary(t => t.Key, t => t, StringComparer.InvariantCultureIgnoreCase);
 
@@ -350,6 +348,62 @@ namespace ObservationReportExporter
                 });
             }
         }
+
+        private List<Tag> GetConfiguredTags()
+        {
+            if (TimeSeries.ServerVersion.IsLessThan(MinimumUnifiedTagsAndExtendedAttributesVersion))
+            {
+                return TimeSeries
+                    .Provisioning
+                    .Get(new GetHackTags())
+                    .Results
+                    .Select(Convert)
+                    .ToList();
+            }
+
+            return TimeSeries
+                .Provisioning
+                .Get(new GetTags())
+                .Results;
+        }
+
+        private static readonly AquariusServerVersion MinimumUnifiedTagsAndExtendedAttributesVersion = AquariusServerVersion.Create("21.3");
+
+        private static Tag Convert(HackTag hackValue)
+        {
+            return new Tag
+            {
+                Key = hackValue.Key,
+                UniqueId = hackValue.UniqueId,
+                AppliesToAttachments = hackValue.AppliesToAttachments,
+                AppliesToLocationNotes = hackValue.AppliesToLocationNotes,
+                AppliesToLocations = hackValue.AppliesToLocations,
+                AppliesToReports = hackValue.AppliesToReports,
+                AppliesToSensorsGauges = hackValue.AppliesToSensorsGauges,
+                PickListValues = hackValue.PickListValues,
+                ValueType = Convert(hackValue.ValueType),
+            };
+        }
+
+        private static TagValueType? Convert(HackTagValueType? hackValue)
+        {
+            if (!hackValue.HasValue || !SupportedTypes.TryGetValue(hackValue.Value, out var tagValue))
+                return null;
+
+            return tagValue;
+        }
+
+        private static readonly Dictionary<HackTagValueType, TagValueType> SupportedTypes =
+            new Dictionary<HackTagValueType, TagValueType>
+            {
+                { HackTagValueType.Unknown, TagValueType.Unknown },
+                { HackTagValueType.None, TagValueType.None },
+                { HackTagValueType.PickList, TagValueType.PickList },
+                { HackTagValueType.Text, TagValueType.String }, // This is reason for all this fudge code
+                { HackTagValueType.Number, TagValueType.Number },
+                { HackTagValueType.Boolean, TagValueType.Boolean },
+                { HackTagValueType.DateTime, TagValueType.DateTime }
+            };
 
         private void ExportAllLocations()
         {
