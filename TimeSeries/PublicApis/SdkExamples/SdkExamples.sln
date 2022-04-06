@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28902.138
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32319.34
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppendPoints", "AppendPoints\AppendPoints.csproj", "{E2D7B054-9B51-4F15-B0AA-1A3565D0BAD4}"
 EndProject
@@ -32,6 +32,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TotalDischargeExternalProcessor", "TotalDischargeExternalProcessor\TotalDischargeExternalProcessor.csproj", "{C598046C-4E2E-4C49-8437-5C897BA9C7AD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NEM12PreProcessor", "NEM12PreProcessor\NEM12PreProcessor.csproj", "{F8DCE440-A2B9-4BC0-9843-4DE2D8C8162B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelCsvExtractor", "ExcelCsvExtractor\ExcelCsvExtractor.csproj", "{657DC627-59D4-4910-B723-C7BE8A70B43B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -87,6 +89,10 @@ Global
 		{F8DCE440-A2B9-4BC0-9843-4DE2D8C8162B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F8DCE440-A2B9-4BC0-9843-4DE2D8C8162B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F8DCE440-A2B9-4BC0-9843-4DE2D8C8162B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{657DC627-59D4-4910-B723-C7BE8A70B43B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{657DC627-59D4-4910-B723-C7BE8A70B43B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{657DC627-59D4-4910-B723-C7BE8A70B43B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{657DC627-59D4-4910-B723-C7BE8A70B43B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

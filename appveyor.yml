@@ -59,6 +59,9 @@ artifacts:
   - path: TimeSeries\PublicApis\SdkExamples\ChangeVisitApprovals\bin\Release\ChangeVisitApprovals.exe
     name: ChangeVisitApprovals
 
+  - path: TimeSeries\PublicApis\SdkExamples\ExcelCsvExtractor\bin\Release\ExcelCsvExtractor.exe
+    name: ExcelCsvExtractor
+
   - path: TimeSeries\PublicApis\SdkExamples\SharpShooterReportsRunner\bin\Release
     name: SharpShooterReportsRunner
 
@@ -91,7 +94,7 @@ deploy:
     tag: v$(APPVEYOR_BUILD_VERSION)
     release: Example utilities $(APPVEYOR_BUILD_VERSION)
     description: ''
-    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor, SondeFileImporter, SamplesPlannedSpecimenInstantiator, SamplesObservationExporter, LabFileImporter, NWFWMD-LabFileImporter, NEM12PreProcessor, ObservationReportExporter
+    artifact: UserImporter, PointZilla, TimeSeriesChangeMonitor, LocationDeleter, ObservationValidator, ChangeVisitApprovals, ExcelCsvExtractor, SharpShooterReportsRunner, WaterWatchPreProcessor, TotalDischargeExternalProcessor, SondeFileImporter, SamplesPlannedSpecimenInstantiator, SamplesObservationExporter, LabFileImporter, NWFWMD-LabFileImporter, NEM12PreProcessor, ObservationReportExporter
     auth_token: $(GITHUB_AUTH_TOKEN)
     on:
       is_not_pr: true
