@@ -91,8 +91,8 @@ namespace PointZilla
                 Log.Info(Context.Command == CommandType.DeleteAllPoints
                     ? $"Deleting all existing points from {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
                     : hasTimeRange
-                        ? $"Appending {PointSummarizer.Summarize(Points)} within TimeRange={GetTimeRange()} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
-                        : $"Appending {PointSummarizer.Summarize(Points)} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ...");
+                        ? $"Appending {PointSummarizer.Summarize(Points)} and {"note".ToQuantity(Notes.Count)} within TimeRange={GetTimeRange()} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ..."
+                        : $"Appending {PointSummarizer.Summarize(Points)} and {"note".ToQuantity(Notes.Count)} to {timeSeries.Identifier} ({timeSeries.TimeSeriesType}) ...");
 
                 var numberOfPointsAppended = 0;
                 var numberOfPointsDeleted = 0;
@@ -296,13 +296,22 @@ namespace PointZilla
                         Points = points
                     });
                 }
-                else
+                else if (points.Any() || !Notes.Any())
                 {
                     appendResponse = client.Acquisition.Post(new PostTimeSeriesAppend
                     {
                         UniqueId = timeSeries.UniqueId,
                         Points = points
                     });
+                }
+                else
+                {
+                    // We didn't have any basic points to append, but we do have notes to append.
+                    // So just fake a completed status so we can move on to appending the notes.
+                    return new TimeSeriesAppendStatus
+                    {
+                        AppendStatus = AppendStatusCode.Completed,
+                    };
                 }
             }
 
@@ -424,7 +433,6 @@ namespace PointZilla
                 .ToList();
         }
 
-
         private Interval GetTimeRange()
         {
             if (Context.Command == CommandType.DeleteAllPoints)
@@ -437,7 +445,12 @@ namespace PointZilla
                 return Context.TimeRange.Value;
 
             if (!Points.Any())
+            {
+                if (Notes.Any())
+                    return new Interval(Instant.MinValue, Instant.MaxValue);
+
                 throw new ExpectedException($"Can't infer a time-range from an empty points list. Please set the /{nameof(Context.TimeRange)} option explicitly.");
+            }
 
             return new Interval(
                 // ReSharper disable once PossibleInvalidOperationException
