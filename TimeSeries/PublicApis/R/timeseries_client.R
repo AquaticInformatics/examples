@@ -835,7 +835,7 @@ appendPoints = function (seriesIdentifierOrGuid, points, start, end) {
     append(seriesData, list(
       TimeRange = list(
         Start = .self$formatIso8601(start),
-        End = .self$formatIso8601(end))))
+        InclusiveEnd = .self$formatIso8601(end))))
     postUrl <- paste0(acquisitionUri, "/timeseries/", seriesUniqueId, "/overwriteappend")
   }
   
@@ -876,7 +876,7 @@ appendReflectedPoints = function(seriesIdentifierOrGuid, points, start, end) {
     Points = points,
     TimeRange = list(
       Start = start,
-      End = end
+      InclusiveEnd = end
     ))
   
   postUrl <- paste0(acquisitionUri, "/timeseries/", seriesUniqueId, "/reflected")
