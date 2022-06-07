@@ -1,6 +1,6 @@
 # Load dependencies
-require(jsonlite)
-require(httr)
+library(jsonlite)
+library(httr)
 
 # Sys.setenv(http_proxy="http://localhost:8888") # Enables Fiddler capturing of traffic
 # Sys.setenv(http_proxy="") # Disables Fiddler proxying
@@ -784,7 +784,153 @@ timeseriesClient <- setRefClass("timeseriesClient",
       # Flatten the list of response data frames into a single data frame
       rbind_pages(responseBatches)
     }
+  },
+
+  createCalcDerivedSeries = function(locationUniqueId, formula, timeSeriesIds, label, parameterId, unitId, utcOffset, interpolationType, methodCode) {
+  
+  if (is.character(timeSeriesIds)) {
+    # Coerce a single timeseries ID string into a vector
+    timeSeriesIds <- c(timeSeriesIds)
   }
+  
+  if (missing(interpolationType)) { interpolationType <- "InstantaneousValues" }
+  if (missing(methodCode))        { methodCode <- "DefaultNone" }
+  
+  uniqueIds <- lapply(timeSeriesIds, .self$getTimeSeriesUniqueId)
+  
+  request <- list(
+    TimeSeriesUniqueIds = uniqueIds,
+    Label = label,
+    Formula = formula,
+    Parameter = parameterId,
+    Unit = unitId,
+    InterpolationType = interpolationType,
+    Method = methodCode,
+    UtcOffset = utcOffset)
+  request <- request[!sapply(request, is.null)]
+  
+  r <- POST(paste0(provisioningUri, "/locations/", locationUniqueId, "/timeseries/calculated"), body = request, encode = "json")
+  stop_for_status(r, paste("post calc-derived time-series for", length(uniqueIds), "input time-series"))
+  
+  j <- fromJSON(content(r, "text"))
+  },
+
+#' Append points to a basic time-series
+#'
+#' @param seriesIdentifierOrGuid The text identifier or unique ID of a basic time-series
+#' @param points The dataframe of points to append
+#' @param start Optional start time (for overwrite appends)
+#' @param end Optional end time (for overwrite appends)
+#' @returns The append request identifier of the queued points
+appendPoints = function (seriesIdentifierOrGuid, points, start, end) {
+  if (missing(start)) { start <- NULL }
+  if (missing(end))   { end <- NULL }
+  
+  seriesUniqueId <- .self$getTimeSeriesUniqueId(seriesIdentifierOrGuid)
+  
+  seriesData <- list(Points = points)
+  postUrl <- paste0(acquisitionUri, "/timeseries/", seriesUniqueId, "/append")
+  
+  if (!is.null(start) && !is.null(end)) {
+    append(seriesData, list(
+      TimeRange = list(
+        Start = .self$formatIso8601(start),
+        End = .self$formatIso8601(end))))
+    postUrl <- paste0(acquisitionUri, "/timeseries/", seriesUniqueId, "/overwriteappend")
+  }
+  
+  r <- POST(postUrl, body = seriesData, encode = "json")
+  stop_for_status(r, postUrl)
+  
+  j <- fromJSON(content(r, "text"))
+  j$AppendRequestIdentifier
+},
+
+#' Append points to a reflected time-series
+#'
+#' @param seriesIdentifierOrGuid The text identifier or unique ID of a reflected time-series
+#' @param points The dataframe of points to append
+#' @param start Optional start time (defaults to first point)
+#' @param end Optional end time (defaults to last point)
+#' @returns The append request identifier of the queued points
+appendReflectedPoints = function(seriesIdentifierOrGuid, points, start, end) {
+
+  if (missing(start)) { start <- NULL }
+  if (missing(end))   { end <- NULL }
+  
+  seriesUniqueId <- .self$getTimeSeriesUniqueId(seriesIdentifierOrGuid)
+  
+  if (is.null(start)) {
+    start = points$Time[1]
+  } else {
+    start = .self$formatIso8601(start)
+  }
+  
+  if (is.null(end)) {
+    end = tail(points$Time, n=1)
+  } else {
+    end = .self$formatIso8601(end)
+  }
+  
+  seriesData <- list(
+    Points = points,
+    TimeRange = list(
+      Start = start,
+      End = end
+    ))
+  
+  postUrl <- paste0(acquisitionUri, "/timeseries/", seriesUniqueId, "/reflected")
+  r <- POST(postUrl, body = seriesData, encode = "json")
+  stop_for_status(r, postUrl)
+  
+  j <- fromJSON(content(r, "text"))
+  j$AppendRequestIdentifier
+},
+
+#' Gets the status of an append request
+#'
+#' @param appendRequestIdentifier The identifier returned by a basic or reflected append request
+#' @param timeout Optional timeout interval in seconds. Can be NULL to wait forever
+#' @returns The JSON response from a successful upload
+waitForCompletedAppendRequest = function(appendRequestIdentifier, timeout) {
+  
+  if (missing(timeout)) { timeout <- NULL }
+  
+  startTime <- Sys.time()
+  delay = 0.05
+  
+  while (TRUE) {
+    status <- .self$getAppendStatus(appendRequestIdentifier)
+    
+    if (status$AppendStatus != "Pending")
+      break
+    
+    elapsed = Sys.time() - startTime
+    
+    if (elapsed > timeout)
+      break
+    
+    Sys.sleep(delay)
+    
+    if (delay < 20)
+      delay <- delay * 2
+  }
+  
+  status
+  
+},
+
+#' Gets the status of an append request
+#'
+#' @param appendRequestIdentifier The identifier returned by a basic or reflected append request
+#' @returns The JSON response from a successful upload
+getAppendStatus = function(appendRequestIdentifier) {
+  r <- GET(paste0(acquisitionUri, "/timeseries/appendstatus/", appendRequestIdentifier))
+  stop_for_status(r, paste("get append status for", appendRequestIdentifier))
+  
+  j <- fromJSON(content(r, "text"))
+}
+
   )
 )
 
