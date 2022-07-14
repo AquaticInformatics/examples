@@ -10,5 +10,6 @@ namespace ExcelCsvExtractor
         public bool Overwrite { get; set; }
         public string DateTimeFormat { get; set; }
         public bool TrimEmptyColumns { get; set; } = true;
+        public string ColumnSeparator { get; set; } = ",";
     }
 }

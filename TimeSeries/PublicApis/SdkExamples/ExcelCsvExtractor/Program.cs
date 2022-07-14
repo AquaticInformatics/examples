@@ -101,6 +101,13 @@ namespace ExcelCsvExtractor
                 },
                 new Option
                 {
+                    Key = nameof(context.ColumnSeparator),
+                    Setter = value => context.ColumnSeparator = value,
+                    Getter = ()=> context.ColumnSeparator,
+                    Description = "Separator between columns"
+                },
+                new Option
+                {
                     Key = nameof(context.Overwrite),
                     Setter = value => context.Overwrite = bool.Parse(value),
                     Getter = () => $"{context.Overwrite}",
@@ -127,7 +134,7 @@ namespace ExcelCsvExtractor
                       + $"\n"
                       + $"\nusage: {GetProgramName()} [-option=value] [@optionsFile] [location] ..."
                       + $"\n"
-                      + $"\nSupported -option=value settings (/option=value works too):\n\n  -{string.Join("\n  -", options.Select(o => o.UsageText()))}"
+                      + $"\nSupported -option=value settings (/option=value works too):\n\n  {string.Join("\n  ", options.Select(o => o.UsageText()))}"
                       + $"\n"
                       + $"\nUse the @optionsFile syntax to read more options from a file."
                       + $"\n"
@@ -196,6 +203,9 @@ namespace ExcelCsvExtractor
         {
             if (!File.Exists(context.ExcelPath))
                 throw new ExpectedException($"The /{nameof(context.ExcelPath)} argument is required.");
+
+            if (string.IsNullOrWhiteSpace(context.ColumnSeparator))
+                throw new ExpectedException($"The /{nameof(context.ColumnSeparator)} argument cannot be empty or blank.");
         }
 
         private static bool ResolvePositionalArgument(Context context, string arg)

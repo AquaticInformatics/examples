@@ -81,6 +81,7 @@ Supported -option=value settings (/option=value works too):
   -ExcelPath         Specifies the Excel workbook to split
   -Sheets            Split out the named sheets. [default: All sheets]
   -OutputPath        Output path of CSVs (default: {ExcelPath}.{SheetName}.csv
+  -ColumnSeparator   Separator between columns [default: ,]
   -Overwrite         Set to true to overwrite existing files. [default: False]
   -TrimEmptyColumns  Set to false to retain empty columns at the end of each row. [default: True]
   -DateTimeFormat    Sets the format of any timestamps, using .NET datetime format [default: ISO8601]

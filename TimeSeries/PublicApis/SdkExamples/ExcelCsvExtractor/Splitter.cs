@@ -129,7 +129,7 @@ namespace ExcelCsvExtractor
                         }
                     }
 
-                    writer.WriteLine(string.Join(", ", columns));
+                    writer.WriteLine(string.Join(Context.ColumnSeparator, columns));
                 }
             }
         }
@@ -138,10 +138,18 @@ namespace ExcelCsvExtractor
 
         private string FormatCell(object cell)
         {
+            if (cell == null)
+                return string.Empty;
+
             if (cell is DateTime dateTime)
                 return dateTime.ToString(Context.DateTimeFormat ?? "O");
 
-            return $"{cell}";
+            var text = cell.ToString();
+
+            if (Context.TrimEmptyColumns)
+                text = text.Trim();
+
+            return text;
         }
 
         private static string CsvEscapedColumn(string text)
