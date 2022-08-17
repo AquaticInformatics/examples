@@ -102,7 +102,7 @@ See the excellent [NGINX Rate Limiting](https://www.nginx.com/blog/rate-limiting
 The proxy code is available as a Docker image, and can be started with the following docker command:
 
 ```sh
-docker run --name sos -p 8080:8080 52north/sos:aq_pr.6
+docker run --name sos -p 8080:8080 52north/sos:6.0.0-PR.10
 ```
 
 Alternatively you can use the [docker_compose.yml](./docker-compose/docker-compose.yml) file and then use the `docker-compose up` command to spin up the proxy behind an nginx instance.
@@ -231,15 +231,23 @@ Would be configured like this in the SOS proxy.
 
 Note that the "Public Identifier" is used, not the "Qualifier Code" (so "AboveDetectionLimit" and not "ADL")
 
-### Step 7 - Click "Next" to complete the Setup Wizard.
+### Step 7 - Optional configuration of additional qualifiers
+
+Here you can define additional qualifiers that should be considered by the service and added to the OGC WaterML 2.0 output.
+
+Default value: _Recreational,Recreational Repeats_
+
+![Additional Qualifiers](images/AdditionalQuqalifiers.png)
+
+### Step 8 - Click "Next" to complete the Setup Wizard.
 
 ![Advance To Final Setup Wizard Screen](images/AdvanceToFinalSetupWizardScreen.png)
 
-### Step 8 - Add the SOS admin credentials and click "Install"
+### Step 9 - Add the SOS admin credentials and click "Install"
 
 ![Add The Admin Credentials](images/AddTheAdminCredentials.png)
 
-### Step 9 - Login as the SOS admin
+### Step 10 - Login as the SOS admin
 
 ![Complete But Not Complete](images/CompleteButNotComplete.png)
 
@@ -247,17 +255,17 @@ Use the credentials you added in Step 8 to log into the SOS server in the "Admin
 
 ![Admin Login Screen](images/AdminLoginScreen.png)
 
-### Step 10 - Select the Admin => Settings => Profiles menut
+### Step 11 - Select the Admin => Settings => Profiles menut
 
 ![Admin Profiles Sub Menu](images/AdminProfilesSubMenu.png)
 
-### Step 11 - Select the "hydrology" profile and click "Activate Profile!" to enable WaterML 2 output
+### Step 12 - Select the "hydrology" profile and click "Activate Profile!" to enable WaterML 2 output
 
 ![Activate Hydrology Profile](images/ActivateHydrologyProfile.png)
 
-### Step 12 - Wait a few minutes for the initial discovery of exported series
+### Step 13 - Wait a few minutes for the initial discovery of exported series
 
-Once Step 11 is complete, the SOS proxy will begin polling your AQTS system to discover the time-series matching the configuration you specified in Step 6.
+Once Step 12 is complete, the SOS proxy will begin polling your AQTS system to discover the time-series matching the configuration you specified in Step 6.
 
 This step make take a few minutes to finish discovering the exported series.
 
@@ -271,4 +279,4 @@ Once the configuration is complete, the containers can be stopped and restarted 
 $ docker-compose down
 ```
 
-Every time the container is restarted, it will need to re-discover the exported series and load them into memory, just like in Step 12.
+Every time the container is restarted, it will need to re-discover the exported series and load them into memory, just like in Step 13.
