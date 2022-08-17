@@ -237,7 +237,7 @@ Here you can define additional qualifiers that should be considered by the servi
 
 Default value: _Recreational,Recreational Repeats_
 
-![Additional Qualifiers](images/AdditionalQuqalifiers.png)
+![Additional Qualifiers](images/AdditionalQualifiers.png)
 
 ### Step 8 - Click "Next" to complete the Setup Wizard.
 
