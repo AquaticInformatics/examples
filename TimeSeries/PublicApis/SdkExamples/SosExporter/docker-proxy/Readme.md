@@ -1,4 +1,4 @@
-﻿# SOS proxy for AQUARIUS Time Series
+# SOS proxy for AQUARIUS Time Series
 
 The folks at [52North](https://52north.org/) have released an open-source proxy version of their [SOS Server](https://52north.org/software/software-projects/sos/) project.
 
@@ -169,7 +169,7 @@ These properties are [Unix cron expressions](https://www.freeformatter.com/cron-
 The "AQUARIUS" section of settings includes configuration options for:
 - Which signal, corrected points or raw points, is exposed.
 - Which AQTS qualifiers, if any, represent below/above sensor detection limits.
-
+- Which additional AQTS qualifiers should be provided.
 
 ### Step 6 - Configure the "AQUARIUS" settings to filter which locations and time-series are exposed via SOS.
 
@@ -231,7 +231,7 @@ Would be configured like this in the SOS proxy.
 
 Note that the "Public Identifier" is used, not the "Qualifier Code" (so "AboveDetectionLimit" and not "ADL")
 
-### Step 7 - Optional configuration of additional qualifiers
+### Step 6E - Optional configuration of additional qualifiers
 
 Here you can define additional qualifiers that should be considered by the service and added to the OGC WaterML 2.0 output.
 
@@ -239,15 +239,15 @@ Default value: _Recreational,Recreational Repeats_
 
 ![Additional Qualifiers](images/AdditionalQualifiers.png)
 
-### Step 8 - Click "Next" to complete the Setup Wizard.
+### Step 7 - Click "Next" to complete the Setup Wizard.
 
 ![Advance To Final Setup Wizard Screen](images/AdvanceToFinalSetupWizardScreen.png)
 
-### Step 9 - Add the SOS admin credentials and click "Install"
+### Step 8 - Add the SOS admin credentials and click "Install"
 
 ![Add The Admin Credentials](images/AddTheAdminCredentials.png)
 
-### Step 10 - Login as the SOS admin
+### Step 9 - Login as the SOS admin
 
 ![Complete But Not Complete](images/CompleteButNotComplete.png)
 
@@ -255,17 +255,17 @@ Use the credentials you added in Step 8 to log into the SOS server in the "Admin
 
 ![Admin Login Screen](images/AdminLoginScreen.png)
 
-### Step 11 - Select the Admin => Settings => Profiles menut
+### Step 10 - Select the Admin => Settings => Profiles menut
 
 ![Admin Profiles Sub Menu](images/AdminProfilesSubMenu.png)
 
-### Step 12 - Select the "hydrology" profile and click "Activate Profile!" to enable WaterML 2 output
+### Step 11 - Select the "hydrology" profile and click "Activate Profile!" to enable WaterML 2 output
 
 ![Activate Hydrology Profile](images/ActivateHydrologyProfile.png)
 
-### Step 13 - Wait a few minutes for the initial discovery of exported series
+### Step 12 - Wait a few minutes for the initial discovery of exported series
 
-Once Step 12 is complete, the SOS proxy will begin polling your AQTS system to discover the time-series matching the configuration you specified in Step 6.
+Once Step 11 is complete, the SOS proxy will begin polling your AQTS system to discover the time-series matching the configuration you specified in Step 6.
 
 This step make take a few minutes to finish discovering the exported series.
 
@@ -279,4 +279,4 @@ Once the configuration is complete, the containers can be stopped and restarted 
 $ docker-compose down
 ```
 
-Every time the container is restarted, it will need to re-discover the exported series and load them into memory, just like in Step 13.
+Every time the container is restarted, it will need to re-discover the exported series and load them into memory, just like in Step 12.
