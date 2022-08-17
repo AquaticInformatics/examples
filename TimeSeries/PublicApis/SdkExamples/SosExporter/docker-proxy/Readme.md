@@ -1,4 +1,4 @@
-﻿# SOS proxy for AQUARIUS Time Series
+# SOS proxy for AQUARIUS Time Series
 
 The folks at [52North](https://52north.org/) have released an open-source proxy version of their [SOS Server](https://52north.org/software/software-projects/sos/) project.
 
@@ -102,7 +102,7 @@ See the excellent [NGINX Rate Limiting](https://www.nginx.com/blog/rate-limiting
 The proxy code is available as a Docker image, and can be started with the following docker command:
 
 ```sh
-docker run --name sos -p 8080:8080 52north/sos:aq_pr.6
+docker run --name sos -p 8080:8080 52north/sos:6.0.0-PR.10
 ```
 
 Alternatively you can use the [docker_compose.yml](./docker-compose/docker-compose.yml) file and then use the `docker-compose up` command to spin up the proxy behind an nginx instance.
@@ -169,7 +169,7 @@ These properties are [Unix cron expressions](https://www.freeformatter.com/cron-
 The "AQUARIUS" section of settings includes configuration options for:
 - Which signal, corrected points or raw points, is exposed.
 - Which AQTS qualifiers, if any, represent below/above sensor detection limits.
-
+- Which additional AQTS qualifiers should be provided.
 
 ### Step 6 - Configure the "AQUARIUS" settings to filter which locations and time-series are exposed via SOS.
 
@@ -230,6 +230,14 @@ Would be configured like this in the SOS proxy.
 ![Configure Limit Qualifiers](images/ConfigureLimitQualifiers.png)
 
 Note that the "Public Identifier" is used, not the "Qualifier Code" (so "AboveDetectionLimit" and not "ADL")
+
+### Step 6E - Optional configuration of additional qualifiers
+
+Here you can define additional qualifiers that should be considered by the service and added to the OGC WaterML 2.0 output.
+
+Default value: _Recreational,Recreational Repeats_
+
+![Additional Qualifiers](images/AdditionalQualifiers.png)
 
 ### Step 7 - Click "Next" to complete the Setup Wizard.
 
