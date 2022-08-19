@@ -295,11 +295,15 @@ namespace LabFileImporter
 
         private void serverTextBox_TextChanged(object sender, EventArgs e)
         {
+            Context.ServerUrl = serverTextBox.Text.Trim();
+
             OnServerConfigChanged();
         }
 
         private void apiTokenTextBox_TextChanged(object sender, EventArgs e)
         {
+            Context.ApiToken = apiTokenTextBox.Text.Trim();
+
             OnServerConfigChanged();
         }
 
