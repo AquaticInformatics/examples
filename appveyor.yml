@@ -14,7 +14,7 @@ only_commits:
 
 environment:
   GITHUB_AUTH_TOKEN:
-    secure: e24gj/T2VZ5R4XwbNUwj+eu4FbHEqWKUhuvNKXcp4dRPxj8lgW3AbWgSitK5kzek
+    secure: a+daW6wCxNjiC19/k6jLSgweptfO1hx8779M6wDFPaEA/Hg14D6jVqMBw/mO27Sq
 
 assembly_info:
   patch: true
