@@ -56,34 +56,9 @@ namespace PointZilla.PointReaders
 
             var anyGapPoints = points.Any(p => p.Type == PointType.Gap);
 
-            if (Context.CsvRemoveDuplicatePoints && !anyGapPoints)
+            if (points.Any() && Context.CsvRemoveDuplicatePoints && !anyGapPoints)
             {
-                points = points
-                    .OrderBy(p => p.Time)
-                    .ToList();
-
-                var duplicatePointCount = 0;
-
-                for (var i = 1; i < points.Count; ++i)
-                {
-                    var prevPoint = points[i - 1];
-                    var point = points[i];
-
-                    if (point.Time != prevPoint.Time)
-                        continue;
-
-                    ++duplicatePointCount;
-
-                    Log.Warn($"Discarding duplicate CSV point at {point.Time} with value {point.Value}");
-                    points.RemoveAt(i);
-
-                    --i;
-                }
-
-                if (duplicatePointCount > 0)
-                {
-                    Log.Warn($"Removed {duplicatePointCount} duplicate CSV points.");
-                }
+                points = RemoveDuplicatePoints(points);
             }
 
             if (Context.CsvRealign && !anyGapPoints)
@@ -108,6 +83,54 @@ namespace PointZilla.PointReaders
             Log.Info($"Loaded {PointSummarizer.Summarize(points)} from '{path}'.");
 
             return points;
+        }
+
+        private List<TimeSeriesPoint> RemoveDuplicatePoints(List<TimeSeriesPoint> points)
+        {
+            points = points
+                .OrderBy(p => p.Time)
+                .ToList();
+
+            var duplicatePointCount = 0;
+            var trimmedPoints = new List<TimeSeriesPoint>(points.Count);
+
+            for (var i = 1; i < points.Count; ++i)
+            {
+                var prevPoint = points[i - 1];
+                var point = points[i];
+
+                if (point.Time != prevPoint.Time)
+                {
+                    if (duplicatePointCount > 0)
+                        trimmedPoints.Add(point);
+
+                    continue;
+                }
+
+                if (duplicatePointCount == 0)
+                {
+                    // We have just detected our first duplicate point, so collect all the leading points
+                    trimmedPoints.AddRange(points.Take(i));
+
+                    if (points.Count > 2000)
+                        Log.Warn($"Removing duplicate timestamps from {points.Count} points (this may take a while) ...");
+                }
+
+                ++duplicatePointCount;
+
+                if (Context.CsvWarnDuplicatePoints)
+                    Log.Warn($"Discarding duplicate CSV point at {point.Time} with value {point.Value}");
+            }
+
+            if (duplicatePointCount == 0)
+                return points;
+
+            if (duplicatePointCount > 0)
+            {
+                Log.Warn($"Removed {duplicatePointCount} duplicate CSV points.");
+            }
+
+            return trimmedPoints;
         }
 
         private List<TimeSeriesPoint> LoadExcelPoints(string path)
