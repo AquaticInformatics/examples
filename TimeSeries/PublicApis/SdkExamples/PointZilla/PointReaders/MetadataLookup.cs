@@ -82,7 +82,10 @@ namespace PointZilla.PointReaders
 
     public static class MetadataExtensions
     {
-        public static T GetFirstMetadata<TMetadata, T>(this MetadataLookup<TMetadata> lookup, DateTimeOffset time, Func<TMetadata, T> func)
+        // Use for: Grade, Approval, Method, GapTolerance, InterpolationType
+        // Each of these metadata types can have exactly one or no applicable metadata at any given time.
+        // InterpolationType is fixed for the lifetime of the series. Only one InterpolationType will exist.
+        public static T ResolveSingleMetadata<TMetadata, T>(this MetadataLookup<TMetadata> lookup, DateTimeOffset time, Func<TMetadata, T> func)
             where TMetadata : TimeRange
         {
             var metadata = lookup.FirstOrDefault(time);
@@ -90,7 +93,9 @@ namespace PointZilla.PointReaders
             return metadata == null ? default : func(metadata);
         }
 
-        public static IEnumerable<T> GetManyMetadata<TMetadata, T>(this MetadataLookup<TMetadata> lookup, DateTimeOffset time, Func<TMetadata, T> func)
+        // Use for: Qualifier, Note, CorrectionOperation
+        // Each of these metadata types can have zero or more applicable items at any given time
+        public static IEnumerable<T> ResolveOverlappingMetadata<TMetadata, T>(this MetadataLookup<TMetadata> lookup, DateTimeOffset time, Func<TMetadata, T> func)
             where TMetadata : TimeRange
         {
             return lookup
