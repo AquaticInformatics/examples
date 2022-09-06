@@ -89,8 +89,8 @@ namespace PointZilla.PointReaders
                 {
                     Time = Instant.FromDateTimeOffset(p.Timestamp.DateTimeOffset),
                     Value = p.Value.Numeric,
-                    GradeCode = gradesLookup.GetFirstMetadata(p.Timestamp.DateTimeOffset, g => int.Parse(g.GradeCode)),
-                    Qualifiers = qualifiersLookup.GetManyMetadata(p.Timestamp.DateTimeOffset, q => q.Identifier).ToList()
+                    GradeCode = gradesLookup.ResolveSingleMetadata(p.Timestamp.DateTimeOffset, g => int.Parse(g.GradeCode)),
+                    Qualifiers = qualifiersLookup.ResolveOverlappingMetadata(p.Timestamp.DateTimeOffset, q => q.Identifier).ToList()
                 })
                 .ToList();
 
