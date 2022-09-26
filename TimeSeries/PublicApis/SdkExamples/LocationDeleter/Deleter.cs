@@ -1116,7 +1116,7 @@ namespace LocationDeleter
 
         private SearchLocation GetSiteVisitLocation(LocationInfo locationInfo)
         {
-            var searchResults = _siteVisit.Get(new GetSearchLocations {SearchText = locationInfo.Identifier});
+            var searchResults = _siteVisit.Get(new GetSearchLocations { SearchText = locationInfo.Identifier, MaxResults = int.MaxValue });
 
             if (searchResults.LimitExceeded)
                 throw new ExpectedException($"Cannot resolve location ID for identifier='{locationInfo.Identifier}'. LimitExceeded=true. Results.Count={searchResults.Results.Count}");
