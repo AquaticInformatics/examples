@@ -1,0 +1,47 @@
+# Credentials for an account with permissions to append points and create missing timeseries (CanReadData, CanAddData, CanEditLocationDetails)
+-Server=
+-Username=
+-Password=
+
+# If set to true data aggregation is performed. Otherwise, false to only list the aggregates.
+-Aggregate=false
+
+# List of tags which describe the tags to search for
+# Each tag is assumed to be ValueType=None and AppliesToLocations=true
+# Each -Tags= option can be -Tags={tagname} or -Tags={tagname}@{locationIdentifier}
+# If no @{locationIdentifier} is specified, the {tagname} is assumed to be a locationIdentifier.
+# If no tags are specified, nothing will be done
+-Tags=Horsham@HORSHAM
+-Tags=Ararat@ARARAT
+
+# Options to filter the reflected series from AQSamples that will be aggregated.
+# Filtering by labels and parameterIDs is possible, to further reduce the aggregated series.
+
+# Filter by parameterID. If no -ParameterIds= options are set, all series will be aggregated by Parameter
+#-ParameterIds=Alkalinity
+#-ParameterIds=Boron
+#-ParameterIds=FC
+#-ParameterIds=Free Chlorine
+
+# Filter by label. If no -Labels= options are set, all AQSamples reflected series will be aggregated by Parameter and label.
+# To aggregate multiple labels together -Labels=label1|label2|label3 
+-Labels=LabData|FieldData
+
+# The aggregation label to use for aggregated series. 
+-AggrSeriesLabel_Single={Label} Aggregated
+-AggrSeriesLabel_Multi=Aggregated
+
+# How to handle duplicate timestamps in the aggregated points.
+# When duplicate point timestamps are encountered, always log an ERROR message showing the timestamp, source series identifiers, and source values.
+# Defaults to false
+# If false, don't add any point values at that ambiguous timestamp.
+# If true, add a second to each of the duplicate points to make them distinct.
+-AdjustDuplicateTimestamps=true
+
+# Publish the created aggregate time-series to AQWebPortal.
+# Will be ignored if the time-series location has its publish set to false.
+-Publish=false
+
+
+
+
