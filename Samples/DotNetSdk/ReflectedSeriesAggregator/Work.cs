@@ -151,7 +151,7 @@ namespace ReflectedSeriesAggregator
 
                         if (filteredTimeSeries.Count == 0)
                         {
-                            string message = $"Parameter '{filterParameter.DisplayName}', Filter Label(s): '{string.Join(", ", filterLabels.Select(l => string.Join("|", l)))}. No aggregate series found. IGNORING'";
+                            string message = $"Tag: '{rawTag}', Parameter: '{filterParameter.DisplayName}', Filter Label(s): '{string.Join(",", filterLabels.Select(l => string.Join("|", l)))}. No aggregate series found. IGNORING'";
                             if (_settings.Aggregate)
                                 _logger.Debug(message);
                             else
@@ -160,7 +160,7 @@ namespace ReflectedSeriesAggregator
                         }
                         else
                         {
-                            string message = $"Parameter: '{filterParameter.DisplayName}', Filter Label(s): '{string.Join(", ", filterLabels.Select(l => string.Join("|", l)))}'. Found {filteredTimeSeries.Count} aggregates(s).";
+                            string message = $"Tag: '{rawTag}', Parameter: '{filterParameter.DisplayName}', Filter Label(s): '{string.Join(", ", filterLabels.Select(l => string.Join("|", l)))}'. Found {filteredTimeSeries.Count} aggregates(s).";
                             if (_settings.Aggregate)
                                 _logger.Debug(message);
                             else
