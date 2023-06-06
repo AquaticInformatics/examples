@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -35,7 +36,22 @@ namespace PointZilla
                 ServiceStackConfig.ConfigureServiceStack();
 
                 var context = ParseArgs(args);
-                new Program(context).Run();
+                if (!context.MultiRunStdin)
+                {
+                    new Program(context).Run();
+                }
+                else
+                {
+                    var line = 1;
+                    string argLine;
+                    while (!string.IsNullOrWhiteSpace(argLine = Console.ReadLine())) 
+                    {
+                        _log.Info($"Started running {line++} '{argLine}'");
+                        var currentArgs = CommandLineStringSplitter.Instance.Split(argLine);
+                        var currentContext = ParseArgs(currentArgs);
+                        new Program(currentContext).Run();
+                    }
+                }
 
                 Environment.ExitCode = 0;
             }
@@ -102,7 +118,7 @@ namespace PointZilla
             return $"{GetCoreType().Namespace} v{fileVersionInfo.FileVersion}";
         }
 
-        private static Context ParseArgs(string[] args)
+        private static Context ParseArgs(IEnumerable<string> args)
         {
             var context = new Context
             {
@@ -123,6 +139,8 @@ namespace PointZilla
                 new Option {Key = nameof(context.Wait), Setter = value => context.Wait = bool.Parse(value), Getter = () => context.Wait.ToString(), Description = "Wait for the append request to complete"},
                 new Option {Key = nameof(context.AppendTimeout), Setter = value => context.AppendTimeout = TimeSpan.Parse(value), Getter = () => context.AppendTimeout.ToString(), Description = "Timeout period for append completion, in .NET TimeSpan format."},
                 new Option {Key = nameof(context.BatchSize), Setter = value => context.BatchSize = int.Parse(value), Getter = () => context.BatchSize.ToString(), Description = "Maximum number of points to send in a single append request"},
+
+                new Option {Key = nameof(context.MultiRunStdin), Setter = value => context.MultiRunStdin = bool.Parse(value), Getter = () => context.MultiRunStdin.ToString(), Description = "Run PointZilla many times based on args in specified file"},
 
                 new Option(), new Option {Description = "Time-series options:"},
                 new Option {Key = nameof(context.TimeSeries), Setter = value => context.TimeSeries = value, Getter = () => context.TimeSeries, Description = "Target time-series identifier or unique ID"},
@@ -329,7 +347,7 @@ namespace PointZilla
             if (context.SourceTimeSeries != null && string.IsNullOrEmpty(context.SourceTimeSeries.Server) && string.IsNullOrEmpty(context.Server))
                 throw new ExpectedException($"A /{nameof(context.Server)} option is required to load the source time-series.\n\n{helpGuidance}");
 
-            if (!context.StopAfterSavingCsv && string.IsNullOrWhiteSpace(context.FindTimezones))
+            if (!context.StopAfterSavingCsv && string.IsNullOrWhiteSpace(context.FindTimezones) && !context.MultiRunStdin)
             {
                 if (string.IsNullOrWhiteSpace(context.Server))
                     throw new ExpectedException($"A /{nameof(context.Server)} option is required.\n\n{helpGuidance}");

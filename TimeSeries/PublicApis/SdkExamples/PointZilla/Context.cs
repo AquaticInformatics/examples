@@ -115,5 +115,7 @@ namespace PointZilla
         public Field NoteStartField { get; set; } = Field.Parse("StartTime", nameof(Context.NoteStartField));
         public Field NoteEndField { get; set; } = Field.Parse("EndTime", nameof(Context.NoteEndField));
         public Field NoteTextField { get; set; } = Field.Parse("NoteText", nameof(Context.NoteTextField));
+
+        public bool MultiRunStdin { get; set; }
     }
 }
