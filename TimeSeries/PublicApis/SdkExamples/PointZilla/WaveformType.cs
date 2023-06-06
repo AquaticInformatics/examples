@@ -6,5 +6,6 @@
         SawTooth,
         SineWave,
         SquareWave,
+        Gaussian,
     }
 }

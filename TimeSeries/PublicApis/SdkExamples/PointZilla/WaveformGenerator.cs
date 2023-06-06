@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Aquarius.TimeSeries.Client.ServiceModels.Acquisition;
 using NodaTime;
+using Org.BouncyCastle.Security;
 using ServiceStack.Logging;
 
 namespace PointZilla
@@ -49,6 +50,7 @@ namespace PointZilla
             {WaveformType.SawTooth,GenerateSawToothValue},
             {WaveformType.SineWave,GenerateSineWaveValue},
             {WaveformType.SquareWave,GenerateSquareWaveValue},
+            {WaveformType.Gaussian,GenerateGaussianValue},
         };
 
         private static double GenerateLinearValue(double iteration, double period)
@@ -73,6 +75,19 @@ namespace PointZilla
         private static double GenerateSineWaveValue(double iteration, double period)
         {
             return Math.Sin(2.0 * Math.PI * iteration / period);
+        }
+
+        private static readonly Random Random = new SecureRandom();
+
+        private static double GenerateGaussianValue(double _, double period)
+        {
+            // Box-Muller transform from uniform to gaussian distribution
+            var uniform1 = Random.NextDouble();
+            var uniform2 = Random.NextDouble();
+            var gaussian = Math.Sqrt(-2.0 * Math.Log(uniform1)) * Math.Sin(2.0 * Math.PI * uniform2);
+
+            var stdDev = period;
+            return stdDev * gaussian;
         }
     }
 }
