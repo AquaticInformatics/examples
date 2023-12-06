@@ -1,6 +1,6 @@
 ﻿# PointZilla
 
-`PointZilla` is a console tool for quickly appending points to a time-series in an AQTS 201x system. You can also use `PointZilla` to [delete all points](#deleting-all-points-in-a-time-series) or [delete a range of existing points](#deleting-a-range-of-points-in-a-time-series) from a time-series.
+`PointZilla` is a console tool for quickly appending points to a time-series in an AQTS 201x and later system. You can also use `PointZilla` to [delete all points](#deleting-all-points-in-a-time-series) or [delete a range of existing points](#deleting-a-range-of-points-in-a-time-series) from a time-series.
 
 Download the [latest PointZilla.exe release here](../../../../../../releases/latest)
  
@@ -135,7 +135,7 @@ When reading data from a CSV file, use the case-insensitive keyword `Gap` in a t
 
 `PointZilla` can also read times, values, grade codes, and qualifiers from a CSV file.
 
-All the CSV parsing options are configurable, but will default to values which match the CSV files exported from AQTS Springboard from 201x systems.
+All the CSV parsing options are configurable, but will default to values which match the CSV files exported from AQTS Springboard from 201x and later systems.
 
 The `-csvFormat=` option supports four pre-configured formats:
 
