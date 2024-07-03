@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NEM12PreProcessor", "NEM12P
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelCsvExtractor", "ExcelCsvExtractor\ExcelCsvExtractor.csproj", "{657DC627-59D4-4910-B723-C7BE8A70B43B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelToCSVProcessor", "ExcelToCSVProcessor\ExcelToCSVProcessor.csproj", "{E921CFC6-AE8A-48C7-8B14-4DD3F3EA2306}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -93,6 +95,10 @@ Global
 		{657DC627-59D4-4910-B723-C7BE8A70B43B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{657DC627-59D4-4910-B723-C7BE8A70B43B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{657DC627-59D4-4910-B723-C7BE8A70B43B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E921CFC6-AE8A-48C7-8B14-4DD3F3EA2306}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E921CFC6-AE8A-48C7-8B14-4DD3F3EA2306}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E921CFC6-AE8A-48C7-8B14-4DD3F3EA2306}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E921CFC6-AE8A-48C7-8B14-4DD3F3EA2306}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
