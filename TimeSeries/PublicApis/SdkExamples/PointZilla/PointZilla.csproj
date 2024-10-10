@@ -37,8 +37,8 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Aquarius.Client, Version=21.2.3.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Aquarius.SDK.21.2.3\lib\net472\Aquarius.Client.dll</HintPath>
+    <Reference Include="Aquarius.Client, Version=24.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Aquarius.SDK.24.2.0\lib\net472\Aquarius.Client.dll</HintPath>
     </Reference>
     <Reference Include="Aquarius.Client.Legacy, Version=20.1.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Aquarius.SDK.Legacy.20.1.2\lib\net45\Aquarius.Client.Legacy.dll</HintPath>
@@ -92,20 +92,20 @@
     <Reference Include="Npgsql, Version=4.0.14.0, Culture=neutral, PublicKeyToken=5d8b90d52f46fda7, processorArchitecture=MSIL">
       <HintPath>..\packages\Npgsql.4.0.14\lib\net451\Npgsql.dll</HintPath>
     </Reference>
-    <Reference Include="ServiceStack.Client, Version=5.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
-      <HintPath>..\packages\ServiceStack.Client.5.10.4\lib\net45\ServiceStack.Client.dll</HintPath>
+    <Reference Include="ServiceStack.Client, Version=6.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
+      <HintPath>..\packages\ServiceStack.Client.6.0.2\lib\net472\ServiceStack.Client.dll</HintPath>
     </Reference>
-    <Reference Include="ServiceStack.HttpClient, Version=5.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
-      <HintPath>..\packages\ServiceStack.HttpClient.5.10.4\lib\net45\ServiceStack.HttpClient.dll</HintPath>
+    <Reference Include="ServiceStack.HttpClient, Version=6.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
+      <HintPath>..\packages\ServiceStack.HttpClient.6.0.2\lib\net472\ServiceStack.HttpClient.dll</HintPath>
     </Reference>
-    <Reference Include="ServiceStack.Interfaces, Version=5.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
-      <HintPath>..\packages\ServiceStack.Interfaces.5.10.4\lib\net472\ServiceStack.Interfaces.dll</HintPath>
+    <Reference Include="ServiceStack.Interfaces, Version=6.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
+      <HintPath>..\packages\ServiceStack.Interfaces.6.0.2\lib\net472\ServiceStack.Interfaces.dll</HintPath>
     </Reference>
     <Reference Include="ServiceStack.Logging.Log4Net, Version=5.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
-      <HintPath>..\packages\ServiceStack.Logging.Log4Net.5.8.0\lib\net45\ServiceStack.Logging.Log4Net.dll</HintPath>
+      <HintPath>..\packages\ServiceStack.Logging.Log4Net.6.0.2\lib\net472\ServiceStack.Logging.Log4Net.dll</HintPath>
     </Reference>
-    <Reference Include="ServiceStack.Text, Version=5.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
-      <HintPath>..\packages\ServiceStack.Text.5.10.4\lib\net45\ServiceStack.Text.dll</HintPath>
+    <Reference Include="ServiceStack.Text, Version=6.0.0.0, Culture=neutral, PublicKeyToken=02c12cbda47e6587, processorArchitecture=MSIL">
+      <HintPath>..\packages\ServiceStack.Text.6.0.2\lib\net472\ServiceStack.Text.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
