@@ -200,7 +200,7 @@ namespace SamplesObservationExporter
                     if (!first.FieldVisit?.StartTime.HasValue ?? true)
                         throw new ExpectedException($"{"observation".ToQuantity(observations.Count)} at location '{location.CustomId}' have no timestamp.");
 
-                    var time = first.FieldVisit.StartTime.Value.Add(utcOffset);
+                    var time = first.FieldVisit.StartTime.Value.ToDateTimeOffset().Add(utcOffset);
 
                     var columns = new List<string>(headerRow.Length)
                     {

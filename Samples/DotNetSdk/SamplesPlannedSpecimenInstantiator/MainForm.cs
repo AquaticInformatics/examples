@@ -260,7 +260,7 @@ namespace SamplesTripScheduler
                 .Select(v => new TableItem
                 {
                     Trip = v.FieldTrip.CustomId,
-                    Start = v.StartTime.Value.UtcDateTime.Add(DateTimeOffset.Now.Offset),
+                    Start = v.StartTime.Value.ToDateTimeUtc().Add(DateTimeOffset.Now.Offset),
                     Location = v.SamplingLocation.CustomId,
                     Specimens = $"{v.PlannedActivities.SelectMany(a => a.ActivityTemplate.SpecimenTemplates).Count()} specimens",
                     Visit = v
