@@ -73,7 +73,7 @@ namespace ObservationValidator
                     result.ProcessedSpecimenCount++;
 
 
-                    var observationResponse = client.Get(new GetObservations
+                    var observationResponse = client.Get(new GetObservationsV2
                     {
                         SpecimenName = specimen.Name, 
                         QualityControlTypes = new List<string> { "NORMAL"},
@@ -119,7 +119,7 @@ namespace ObservationValidator
                 if (invalidObservation.LabResultDetails?.QualityFlag == flag)
                     continue;
 
-                client.Put(new PutObservation
+                client.Put(new PutObservationV2
                 {
                     Id = invalidObservation.Id,
                     LabResultDetails = new LabResultDetails
