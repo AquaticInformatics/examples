@@ -1072,7 +1072,8 @@ namespace LocationDeleter
                     new LocationInfo
                     {
                         Identifier = location.Identifier,
-                        LocationName = location.LocationName
+                        LocationName = location.LocationName,
+                        UniqueId = location.UniqueId
                     }
                 };
             }
