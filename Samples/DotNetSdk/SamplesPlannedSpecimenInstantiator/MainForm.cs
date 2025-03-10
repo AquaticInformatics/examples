@@ -252,7 +252,7 @@ namespace SamplesTripScheduler
                 .ToDictionary(
                     tripId => tripId,
                     tripId => plannedVisitsWithStartTimes
-                        .Where(v => tripId == v.FieldTrip.Id && IsCandidateVisit(v))
+                        .Where(v => IsCandidateVisit(v) && tripId == v.FieldTrip.Id)
                         .ToList());
 
             var items = tripsWithPlannedVisits
