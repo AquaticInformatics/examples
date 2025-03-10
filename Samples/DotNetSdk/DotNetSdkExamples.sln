@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29403.142
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32929.385
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ObservationValidator", "ObservationValidator\ObservationValidator.csproj", "{4BB8F57C-DD37-4401-85F7-C1B4D97F36C7}"
 EndProject
@@ -21,6 +21,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NWFWMD-LabFileImporter", "NWFWMD-LabFileImporter\NWFWMD-LabFileImporter.csproj", "{68A1831C-8662-40F5-B12F-3A4E1A1E72A7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ObservationReportExporter", "ObservationReportExporter\ObservationReportExporter.csproj", "{8D25D462-6D50-48A1-A5E4-05116EC7B51F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReflectedSeriesAggregator", "ReflectedSeriesAggregator\ReflectedSeriesAggregator.csproj", "{E86145A8-0713-4CF3-9EC2-A955B58C6A3B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -56,6 +58,10 @@ Global
 		{8D25D462-6D50-48A1-A5E4-05116EC7B51F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8D25D462-6D50-48A1-A5E4-05116EC7B51F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8D25D462-6D50-48A1-A5E4-05116EC7B51F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E86145A8-0713-4CF3-9EC2-A955B58C6A3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E86145A8-0713-4CF3-9EC2-A955B58C6A3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E86145A8-0713-4CF3-9EC2-A955B58C6A3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E86145A8-0713-4CF3-9EC2-A955B58C6A3B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
